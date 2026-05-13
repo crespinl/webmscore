@@ -379,6 +379,47 @@ class WebMscore {
     }
 
     /**
+     * Read synthesis output params (master + tracks) for the current sequence.
+     * @returns {Promise<import('../schemas').AudioOutputParamsSnapshot>}
+     */
+    async getAudioOutputParams() {
+        if (!WebMscore.hasSoundfont) {
+            // We need to init audio synthesis to access Audio params
+            throw new Error('The soundfont is not set.')
+        }
+
+        const dataptr = Module.ccall('getAudioOutputParams',
+            'number',
+            ['number', 'number'],
+            [this.scoreptr, this.excerptId]
+        )
+        return JSON.parse(WasmRes.readText(dataptr))
+    }
+
+    /**
+     * Patch synthesis output params.
+     *
+     * Writable fields in `master` or each `tracks[i]` object will be applied.
+     * @param {import('../schemas').AudioOutputParamsPatchRequest} patch
+     * @returns {Promise<void>}
+     */
+    async setAudioOutputParams(patch) {
+        if (!WebMscore.hasSoundfont) {
+            // We need to init audio synthesis to edit Audio params
+            throw new Error('The soundfont is not set.')
+        }
+
+        const payloadPtr = getStrPtr(JSON.stringify(patch))
+        const dataptr = Module.ccall('setAudioOutputParams',
+            'number',
+            ['number', 'number', 'number'],
+            [this.scoreptr, payloadPtr, this.excerptId]
+        )
+        freePtr(payloadPtr)
+        WasmRes.readData(dataptr)
+    }
+
+    /**
      * Synthesize audio frames
      * 
      * `synthAudio` is single instance, i.e. you can't have multiple iterators. If you call `synthAudio` multiple times, it will reset the time offset of all iterators the function returned.
