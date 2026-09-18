@@ -15,9 +15,10 @@ concurrency:
 
 env:
   # See https://doc.qt.io/qt-6/wasm.html to have coherent Qt and EM versions
-  EM_VERSION: 3.1.14
+  # MuseScore 4.7 requires Qt >= 6.8, upstream builds wasm with Qt 6.10 / emsdk 4.0.7
+  EM_VERSION: 4.0.7
   EM_CACHE_FOLDER: 'emsdk-cache'
-  Qt6_VER: '6.4.3'
+  Qt6_VER: '6.10.2'
   COMMIT_MSG: ${{ github.event.head_commit.message }}
 
 jobs:
@@ -55,14 +56,26 @@ jobs:
             emmake_cache
           path: ${{ github.workspace }}/.ccache
 
-      - name: Install Qt
+      - name: Install Qt (host)
+        # The host Qt provides the tools (moc, rcc, qmltyperegistrar) needed to cross compile
         uses: jurplel/install-qt-action@v4
         with:
-          # aqtversion: '==2.1.*'
           version: ${{env.Qt6_VER}}
           host: 'linux'
           target: 'desktop'
-          arch: 'wasm_32'
+          arch: 'linux_gcc_64'
+          archives: 'qtbase qtdeclarative qtsvg icu'
+          modules: 'qt5compat'
+          dir: ${{ github.workspace }}/build.qt6
+          setup-python: true
+          cache: true
+      - name: Install Qt (wasm)
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: ${{env.Qt6_VER}}
+          host: 'all_os'
+          target: 'wasm'
+          arch: 'wasm_singlethread'
           archives: 'qtbase qtdeclarative qtsvg'
           modules: 'qt5compat'
           dir: ${{ github.workspace }}/build.qt6
@@ -86,18 +99,20 @@ jobs:
         with:
           path: ${{env.EM_CACHE_FOLDER}}
           key: emsdk-${{env.EM_VERSION}}-${{ runner.os }}
-      - name: Apply patches for Qt and emscripten
+      - name: Apply patches for Qt
+        # Adds the prebuilt `offscreen` QPA platform plugin (webmscore runs headless)
+        # and hides the `wasm` platform plugin, which requires a DOM
         run: |
-          cp --verbose -r buildscripts/qt/* build.qt6/Qt/${Qt6_VER}/wasm_32/
-          find build.qt6/Qt/${Qt6_VER}/wasm_32/lib/cmake/Qt6Gui/ -name 'Qt6QWasmIntegration*' -delete
-          echo $(which emcc).py
-          sed -i -r "s/(shared.Settings.MEM_INIT_IN_WASM = )True/\1False/" "$(which emcc).py"
+          cp --verbose -r buildscripts/qt/* build.qt6/Qt/${Qt6_VER}/wasm_singlethread/
+          find build.qt6/Qt/${Qt6_VER}/wasm_singlethread/lib/cmake/Qt6Gui/ -name 'Qt6QWasmIntegration*' -delete
       - name: Install ccache
         run: |
           sudo apt install -y ccache
           ccache --version
 
       - name: Build
+        env:
+          QT6_ROOT: ${{ github.workspace }}/build.qt6/Qt/${{env.Qt6_VER}}
         run: |
           cd web-public
           npm i
