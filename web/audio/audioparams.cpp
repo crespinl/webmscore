@@ -5,7 +5,7 @@
 #include <QJsonParseError>
 #include <type_traits>
 
-#include "audio/worker/internal/workerplayback.h"
+#include "audio/engine/internal/engineplayback.h"
 
 #include "./audioparams.h"
 #include "./audiosynth.h"
@@ -64,26 +64,26 @@ namespace MainAudio {
 Ret getOutputParams(MainScore score) {
     (void)score;
 
-    const auto workerPlayback = modularity::globalIoc()->resolve<audio::worker::WorkerPlayback>("");
+    const auto enginePlayback = modularity::ioc()->resolve<audio::engine::IEnginePlayback>("");
 
     const audio::TrackSequenceId sequenceId = Synth::getSequenceId();
 
     QJsonObject root;
-    const auto masterParams = workerPlayback->masterOutputParams();
+    const auto masterParams = enginePlayback->masterOutputParams();
     if (!masterParams.ret) {
         return masterParams.ret;
     }
     root.insert(QStringLiteral("master"), toQJsonObject(masterParams.val));
 
-    const auto trackIds = workerPlayback->trackIdList(sequenceId);
+    const auto trackIds = enginePlayback->trackIdList(sequenceId);
     if (!trackIds.ret) {
         return trackIds.ret;
     }
     
     QJsonArray tracks;
     for (const auto trackId : trackIds.val) {
-        const auto trackName = QString::fromStdString(workerPlayback->trackName(sequenceId, trackId).val);
-        const auto trackParams = workerPlayback->outputParams(sequenceId, trackId);
+        const auto trackName = QString::fromStdString(enginePlayback->trackName(sequenceId, trackId).val);
+        const auto trackParams = enginePlayback->outputParams(sequenceId, trackId);
         if (!trackParams.ret) {
             return trackParams.ret;
         }
@@ -104,7 +104,7 @@ Ret getOutputParams(MainScore score) {
 Ret setOutputParams(MainScore score, const char* json) {
     (void)score;
 
-    const auto workerPlayback = modularity::globalIoc()->resolve<audio::worker::WorkerPlayback>("");
+    const auto enginePlayback = modularity::ioc()->resolve<audio::engine::IEnginePlayback>("");
 
     QJsonParseError parseError;
     const QJsonDocument doc = QJsonDocument::fromJson(QByteArray(json), &parseError);
@@ -125,7 +125,7 @@ Ret setOutputParams(MainScore score, const char* json) {
             return make_ret(Ret::Code::UnknownError, std::string("Invalid type for 'master': object expected"));
         }
 
-        const auto masterParamsRet = workerPlayback->masterOutputParams();
+        const auto masterParamsRet = enginePlayback->masterOutputParams();
         if (!masterParamsRet.ret) {
             return masterParamsRet.ret;
         }
@@ -135,7 +135,7 @@ Ret setOutputParams(MainScore score, const char* json) {
         if (!ret) {
             return ret;
         }
-        workerPlayback->setMasterOutputParams(masterParams);
+        enginePlayback->setMasterOutputParams(masterParams);
     }
 
     if (payload.contains(QStringLiteral("tracks"))) {
@@ -157,7 +157,7 @@ Ret setOutputParams(MainScore score, const char* json) {
             }
 
             const audio::TrackId trackId = static_cast<audio::TrackId>(trackIdValue.toInt(-1));
-            const auto trackParamsRet = workerPlayback->outputParams(sequenceId, trackId);
+            const auto trackParamsRet = enginePlayback->outputParams(sequenceId, trackId);
             if (!trackParamsRet.ret) {
                 return trackParamsRet.ret;
             }
@@ -168,7 +168,7 @@ Ret setOutputParams(MainScore score, const char* json) {
                 return ret;
             }
 
-            workerPlayback->setOutputParams(sequenceId, trackId, params);
+            enginePlayback->setOutputParams(sequenceId, trackId, params);
         }
     }
 

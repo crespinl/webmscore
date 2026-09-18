@@ -22,7 +22,9 @@ muse_create_module(muse_audio ALIAS muse::audio)
 
 include(GetPlatformInfo)
 
-if (OS_IS_WASM)
+#! NOTE webmscore (MUSE_WEB_LIB) runs the audio engine in-process,
+#! so the real engine is needed even on wasm
+if (OS_IS_WASM AND NOT MUSE_WEB_LIB)
     set(WEBENGINE_FACADE_MODE ON)
 endif()
 

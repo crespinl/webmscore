@@ -15,9 +15,9 @@ void initModule() {
     auto aeM = new audio::AudioModule();
     aeM->registerExports();
     aeM->resolveImports();
-    auto playbackController = new playback::PlaybackController();
-    modularity::globalIoc()->registerExport<playback::IPlaybackController>("", playbackController);
-    modularity::globalIoc()->registerExport<playback::ISoundProfilesRepository>("", new playback::SoundProfilesRepository());
+    auto playbackController = new playback::PlaybackController(modularity::ContextPtr());
+    modularity::ioc()->registerExport<playback::IPlaybackController>("", playbackController);
+    modularity::ioc()->registerExport<playback::ISoundProfilesRepository>("", new playback::SoundProfilesRepository(modularity::ContextPtr()));
     playbackController->init();
     aeM->onInit(IApplication::RunMode::ConsoleApp);
 

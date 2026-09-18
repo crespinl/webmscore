@@ -107,12 +107,9 @@ Ret AbstractAudioWriter::doWriteAndWait(INotationPtr notation,
     }
 
     //! NOTE Waiting for the audio system to start if it is not already running
-    {
-        auto rpcChannel = modularity::globalIoc()->resolve<audio::rpc::IRpcChannel>("");
-        while (!startAudioController()->isAudioStarted()) {
-            async::processEvents();
-            rpcChannel->process();
-        }
+    while (!startAudioController()->isAudioStarted()) {
+        async::processMessages();
+        rpcChannel()->process();
     }
 
     m_isCompleted = false;
@@ -140,11 +137,10 @@ Ret AbstractAudioWriter::doWriteAndWait(INotationPtr notation,
 
     bool waitForCompletion = muse::value(options, OptionKey::WAIT_FOR_COMPLETION, Val(true)).toBool();
     if (waitForCompletion) {
-        auto rpcChannel = modularity::globalIoc()->resolve<audio::rpc::IRpcChannel>("");
         while (!m_isCompleted) {
             // process async events
-            async::processEvents(); // XXX: !important, otherwise promises won't run
-            rpcChannel->process();
+            async::processMessages(); // XXX: !important, otherwise promises won't run
+            rpcChannel()->process();
         }
     }
 

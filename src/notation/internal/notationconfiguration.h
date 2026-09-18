@@ -27,7 +27,6 @@
 #include "global/iglobalconfiguration.h"
 #include "io/ifilesystem.h"
 // #include "ui/iuiconfiguration.h"
-#include "context/iglobalcontext.h"
 #include "engraving/iengravingconfiguration.h"
 
 #include "../inotationconfiguration.h"
@@ -39,7 +38,6 @@ class NotationConfiguration : public INotationConfiguration, public muse::async:
     muse::GlobalInject<muse::io::IFileSystem> fileSystem;
     // muse::GlobalInject<muse::ui::IUiConfiguration> uiConfiguration;
     muse::GlobalInject<engraving::IEngravingConfiguration> engravingConfiguration;
-    muse::GlobalInject<context::IGlobalContext> context;
 
 public:
     NotationConfiguration() = default;

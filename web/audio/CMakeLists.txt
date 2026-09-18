@@ -1,21 +1,13 @@
 
-declare_module(MainAudio)
+muse_create_module(MainAudio)
 
-set(MUE_BUILD_IMPEXP_BB_MODULE ON)
-set(MUE_BUILD_IMPEXP_BWW_MODULE ON)
-set(MUE_BUILD_IMPEXP_CAPELLA_MODULE ON)
-set(MUE_BUILD_IMPEXP_MIDI_MODULE ON)
-set(MUE_BUILD_IMPEXP_MUSEDATA_MODULE ON)
-set(MUE_BUILD_IMPEXP_MUSICXML_MODULE ON)
-set(MUE_BUILD_IMPEXP_OVE_MODULE ON)
-set(MUE_BUILD_IMPEXP_AUDIOEXPORT_MODULE ON)
-set(MUE_BUILD_IMPEXP_IMAGESEXPORT_MODULE ON)
-set(MUE_BUILD_IMPEXP_GUITARPRO_MODULE ON)
-set(MUE_BUILD_IMPEXP_MEI_MODULE ON)
-set(MUE_BUILD_IMPEXP_VIDEOEXPORT_MODULE OFF)
-set(MUE_BUILD_IMPEXP_TABLEDIT_MODULE ON)
+target_include_directories(MainAudio PRIVATE
+    ${MU_ROOT}/src/framework/audio
+    ${MU_ROOT}/src/notation
+    ${MU_ROOT}/src/project
+)
 
-set(MODULE_SRC
+target_sources(MainAudio PRIVATE
     audio.cpp
     audio.h
     audioparams.cpp
@@ -31,16 +23,11 @@ set(MODULE_SRC
     ${MU_ROOT}/src/playback/internal/drumsetloader.h
 )
 
-set(MODULE_INCLUDE
-    ${MU_ROOT}/src/framework/audio
-)
-
 add_subdirectory(${MU_ROOT}/src/framework/audio          audio)
 add_subdirectory(${MU_ROOT}/src/importexport/audioexport audioexport)
 
-set(MODULE_LINK
+target_link_libraries(MainAudio PUBLIC
     muse_audio
     iex_audioexport
+    engraving
 )
-
-setup_module()

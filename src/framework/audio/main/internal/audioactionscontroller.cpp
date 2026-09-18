@@ -26,6 +26,11 @@ using namespace muse::audio;
 
 void AudioActionsController::init()
 {
+    if (!dispatcher()) {
+        //! NOTE No actions module (webmscore), these are dev actions, just skip them
+        return;
+    }
+
     dispatcher()->reg(this, "action://audio/dev/use-workermode", [this]() { setMode(workmode::WorkerMode); });
     dispatcher()->reg(this, "action://audio/dev/use-drivermode", [this]() { setMode(workmode::DriverMode); });
     dispatcher()->reg(this, "action://audio/dev/use-workerrpcmode", [this]() { setMode(workmode::WorkerRpcMode); });

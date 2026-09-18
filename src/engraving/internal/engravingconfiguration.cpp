@@ -234,7 +234,8 @@ SizeF EngravingConfiguration::defaultPageSize() const
 
 bool EngravingConfiguration::canLayoutIcons() const
 {
-    return uiConfiguration() != nullptr;
+    // return uiConfiguration() != nullptr;
+    return false;
 }
 
 muse::String EngravingConfiguration::iconsFontFamily() const

@@ -72,7 +72,11 @@ void AudioModule::registerExports()
     m_rpcChannel = std::make_shared<rpc::WebRpcChannel>();
     m_soundFontController = std::make_shared<WebSoundFontController>();
 #else
+#ifdef MUSE_AUDIO_INLINE_ENGINE
+    m_rpcChannel = std::make_shared<rpc::GeneralRpcChannel>(true /*singleThread*/);
+#else
     m_rpcChannel = std::make_shared<rpc::GeneralRpcChannel>();
+#endif
     m_soundFontController = std::make_shared<GeneralSoundFontController>(iocContext());
 #endif
 

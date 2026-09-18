@@ -513,7 +513,8 @@ muse::io::path_t NotationConfiguration::wallpapersDefaultDirPath() const
 bool NotationConfiguration::shouldInvertScore() const
 {
     if (scoreInversionEnabled()) {
-        return !isOnlyInvertInDarkTheme() || (uiConfiguration() && uiConfiguration()->isDarkMode());
+        // return !isOnlyInvertInDarkTheme() || (uiConfiguration() && uiConfiguration()->isDarkMode());
+        return !isOnlyInvertInDarkTheme();
     }
     return false;
 }

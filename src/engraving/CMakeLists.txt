@@ -20,6 +20,10 @@
 
 muse_create_module(engraving)
 
+# NOTE webmscore (wasm) loads these resources from the (virtual) file system,
+# embedding them would blow up the size of the wasm binary
+if (NOT EMSCRIPTEN)
+
 # TODO: convert to target-based variant of qt_add_resources
 # (Not easy because of heavy use of aliases, which is much more cumbersome
 # in CMake than in .qrc files)
@@ -44,6 +48,8 @@ muse_module_add_qrc(engraving BIG_RESOURCES
     data/fonts/fonts_FinaleBroadway.qrc
     data/fonts/fonts_Tabulature.qrc
 )
+
+endif(NOT EMSCRIPTEN)
 
 include(dom/dom.cmake)
 include(compat/midi/compatmidi.cmake)
@@ -332,7 +338,14 @@ endif()
 if (ENGRAVING_NO_INTERNAL)
     target_compile_definitions(engraving PUBLIC ENGRAVING_NO_INTERNAL ENGRAVING_NO_INTERACTIVE ENGRAVING_NO_API)
 else()
-    include(${CMAKE_CURRENT_LIST_DIR}/api/v1/api_v1.cmake)
+    #! NOTE The QML plugin api (v1) needs Qt features that are not available everywhere
+    #! (QProcess for instance is not available for wasm)
+    if (ENGRAVING_NO_API)
+        target_compile_definitions(engraving PUBLIC ENGRAVING_NO_API)
+    else()
+        include(${CMAKE_CURRENT_LIST_DIR}/api/v1/api_v1.cmake)
+    endif()
+
     target_sources(engraving PRIVATE
         internal/engravingconfiguration.cpp
         internal/engravingconfiguration.h

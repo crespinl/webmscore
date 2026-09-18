@@ -232,7 +232,7 @@ io::paths_t AudioConfiguration::userSoundFontDirectories() const
 {
     // std::string pathsStr = settings()->value(USER_SOUNDFONTS_PATHS).toString();
     // return io::pathsFromString(pathsStr);
-    return SoundFontPaths();
+    return io::paths_t();
 }
 
 void AudioConfiguration::setUserSoundFontDirectories(const io::paths_t& paths)

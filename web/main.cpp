@@ -30,10 +30,12 @@
 #include "project/internal/notationreadersregister.h"
 #include "project/internal/notationwritersregister.h"
 #include "engraving/dom/excerpt.h"
-#include "engraving/dom/undo.h"
+#include "engraving/editing/undo.h"
+#include "engraving/editing/editexcerpt.h"
 #include "engraving/engravingerrors.h"
 #include "converter/internal/compat/notationmeta.h"
 #include "notation/internal/notation.h"
+#include "notation/internal/masternotation.h"
 #include "notation/internal/mscnotationwriter.h"
 #include "importexport/midi/internal/midiexport/exportmidi.h"
 #include "./importexport/positionjsonwriter.h"
@@ -67,7 +69,7 @@ void _init(int argc, char** argv) {
     new QGuiApplication(argc, argv);
     loadFonts();
 
-    modularity::globalIoc()->registerExport<context::IGlobalContext>("", s_globalContext);
+    modularity::ioc()->registerExport<context::IGlobalContext>("", s_globalContext); // context interface, not a global one
     auto notationConfiguration = new notation::NotationConfiguration();
     modularity::globalIoc()->registerExport<notation::INotationConfiguration>("", notationConfiguration);
     // `NotationConfiguration::init()` is never called here, so the setting has no default
@@ -93,8 +95,8 @@ void _init(int argc, char** argv) {
     engraving::loadInstrumentTemplates("/instruments.xml");
 
     // file import/export
-    modularity::globalIoc()->registerExport<project::INotationReadersRegister>("", new project::NotationReadersRegister());
-    modularity::globalIoc()->registerExport<project::INotationWritersRegister>("", new project::NotationWritersRegister());
+    modularity::ioc()->registerExport<project::INotationReadersRegister>("", new project::NotationReadersRegister());
+    modularity::ioc()->registerExport<project::INotationWritersRegister>("", new project::NotationWritersRegister());
     auto mxlM = new iex::musicxml::MusicXmlModule();
     mxlM->registerExports();
     mxlM->resolveImports();
@@ -110,7 +112,7 @@ void _init(int argc, char** argv) {
     imgM->resolveImports();
     imgM->onInit(IApplication::RunMode::ConsoleApp);
 
-    auto writers = modularity::globalIoc()->resolve<project::INotationWritersRegister>("");
+    auto writers = modularity::ioc()->resolve<project::INotationWritersRegister>("");
     writers->reg({ engraving::MSCZ }, std::make_shared<notation::MscNotationWriter>(engraving::MscIoMode::Zip));
     // writers->reg({ engraving::MSCX }, std::make_shared<notation::MscNotationWriter>(engraving::MscIoMode::Dir));
     writers->reg({ engraving::MSCS }, std::make_shared<notation::MscNotationWriter>(engraving::MscIoMode::XmlFile));
@@ -225,7 +227,7 @@ Ret _doLoad(engraving::EngravingProjectPtr proj, QString filePath, bool doLayout
 Ret _doImport(engraving::EngravingProjectPtr proj, QString filePath, bool doLayout) {
     // Find import reader
     std::string suffix = io::suffix(filePath.toStdString());
-    auto readers = modularity::globalIoc()->resolve<project::INotationReadersRegister>("");
+    auto readers = modularity::ioc()->resolve<project::INotationReadersRegister>("");
     project::INotationReaderPtr scoreReader = readers->reader(suffix);
     if (!scoreReader) {
         return make_ret(engraving::Err::FileUnknownType);
@@ -370,7 +372,7 @@ WasmRes _npages(uintptr_t score_ptr, int excerptId) {
  */
 Ret processWriter(String writerName, engraving::MasterScore * score, io::IODevice& device, const INotationWriter::Options& options = INotationWriter::Options()) {
     // Find file writer
-    auto writers = modularity::globalIoc()->resolve<project::INotationWritersRegister>("");
+    auto writers = modularity::ioc()->resolve<project::INotationWritersRegister>("");
     auto writer = writers->writer(writerName.toStdString());
     if (!writer) {
         LOGE() << "Not found writer " << writerName;
@@ -378,7 +380,9 @@ Ret processWriter(String writerName, engraving::MasterScore * score, io::IODevic
     }
 
     // FIXME: persist this `Notation` object
-    auto notation = std::make_shared<notation::Notation>(modularity::globalCtx(), score);
+    // NOTE The master notation is needed by the writers that use the playback (audio export)
+    auto masterNotation = std::dynamic_pointer_cast<notation::MasterNotation>(s_globalContext->currentMasterNotation());
+    auto notation = std::make_shared<notation::Notation>(masterNotation.get(), modularity::ContextPtr(), score);
 
     // Write
     Ret writeRet = writer->write(notation, device, options);

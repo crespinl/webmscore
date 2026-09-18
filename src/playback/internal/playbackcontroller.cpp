@@ -49,25 +49,25 @@ using namespace mu::engraving;
 using namespace mu::notation;
 using namespace mu::playback;
 
-// static const ActionCode PLAY_CODE("play");
-// static const ActionCode PLAY_FROM_SELECTION("play-from-selection");
-// static const ActionCode PAUSE_CODE("pause");
-// static const ActionCode STOP_CODE("stop");
-// static const ActionCode PAUSE_AND_SELECT_CODE("pause-and-select");
-// static const ActionCode REWIND_CODE("rewind");
-// static const ActionCode LOOP_CODE("loop");
-// static const ActionCode LOOP_IN_CODE("loop-in");
-// static const ActionCode LOOP_OUT_CODE("loop-out");
-// static const ActionCode METRONOME_CODE("metronome");
-// static const ActionCode MIDI_ON_CODE("midi-on");
-// static const ActionCode INPUT_WRITTEN_PITCH("midi-input-written-pitch");
-// static const ActionCode INPUT_SOUNDING_PITCH("midi-input-sounding-pitch");
-// static const ActionCode COUNT_IN_CODE("countin");
-// static const ActionCode PAN_CODE("pan");
-// static const ActionCode REPEAT_CODE("repeat");
-// static const ActionCode PLAY_CHORD_SYMBOLS_CODE("play-chord-symbols");
-// static const ActionCode PLAYBACK_SETUP("playback-setup");
-// static const ActionCode TOGGLE_HEAR_PLAYBACK_WHEN_EDITING_CODE("toggle-hear-playback-when-editing");
+static const ActionCode PLAY_CODE("play");
+static const ActionCode PLAY_FROM_SELECTION("play-from-selection");
+static const ActionCode PAUSE_CODE("pause");
+static const ActionCode STOP_CODE("stop");
+static const ActionCode PAUSE_AND_SELECT_CODE("pause-and-select");
+static const ActionCode REWIND_CODE("rewind");
+static const ActionCode LOOP_CODE("loop");
+static const ActionCode LOOP_IN_CODE("loop-in");
+static const ActionCode LOOP_OUT_CODE("loop-out");
+static const ActionCode METRONOME_CODE("metronome");
+static const ActionCode MIDI_ON_CODE("midi-on");
+static const ActionCode INPUT_WRITTEN_PITCH("midi-input-written-pitch");
+static const ActionCode INPUT_SOUNDING_PITCH("midi-input-sounding-pitch");
+static const ActionCode COUNT_IN_CODE("countin");
+static const ActionCode PAN_CODE("pan");
+static const ActionCode REPEAT_CODE("repeat");
+static const ActionCode PLAY_CHORD_SYMBOLS_CODE("play-chord-symbols");
+static const ActionCode PLAYBACK_SETUP("playback-setup");
+static const ActionCode TOGGLE_HEAR_PLAYBACK_WHEN_EDITING_CODE("toggle-hear-playback-when-editing");
 
 static AudioOutputParams makeReverbOutputParams()
 {
@@ -562,7 +562,7 @@ void PlaybackController::onNotationChanged()
 {
     if (globalContext()->currentMasterNotation() != m_masterNotation) {
         m_masterNotation = globalContext()->currentMasterNotation();
-        // notifyActionCheckedChanged(LOOP_CODE);
+        notifyActionCheckedChanged(LOOP_CODE);
     }
 
     setNotation(globalContext()->currentNotation());
@@ -858,14 +858,14 @@ void PlaybackController::togglePlayRepeats()
 {
     bool playRepeatsEnabled = notationConfiguration()->isPlayRepeatsEnabled();
     notationConfiguration()->setIsPlayRepeatsEnabled(!playRepeatsEnabled);
-    // notifyActionCheckedChanged(REPEAT_CODE);
+    notifyActionCheckedChanged(REPEAT_CODE);
 }
 
 void PlaybackController::togglePlayChordSymbols()
 {
     bool playChordSymbolsEnabled = notationConfiguration()->isPlayChordSymbolsEnabled();
     notationConfiguration()->setIsPlayChordSymbolsEnabled(!playChordSymbolsEnabled);
-    // notifyActionCheckedChanged(PLAY_CHORD_SYMBOLS_CODE);
+    notifyActionCheckedChanged(PLAY_CHORD_SYMBOLS_CODE);
 
     for (auto it = m_instrumentTrackIdMap.cbegin(); it != m_instrumentTrackIdMap.cend(); ++it) {
         if (notationPlayback()->isChordSymbolsTrack(it->first)) {
@@ -878,7 +878,7 @@ void PlaybackController::toggleAutomaticallyPan()
 {
     bool panEnabled = notationConfiguration()->isAutomaticallyPanEnabled();
     notationConfiguration()->setIsAutomaticallyPanEnabled(!panEnabled);
-    // notifyActionCheckedChanged(PAN_CODE);
+    notifyActionCheckedChanged(PAN_CODE);
 }
 
 void PlaybackController::toggleMetronome()
@@ -887,7 +887,7 @@ void PlaybackController::toggleMetronome()
     bool countInEnabled = notationConfiguration()->isCountInEnabled();
 
     notationConfiguration()->setIsMetronomeEnabled(!metronomeEnabled);
-    // notifyActionCheckedChanged(METRONOME_CODE);
+    notifyActionCheckedChanged(METRONOME_CODE);
 
     setTrackActivity(notationPlayback()->metronomeTrackId(), !metronomeEnabled || countInEnabled);
 }
@@ -898,7 +898,7 @@ void PlaybackController::toggleCountIn()
     bool countInEnabled = notationConfiguration()->isCountInEnabled();
 
     notationConfiguration()->setIsCountInEnabled(!countInEnabled);
-    // notifyActionCheckedChanged(COUNT_IN_CODE);
+    notifyActionCheckedChanged(COUNT_IN_CODE);
 
     setTrackActivity(notationPlayback()->metronomeTrackId(), metronomeEnabled || !countInEnabled);
 }
@@ -912,8 +912,8 @@ void PlaybackController::toggleMidiInput()
 void PlaybackController::setMidiUseWrittenPitch(bool useWrittenPitch)
 {
     notationConfiguration()->setMidiUseWrittenPitch(useWrittenPitch);
-    // notifyActionCheckedChanged(INPUT_WRITTEN_PITCH);
-    // notifyActionCheckedChanged(INPUT_SOUNDING_PITCH);
+    notifyActionCheckedChanged(INPUT_WRITTEN_PITCH);
+    notifyActionCheckedChanged(INPUT_SOUNDING_PITCH);
 }
 
 void PlaybackController::toggleLoopPlayback()
@@ -1010,7 +1010,7 @@ void PlaybackController::updateLoop()
 
     enableLoop();
 
-    // notifyActionCheckedChanged(LOOP_CODE);
+    notifyActionCheckedChanged(LOOP_CODE);
 }
 
 void PlaybackController::enableLoop()
@@ -1029,7 +1029,7 @@ void PlaybackController::disableLoop()
     currentPlayer()->resetLoop();
     notationPlayback()->setLoopBoundariesEnabled(false);
 
-    // notifyActionCheckedChanged(LOOP_CODE);
+    notifyActionCheckedChanged(LOOP_CODE);
 }
 
 void PlaybackController::notifyActionCheckedChanged(const ActionCode& actionCode)
@@ -1512,7 +1512,7 @@ void PlaybackController::setupSequencePlayer()
 
 void PlaybackController::updateSoloMuteStates()
 {
-    if (!audioSettings() || !playback() || !m_notation) {
+    if (!audioSettings() || !playback() || !m_notation || !notationPlayback()) {
         return;
     }
 
@@ -1717,6 +1717,7 @@ void PlaybackController::setNotation(notation::INotationPtr notation)
         return;
     }
 
+#ifndef __EMSCRIPTEN__
     if (m_notation) {
         INotationPartsPtr notationParts = m_notation->parts();
         NotifyList<const Part*> partList = notationParts->partList();
@@ -1726,6 +1727,7 @@ void PlaybackController::setNotation(notation::INotationPtr notation)
         m_notation->interaction()->textEditingEnded().disconnect(this);
         m_notation->soloMuteState()->trackSoloMuteStateChanged().disconnect(this);
     }
+#endif
 
     m_notation = notation;
 

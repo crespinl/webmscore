@@ -55,6 +55,11 @@ void TransportEventsController::onEventReceived(const TransportEvent& event)
 {
     ONLY_AUDIO_MAIN_THREAD;
 
+    if (!dispatcher()) {
+        //! NOTE No actions module (webmscore), transport events cannot be dispatched
+        return;
+    }
+
     switch (event.type) {
     case TransportEvent::Type::Play:
         dispatcher()->dispatch("play");

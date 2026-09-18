@@ -28,7 +28,9 @@ namespace muse::audio::rpc {
 class GeneralRpcChannel : public IRpcChannel
 {
 public:
-    GeneralRpcChannel() = default;
+    //! NOTE singleThread: the engine runs on the same thread as the main side (webmscore)
+    explicit GeneralRpcChannel(bool singleThread = false)
+        : m_isSingleThread(singleThread) {}
     ~GeneralRpcChannel() override;
 
     void setupOnMain() override;
@@ -61,14 +63,16 @@ private:
         std::map<StreamId, StreamHandler> onStreams;
     };
 
+    bool isMainSide() const;
+
     void receive(RpcData& to, const Msg& m) const;
     void receive(RpcData& to, const StreamMsg& m) const;
 
     RpcData m_engineRpcData;
     RpcData m_mainRpcData;
 
-    // true when the engine runs on the main thread (web inline worker)
-    bool m_isSingleThread = false;
+    // true when the engine runs on the main thread (webmscore)
+    const bool m_isSingleThread = false;
 
     // port1 - main thread
     // port2 - engine rpc thread;

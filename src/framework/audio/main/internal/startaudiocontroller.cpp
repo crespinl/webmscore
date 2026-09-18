@@ -288,6 +288,7 @@ void StartAudioController::startAudioProcessing(const IApplication::RunMode& mod
         });
     };
 
+
     if (m_isEngineRunning.val) {
         sendEngineInit();
     } else {
@@ -323,9 +324,12 @@ void StartAudioController::stopAudioProcessing()
 
     audioDriverController()->close();
 
+#ifndef Q_OS_WASM
+    //! NOTE There is no audio worker thread on the web
     if (m_worker && m_worker->isRunning()) {
         m_worker->stop();
     }
+#endif
 
     m_engineController->unregisterExports();
 #endif

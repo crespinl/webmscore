@@ -25,7 +25,7 @@
 
 #include "fluidsynth/fluidsoundfontparser.h"
 
-#ifdef Q_OS_WASM
+#if defined(Q_OS_WASM) && !defined(MUSE_AUDIO_INLINE_ENGINE)
 #include "../../platform/web/networksfloader.h"
 #endif
 
@@ -146,7 +146,7 @@ void SoundFontRepository::doAddSoundFont(const SoundFontUri& uri, const SoundFon
         SoundFontPath path = uri.toLocalFile();
         parseAndAdd(uri, path);
     } else {
-#ifdef Q_OS_WASM
+#if defined(Q_OS_WASM) && !defined(MUSE_AUDIO_INLINE_ENGINE)
         auto promise = NetworkSFLoader::load(uri);
         promise.onResolve(this, [uri, parseAndAdd](const RetVal<ByteArray>& data) {
             if (data.ret) {

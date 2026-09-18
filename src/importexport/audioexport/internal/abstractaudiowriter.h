@@ -31,6 +31,8 @@
 #include "playback/iplaybackcontroller.h"
 #include "global/iapplication.h"
 
+#include "audio/common/rpc/irpcchannel.h"
+
 #include "project/inotationwriter.h"
 
 namespace mu::iex::audioexport {
@@ -43,6 +45,7 @@ public:
     muse::ContextInject<muse::audio::IStartAudioController> startAudioController = { this };
     muse::ContextInject<playback::IPlaybackController> playbackController  = { this };
     muse::ContextInject<muse::IApplication> application  = { this };
+    muse::ContextInject<muse::audio::rpc::IRpcChannel> rpcChannel = { this };
 
 public:
     AbstractAudioWriter(const muse::modularity::ContextPtr& iocCtx)

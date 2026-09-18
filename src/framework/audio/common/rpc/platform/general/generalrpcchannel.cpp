@@ -37,6 +37,13 @@ using namespace muse::audio::rpc;
 
 static thread_local bool s_isMainThread = false;
 
+//! NOTE In single-thread mode (webmscore), the main and the engine side share the same thread,
+//! so they cannot be told apart: everything is registered in, and dispatched to, the main rpc data.
+bool GeneralRpcChannel::isMainSide() const
+{
+    return m_isSingleThread || s_isMainThread;
+}
+
 GeneralRpcChannel::~GeneralRpcChannel()
 {
     m_engineRpcData.streams.clear();
@@ -55,10 +62,6 @@ void GeneralRpcChannel::setupOnMain()
 
 void GeneralRpcChannel::setupOnEngine()
 {
-    // In single-thread mode (web inline worker), the engine is set up on the main thread,
-    // so both sides register their handlers in the main rpc data. Dispatch everything there.
-    m_isSingleThread = s_isMainThread;
-
     if (m_isSingleThread) {
         m_msgQueue.port2()->onMessage([this](const Msg& m) {
             receive(m_mainRpcData, m);
@@ -94,7 +97,7 @@ void GeneralRpcChannel::send(const Msg& msg, const Handler& onResponse)
              << ", type: " << to_string(msg.type)
              << ", data.size: " << msg.data.size();
 
-    if (s_isMainThread) {
+    if (isMainSide()) {
         if (onResponse) {
             m_mainRpcData.onResponses[msg.callId] = onResponse;
         }
@@ -151,7 +154,7 @@ void GeneralRpcChannel::receive(RpcData& to, const Msg& m) const
 
 void GeneralRpcChannel::onMethod(Method method, Handler h)
 {
-    if (s_isMainThread) {
+    if (isMainSide()) {
         m_mainRpcData.onMethods[method] = h;
     } else {
         m_engineRpcData.onMethods[method] = h;
@@ -160,7 +163,7 @@ void GeneralRpcChannel::onMethod(Method method, Handler h)
 
 void GeneralRpcChannel::listenAll(Handler h)
 {
-    if (s_isMainThread) {
+    if (isMainSide()) {
         m_mainRpcData.listenerAll = h;
     } else {
         m_engineRpcData.listenerAll = h;
@@ -189,7 +192,7 @@ void GeneralRpcChannel::addStream(std::shared_ptr<IRpcStream> s)
 {
     s->init();
 
-    if (s_isMainThread) {
+    if (isMainSide()) {
         m_mainRpcData.streams.insert({ s->streamId(), s });
     } else {
         m_engineRpcData.streams.insert({ s->streamId(), s });
@@ -205,7 +208,7 @@ void GeneralRpcChannel::removeStream(StreamId id)
         }
     };
 
-    if (s_isMainThread) {
+    if (isMainSide()) {
         removeStrm(m_mainRpcData.streams, id);
     } else {
         removeStrm(m_engineRpcData.streams, id);
@@ -214,7 +217,7 @@ void GeneralRpcChannel::removeStream(StreamId id)
 
 void GeneralRpcChannel::onStream(StreamId id, StreamHandler h)
 {
-    if (s_isMainThread) {
+    if (isMainSide()) {
         m_mainRpcData.onStreams[id] = h;
     } else {
         m_engineRpcData.onStreams[id] = h;

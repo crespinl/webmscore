@@ -130,7 +130,7 @@ mu::project::INotationProject* Notation::project() const
 
 IMasterNotationPtr Notation::masterNotation() const
 {
-    return m_masterNotation->shared_from_this();
+    return m_masterNotation ? m_masterNotation->shared_from_this() : nullptr;
 }
 
 void Notation::setScore(Score* score)

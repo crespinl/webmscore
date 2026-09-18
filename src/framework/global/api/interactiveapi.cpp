@@ -22,6 +22,7 @@
 
 #include "interactiveapi.h"
 
+#include <QMetaEnum>
 #include <QUrl>
 
 using namespace muse::api;
