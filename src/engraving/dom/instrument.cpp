@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -35,10 +35,9 @@ using namespace mu::engraving;
 
 namespace mu::engraving {
 //: Channel name for otherwise unnamed channels
-const char* InstrChannel::DEFAULT_NAME = QT_TRANSLATE_NOOP("engraving/instruments", "normal");
-//: Channel name for the chord symbols playback channel, best keep translation shorter than 11 letters
-const char* InstrChannel::HARMONY_NAME = QT_TRANSLATE_NOOP("engraving/instruments", "harmony");
-const char* InstrChannel::PALM_MUTE_NAME = QT_TRANSLATE_NOOP("engraving/instruments", "palmmute");
+const char* InstrChannel::DEFAULT_NAME = "normal";
+const char* InstrChannel::HARMONY_NAME = "harmony";
+const char* InstrChannel::PALM_MUTE_NAME = "palmmute";
 
 Instrument InstrumentList::defaultInstrument;
 
@@ -62,10 +61,10 @@ Instrument::Instrument(String id)
     a->setName(String::fromUtf8(InstrChannel::DEFAULT_NAME));
     m_channel.push_back(a);
 
-    m_minPitchA   = 0;
-    m_maxPitchA   = 127;
-    m_minPitchP   = 0;
-    m_maxPitchP   = 127;
+    m_minPitchA   = MIN_PITCH;
+    m_maxPitchA   = MAX_PITCH;
+    m_minPitchP   = MIN_PITCH;
+    m_maxPitchP   = MAX_PITCH;
     m_useDrumset  = false;
     m_drumset     = 0;
     m_singleNoteDynamics = true;
@@ -161,11 +160,16 @@ String Instrument::recognizeMusicXmlId() const
     static const String defaultMusicXmlId(u"keyboard.piano");
     static const String defaultMusicXmlPercussionId(u"drum.group"); // our General MIDI Percussion
 
-    std::list<String> nameList;
+    std::vector<String> nameList;
+    nameList.reserve(1 + m_longNames.size() + m_shortNames.size());
 
     nameList.push_back(m_trackName);
-    muse::join(nameList, m_longNames.toStringList());
-    muse::join(nameList, m_shortNames.toStringList());
+    for (const StaffName& name : m_longNames) {
+        nameList.push_back(name.toString());
+    }
+    for (const StaffName& name : m_shortNames) {
+        nameList.push_back(name.toString());
+    }
 
     const InstrumentTemplate* tmplByName = mu::engraving::searchTemplateForInstrNameList(nameList, m_useDrumset);
 
@@ -285,22 +289,10 @@ String Instrument::recognizeId() const
 
 int Instrument::recognizeMidiProgram() const
 {
-    const InstrumentTemplate* tmplInstrumentId = mu::engraving::searchTemplateForMusicXmlId(m_musicXmlId);
+    const InstrumentTemplate* tp = searchTemplate(m_id);
 
-    if (tmplInstrumentId && !tmplInstrumentId->channel.empty() && tmplInstrumentId->channel[0].program() >= 0) {
-        return tmplInstrumentId->channel[0].program();
-    }
-
-    std::list<String> nameList;
-
-    nameList.push_back(m_trackName);
-    muse::join(nameList, m_longNames.toStringList());
-    muse::join(nameList, m_shortNames.toStringList());
-
-    const InstrumentTemplate* tmplByName = mu::engraving::searchTemplateForInstrNameList(nameList);
-
-    if (tmplByName && !tmplByName->channel.empty() && tmplByName->channel[0].program() >= 0) {
-        return tmplByName->channel[0].program();
+    if (tp && !tp->channel.empty() && tp->channel[0].program() >= 0) {
+        return tp->channel[0].program();
     }
 
     return 0;
@@ -831,6 +823,28 @@ bool Instrument::operator==(const Instrument& i) const
 {
     bool equal = i.m_longNames == m_longNames;
     equal &= i.m_shortNames == m_shortNames;
+    equal &= i.m_trackName == m_trackName;
+    equal &= i.m_id == m_id;
+    equal &= i.m_soundId == m_soundId;
+    equal &= i.m_musicXmlId == m_musicXmlId;
+
+    equal &= i.m_minPitchA == m_minPitchA;
+    equal &= i.m_maxPitchA == m_maxPitchA;
+    equal &= i.m_minPitchP == m_minPitchP;
+    equal &= i.m_maxPitchP == m_maxPitchP;
+    equal &= i.m_transpose.diatonic == m_transpose.diatonic;
+    equal &= i.m_transpose.chromatic == m_transpose.chromatic;
+
+    equal &= i.m_useDrumset == m_useDrumset;
+    if (i.m_drumset && m_drumset) {
+        equal &= *i.m_drumset == *m_drumset;
+    } else {
+        equal &= i.m_drumset == m_drumset;
+    }
+    equal &= *i.stringData() == *stringData();
+
+    equal &= i.m_midiActions == m_midiActions;
+    equal &= i.m_articulation == m_articulation;
 
     if (i.m_channel.size() == m_channel.size()) {
         for (size_t cur = 0; cur < m_channel.size(); cur++) {
@@ -842,17 +856,8 @@ bool Instrument::operator==(const Instrument& i) const
         return false;
     }
 
-    equal &= i.m_minPitchA == m_minPitchA;
-    equal &= i.m_maxPitchA == m_maxPitchA;
-    equal &= i.m_minPitchP == m_minPitchP;
-    equal &= i.m_maxPitchP == m_maxPitchP;
-    equal &= i.m_useDrumset == m_useDrumset;
-    equal &= i.m_midiActions == m_midiActions;
-    equal &= i.m_articulation == m_articulation;
-    equal &= i.m_transpose.diatonic == m_transpose.diatonic;
-    equal &= i.m_transpose.chromatic == m_transpose.chromatic;
-    equal &= i.m_trackName == m_trackName;
-    equal &= *i.stringData() == *stringData();
+    equal &= i.m_clefType == m_clefType;
+
     equal &= i.m_singleNoteDynamics == m_singleNoteDynamics;
 
     return equal;
@@ -889,11 +894,6 @@ String Instrument::family() const
 String StaffName::toPlainText() const
 {
     return TextBase::unEscape(m_name);
-}
-
-StaffName StaffName::fromPlainText(const String& plainText, int pos)
-{
-    return { TextBase::plainToXmlText(plainText), pos };
 }
 
 //---------------------------------------------------------
@@ -1215,6 +1215,13 @@ Instrument Instrument::fromTemplate(const InstrumentTemplate* templ)
         instrument.m_channel.push_back(new InstrChannel(c));
     }
 
+    if (instrument.m_channel.empty()) {
+        InstrChannel* fallbackChannel = new InstrChannel;
+        fallbackChannel->setName(String::fromUtf8(InstrChannel::DEFAULT_NAME));
+        fallbackChannel->setProgram(instrument.recognizeMidiProgram());
+        instrument.m_channel.push_back(fallbackChannel);
+    }
+
     instrument.setStringData(templ->stringData);
     instrument.setSingleNoteDynamics(templ->singleNoteDynamics);
     instrument.setTrait(templ->trait);
@@ -1293,16 +1300,5 @@ bool Instrument::getSingleNoteDynamicsFromTemplate() const
 void Instrument::setSingleNoteDynamicsFromTemplate()
 {
     setSingleNoteDynamics(getSingleNoteDynamicsFromTemplate());
-}
-
-std::list<String> StaffNameList::toStringList() const
-{
-    std::list<String> result;
-
-    for (const StaffName& name : *this) {
-        result.push_back(name.toString());
-    }
-
-    return result;
 }
 }

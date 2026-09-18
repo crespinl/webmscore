@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -19,8 +19,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-#ifndef MU_PROJECT_PROJECTMODULE_H
-#define MU_PROJECT_PROJECTMODULE_H
+
+#pragma once
 
 #include <memory>
 
@@ -31,6 +31,9 @@ class ProjectConfiguration;
 class ProjectActionsController;
 class RecentFilesController;
 class ProjectAutoSaver;
+class EngravingPluginAPIHelper;
+class ConvertFileToScoreScenario;
+class ConvertFileToScoreService;
 class ProjectModule : public muse::modularity::IModuleSetup
 {
 public:
@@ -38,16 +41,16 @@ public:
     std::string moduleName() const override;
     void registerExports() override;
     void resolveImports() override;
-    void registerResources() override;
-    void registerUiTypes() override;
     void onInit(const muse::IApplication::RunMode& mode) override;
+    void onDelayedInit() override;
 
 private:
     std::shared_ptr<ProjectConfiguration> m_configuration;
     std::shared_ptr<ProjectActionsController> m_actionsController;
     std::shared_ptr<RecentFilesController> m_recentFilesController;
     std::shared_ptr<ProjectAutoSaver> m_projectAutoSaver;
+    std::shared_ptr<EngravingPluginAPIHelper> m_engravingPluginAPIHelper;
+    std::shared_ptr<ConvertFileToScoreScenario> m_convertFileToScoreScenario;
+    std::shared_ptr<ConvertFileToScoreService> m_convertFileToScoreService;
 };
 }
-
-#endif // MU_PROJECT_PROJECTMODULE_H

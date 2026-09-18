@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -253,7 +253,7 @@ double Fermata::mag() const
 {
     double m = staff() ? staff()->staffMag(tick()) * style().styleD(Sid::articulationMag) : 1.0;
     if (segment() && segment()->isChordRestType() && segment()->element(track())) {
-        m *= toChordRest(segment()->element(track()))->mag();
+        m *= toChordRest(segment()->element(track()))->intrinsicMag();
     }
     return m;
 }

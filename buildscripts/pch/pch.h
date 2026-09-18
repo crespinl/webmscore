@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -125,10 +125,5 @@ See https://github.com/musescore/musescore_devtools/tree/main/include-what-you-u
 
 // QtQuick includes
 #include <QQuickItem> //106
-
-// QtWidgets includes
-#include <QWidget> //62
-#include <QApplication> //50
-#include <QDialog> //42
 
 #endif // NO_QT_SUPPORT

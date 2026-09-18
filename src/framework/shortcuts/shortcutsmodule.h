@@ -5,7 +5,7 @@
  * MuseScore
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore BVBA and others
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -19,8 +19,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-#ifndef MUSE_SHORTCUTS_SHORTCUTSMODULE_H
-#define MUSE_SHORTCUTS_SHORTCUTSMODULE_H
+
+#pragma once
 
 #include <memory>
 #include <string>
@@ -31,26 +31,18 @@ namespace muse::shortcuts {
 class ShortcutsController;
 class ShortcutsRegister;
 class ShortcutsConfiguration;
-class MidiRemote;
 class ShortcutsModule : public modularity::IModuleSetup
 {
 public:
-
     std::string moduleName() const override;
     void registerExports() override;
     void registerApi() override;
-    void registerResources() override;
-    void registerUiTypes() override;
     void onInit(const IApplication::RunMode& mode) override;
     void onAllInited(const IApplication::RunMode& mode) override;
 
 private:
-
     std::shared_ptr<ShortcutsController> m_shortcutsController;
     std::shared_ptr<ShortcutsRegister> m_shortcutsRegister;
     std::shared_ptr<ShortcutsConfiguration> m_configuration;
-    std::shared_ptr<MidiRemote> m_midiRemote;
 };
 }
-
-#endif // MUSE_SHORTCUTS_SHORTCUTSMODULE_H

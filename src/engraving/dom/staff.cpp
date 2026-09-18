@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -45,6 +45,10 @@
 #include "staff.h"
 #include "stafftype.h"
 #include "timesig.h"
+#include "editing/transpose.h"
+#include "utils.h"
+#include "capo.h"
+#include "editing/editcapo.h"
 
 // #define DEBUG_CLEFS
 
@@ -864,7 +868,7 @@ Interval Staff::transpose(const Fraction& tick) const
     }
     Key cKey = concertKey(tick);
     v.flip();
-    Key tKey = transposeKey(cKey, v, part()->preferSharpFlat());
+    Key tKey = Transpose::transposeKey(cKey, v, part()->preferSharpFlat());
     v.flip();
 
     int chromatic = (7 * (static_cast<int>(cKey) - static_cast<int>(tKey))) % 12;
@@ -1019,44 +1023,108 @@ SwingParameters Staff::swing(const Fraction& tick) const
     }
     sp.swingRatio = swingRatio;
     sp.swingUnit = swingUnit;
-    if (m_swingList.empty()) {
+    if (m_swingMap.empty()) {
         return sp;
     }
 
-    std::vector<int> ticks = muse::keys(m_swingList);
-    auto it = std::upper_bound(ticks.cbegin(), ticks.cend(), tick.ticks());
-    if (it == ticks.cbegin()) {
-        return sp;
-    }
-    --it;
-    return m_swingList.at(*it);
+    auto it = muse::findLessOrEqual(m_swingMap, tick.ticks());
+    return it == m_swingMap.cend() ? sp : it->second;
 }
 
 const CapoParams& Staff::capo(const Fraction& tick) const
 {
     static const CapoParams dummy;
-
     if (m_capoMap.empty()) {
         return dummy;
     }
 
-    std::vector<int> ticks = muse::keys(m_capoMap);
-    auto it = std::upper_bound(ticks.cbegin(), ticks.cend(), tick.ticks());
-    if (it == ticks.cbegin()) {
-        return dummy;
+    auto it = muse::findLessOrEqual(m_capoMap, tick.ticks());
+    return it == m_capoMap.cend() ? dummy : it->second;
+}
+
+void Staff::insertCapoParams(const Fraction& tick, const CapoParams& params, bool ignoreNotationUpdate)
+{
+    if (ignoreNotationUpdate) {
+        m_capoMap.insert_or_assign(tick.ticks(), params);
+        return;
     }
-    --it;
-    return m_capoMap.at(*it);
+    auto isNeedUpdate = [](const CapoParams& oldParams, const CapoParams& newParams) -> bool {
+        return !(oldParams.active == newParams.active
+                 && oldParams.transposeMode == newParams.transposeMode
+                 && oldParams.fretPosition == newParams.fretPosition
+                 && oldParams.ignoredStrings == newParams.ignoredStrings);
+    };
+
+    int startTick = tick.ticks();
+    int endTick = -1;
+
+    if (auto it = m_capoMap.find(startTick); it == m_capoMap.end()) {
+        auto result = m_capoMap.insert({ startTick, params });
+        if (const auto nextIt = std::next(result.first); nextIt != m_capoMap.end()) {
+            endTick = nextIt->first;
+        }
+        if (result.first != m_capoMap.begin()) {
+            const auto prevIt = std::prev(result.first);
+            CapoParams oldParams = prevIt->second;
+            // We don't need to apply any changes if the previous capo is inactive
+            if (oldParams.active) {
+                EditCapo::updateNotationForCapoChange(oldParams, params, this, startTick, endTick);
+            }
+            // This is an undo action
+        } else if (CapoParams::TransposeMode::PLAYBACK_ONLY != params.transposeMode
+                   && params.active) {
+            CapoParams oldParams;
+            oldParams.transposeMode = CapoParams::TransposeMode::PLAYBACK_ONLY;
+            oldParams.fretPosition = params.fretPosition;
+            oldParams.active = params.active;
+            oldParams.ignoredStrings = params.ignoredStrings;
+            EditCapo::updateNotationForCapoChange(oldParams, params, this, startTick, endTick);
+        }
+    } else {
+        CapoParams oldParams = it->second;
+        if (!isNeedUpdate(oldParams, params)) {
+            return;
+        }
+        auto result = m_capoMap.insert_or_assign(startTick, params);
+        if (const auto nextIt = std::next(result.first); nextIt != m_capoMap.end()) {
+            endTick = nextIt->first;
+        }
+        EditCapo::updateNotationForCapoChange(oldParams, params, this, startTick, endTick);
+    }
 }
 
-void Staff::insertCapoParams(const Fraction& tick, const CapoParams& params)
+void Staff::removeCapoParams(const mu::engraving::Fraction& tick)
 {
-    m_capoMap.insert_or_assign(tick.ticks(), params);
-}
+    const int startTick = tick.ticks();
 
-void Staff::clearCapoParams()
-{
-    m_capoMap.clear();
+    const auto it = m_capoMap.find(startTick);
+    IF_ASSERT_FAILED(it != m_capoMap.end()) {
+        LOGE() << "Key must exist in capo map!";
+        return;
+    }
+
+    const auto nextCapoIt = std::next(it);
+    const int endTick = nextCapoIt == m_capoMap.end() ? -1 : nextCapoIt->first;
+
+    CapoParams revertParams;
+    revertParams.fretPosition = it->second.fretPosition;
+
+    CapoParams oldParams = it->second;
+    // If this capo is inactive, it is treated as PLAYBACK_ONLY mode capo
+    if (!oldParams.active) {
+        oldParams.transposeMode = CapoParams::TransposeMode::PLAYBACK_ONLY;
+    }
+
+    if (it != m_capoMap.begin()) {
+        revertParams = std::prev(it)->second;
+        // If not active, treat as PLAYBACK_ONLY
+        if (!revertParams.active) {
+            revertParams.transposeMode = CapoParams::TransposeMode::PLAYBACK_ONLY;
+        }
+    }
+    EditCapo::updateNotationForCapoChange(oldParams, revertParams, this, startTick, endTick);
+
+    m_capoMap.erase(startTick);
 }
 
 bool Staff::shouldMergeMatchingRests() const
@@ -1071,17 +1139,13 @@ bool Staff::shouldMergeMatchingRests() const
 
 int Staff::channel(const Fraction& tick, voice_idx_t voice) const
 {
-    if (m_channelList[voice].empty()) {
+    const std::map<int, int>& map = m_channelList[voice];
+    if (map.empty()) {
         return 0;
     }
 
-    std::vector<int> ticks = muse::keys(m_channelList[voice]);
-    auto it = std::upper_bound(ticks.cbegin(), ticks.cend(), tick.ticks());
-    if (it == ticks.cbegin()) {
-        return 0;
-    }
-    --it;
-    return m_channelList[voice].at(*it);
+    auto it = muse::findLessOrEqual(map, tick.ticks());
+    return it == map.cend() ? 0 : it->second;
 }
 
 //---------------------------------------------------------
@@ -1187,7 +1251,10 @@ const StaffType* Staff::staffTypeForElement(const EngravingItem* e) const
         // if one staff type spans for the entire staff, optimize by omitting a call to `tick()`
         return &m_staffTypeList.staffType({ 0, 1 });
     }
-    return &m_staffTypeList.staffType(e->tick());
+    // Handle items at the last tick of measures as StaffTypeList::staffType rounds up
+    const Measure* measure = e->findMeasure();
+    const Fraction tick = measure ? measure->tick() : e->tick();
+    return &m_staffTypeList.staffType(tick);
 }
 
 bool Staff::isStaffTypeStartFrom(const Fraction& tick) const
@@ -1309,6 +1376,7 @@ void Staff::init(const Staff* s)
     m_color             = s->m_color;
     m_userDist          = s->m_userDist;
     m_visibilityVoices = s->m_visibilityVoices;
+    m_capoMap          = s->m_capoMap;
 }
 
 const ID& Staff::id() const
@@ -1401,24 +1469,25 @@ void Staff::setColor(const Fraction& tick, const Color& val)
 void Staff::updateOttava()
 {
     staff_idx_t staffIdx = idx();
-    m_pitchOffsets.clear();
+    m_pitchOffsetMap.clear();
     for (auto i : score()->spanner()) {
         const Spanner* s = i.second;
         if (s->isOttava() && s->staffIdx() == staffIdx && s->playSpanner()) {
             const Ottava* o = toOttava(s);
-            m_pitchOffsets.setPitchOffset(o->tick().ticks(), o->pitchShift());
-            m_pitchOffsets.setPitchOffset(o->tick2().ticks(), 0);
+            m_pitchOffsetMap.insert_or_assign(o->tick().ticks(), o->pitchShift());
+            m_pitchOffsetMap.insert_or_assign(o->tick2().ticks(), 0);
         }
     }
 }
 
-//---------------------------------------------------------
-//   undoSetColor
-//---------------------------------------------------------
-
-void Staff::undoSetColor(const Color& /*val*/)
+int Staff::pitchOffset(const Fraction& tick) const
 {
-//      undoChangeProperty(Pid::COLOR, val);
+    if (m_pitchOffsetMap.empty()) {
+        return 0;
+    }
+
+    const auto it = muse::findLessOrEqual(m_pitchOffsetMap, tick.ticks());
+    return it == m_pitchOffsetMap.cend() ? 0 : it->second;
 }
 
 //---------------------------------------------------------
@@ -1494,14 +1563,13 @@ void Staff::insertTime(const Fraction& tick, const Fraction& len)
 //    return list of linked staves
 //---------------------------------------------------------
 
-std::list<Staff*> Staff::staffList() const
+std::vector<Staff*> Staff::staffList() const
 {
-    std::list<Staff*> staffList;
+    std::vector<Staff*> staffList;
     if (m_links) {
         for (EngravingObject* e : *m_links) {
             staffList.push_back(toStaff(e));
         }
-//            staffList = _linkedStaves->staves();
     } else {
         staffList.push_back(const_cast<Staff*>(this));
     }
@@ -1586,6 +1654,16 @@ PropertyValue Staff::getProperty(Pid id) const
         return m_showMeasureNumbers;
     case Pid::SHOW_IF_ENTIRE_SYSTEM_EMPTY:
         return m_showIfEntireSystemEmpty;
+    case Pid::VISIBLE:
+        return visible();
+    case Pid::STAFF_CUTAWAY:
+        return cutaway();
+    case Pid::STAFF_HIDE_SYSTEM_BARLINE:
+        return hideSystemBarLine();
+    case Pid::STAFF_MERGE_MATCHING_RESTS:
+        return int(mergeMatchingRests());
+    case Pid::STAFF_REFLECT_TRANSPOSITION:
+        return reflectTranspositionInLinkedTab();
     default:
         LOGD("unhandled id <%s>", propertyName(id));
         return PropertyValue();
@@ -1630,7 +1708,7 @@ bool Staff::setProperty(Pid id, const PropertyValue& v)
         setPlaybackVoice(3, v.toBool());
         break;
     case Pid::STAFF_BARLINE_SPAN: {
-        setBarLineSpan(v.toInt());
+        setBarLineSpan(v.toBool());
         // update non-generated barlines
         track_idx_t track = idx() * VOICES;
         std::vector<EngravingItem*> blList;
@@ -1648,7 +1726,7 @@ bool Staff::setProperty(Pid id, const PropertyValue& v)
         }
         for (EngravingItem* e : blList) {
             if (e && e->isBarLine() && !e->generated()) {
-                toBarLine(e)->setSpanStaff(v.toInt());
+                toBarLine(e)->setSpanStaff(barLineSpan());
             }
         }
     }
@@ -1667,6 +1745,23 @@ bool Staff::setProperty(Pid id, const PropertyValue& v)
         break;
     case Pid::SHOW_IF_ENTIRE_SYSTEM_EMPTY:
         m_showIfEntireSystemEmpty = v.toBool();
+        break;
+    case Pid::VISIBLE:
+        setVisible(v.toBool());
+        masterScore()->rebuildMidiMapping();
+        score()->setPlaylistDirty();
+        break;
+    case Pid::STAFF_CUTAWAY:
+        setCutaway(v.toBool());
+        break;
+    case Pid::STAFF_HIDE_SYSTEM_BARLINE:
+        setHideSystemBarLine(v.toBool());
+        break;
+    case Pid::STAFF_MERGE_MATCHING_RESTS:
+        setMergeMatchingRests(AutoOnOff(v.toInt()));
+        break;
+    case Pid::STAFF_REFLECT_TRANSPOSITION:
+        setReflectTranspositionInLinkedTab(v.toBool());
         break;
     default:
         LOGD("unhandled id <%s>", propertyName(id));
@@ -1702,11 +1797,21 @@ PropertyValue Staff::propertyDefault(Pid id) const
     case Pid::STAFF_BARLINE_SPAN_TO:
         return 0;
     case Pid::STAFF_USERDIST:
-        return Spatium(0.0);
+        return 0.0_sp;
     case Pid::SHOW_MEASURE_NUMBERS:
         return AutoOnOff::AUTO;
     case Pid::SHOW_IF_ENTIRE_SYSTEM_EMPTY:
         return false;
+    case Pid::VISIBLE:
+        return true;
+    case Pid::STAFF_CUTAWAY:
+        return false;
+    case Pid::STAFF_HIDE_SYSTEM_BARLINE:
+        return false;
+    case Pid::STAFF_MERGE_MATCHING_RESTS:
+        return int(AutoOnOff::AUTO);
+    case Pid::STAFF_REFLECT_TRANSPOSITION:
+        return true;
     default:
         LOGD("unhandled id <%s>", propertyName(id));
         return PropertyValue();

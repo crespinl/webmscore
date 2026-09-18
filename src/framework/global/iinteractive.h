@@ -5,7 +5,7 @@
  * MuseScore
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore BVBA and others
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -33,7 +33,7 @@
 #include "progress.h"
 
 namespace muse {
-class IInteractive : MODULE_EXPORT_INTERFACE
+class IInteractive : MODULE_CONTEXT_INTERFACE
 {
     INTERFACE_ID(IInteractive)
 
@@ -210,12 +210,15 @@ public:
     }
 
     // progress
-    virtual void showProgress(const std::string& title, Progress* progress) = 0;
+    virtual void showProgress(const std::string& title, Progress progress) = 0;
 
     // files
     virtual async::Promise<io::path_t> selectOpeningFile(const std::string& title, const io::path_t& dir,
                                                          const std::vector<std::string>& filter) = 0;
-    virtual io::path_t selectOpeningFileSync(const std::string& title, const io::path_t& dir, const std::vector<std::string>& filter) = 0;
+    virtual io::path_t selectOpeningFileSync(const std::string& title, const io::path_t& dir, const std::vector<std::string>& filter,
+                                             const int options = 0) = 0;
+    virtual io::paths_t selectOpeningFilesSync(const std::string& title, const io::path_t& dir, const std::vector<std::string>& filter,
+                                               const int options = 0) = 0;
     virtual io::path_t selectSavingFileSync(const std::string& title, const io::path_t& path, const std::vector<std::string>& filter,
                                             bool confirmOverwrite = true) = 0;
 
@@ -239,9 +242,10 @@ public:
 
     virtual void raise(const UriQuery& uri) = 0;
 
-    virtual void close(const UriQuery& uri) = 0;
-    virtual void close(const Uri& uri) = 0;
-    virtual void closeAllDialogs() = 0;
+    virtual async::Promise<Ret> close(const UriQuery& uri) = 0;
+    virtual async::Promise<Ret> close(const Uri& uri) = 0;
+    virtual Ret closeSync(const UriQuery& uri) = 0;
+    virtual Ret closeAllDialogsSync() = 0;
 
     virtual ValCh<Uri> currentUri() const = 0;
     virtual RetVal<bool> isCurrentUriDialog() const = 0;

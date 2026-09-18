@@ -5,7 +5,7 @@
  * MuseScore
  * Music Composition & Notation
  *
- * Copyright (C) 2025 MuseScore BVBA and others
+ * Copyright (C) 2025 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -36,6 +36,18 @@ WidgetDialogAdapter::WidgetDialogAdapter(QDialog* parent)
     }
 
     m_dialog->installEventFilter(this);
+
+    connect(m_dialog, &QDialog::accepted, this, [this](){
+        if (m_onHideCallBack) {
+            m_onHideCallBack();
+        }
+    });
+
+    connect(m_dialog, &QDialog::rejected, this, [this](){
+        if (m_onHideCallBack) {
+            m_onHideCallBack();
+        }
+    });
 }
 
 bool WidgetDialogAdapter::eventFilter(QObject* watched, QEvent* event)
@@ -44,7 +56,7 @@ bool WidgetDialogAdapter::eventFilter(QObject* watched, QEvent* event)
         m_onShownCallBack();
     }
 
-    if (event->type() == QEvent::Hide && m_onHideCallBack) {
+    if (event->type() == QEvent::Close && m_onHideCallBack) {
         m_onHideCallBack();
     }
 

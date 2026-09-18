@@ -5,7 +5,7 @@
  * MuseScore
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore BVBA and others
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -25,6 +25,8 @@
 #include <QVariant>
 #include <QMap>
 #include <QStack>
+
+#include <qqmlintegration.h>
 
 #include "global/async/asyncable.h"
 
@@ -52,15 +54,18 @@ private:
     QVariantMap m_data;
 };
 
-class InteractiveProvider : public QObject, public IInteractiveProvider, public Injectable, public async::Asyncable
+class InteractiveProvider : public QObject, public IInteractiveProvider, public Contextable, public async::Asyncable
 {
     Q_OBJECT
 
-    Inject<IUiConfiguration> config = { this };
-    Inject<IInteractiveUriRegister> uriRegister = { this };
-    Inject<IMainWindow> mainWindow = { this };
-    Inject<muse::extensions::IExtensionsProvider> extensionsProvider = { this };
-    Inject<shortcuts::IShortcutsRegister> shortcutsRegister = { this };
+    QML_NAMED_ELEMENT(CppInteractiveProvider);
+    QML_UNCREATABLE("Must be created in C++ only");
+
+    GlobalInject<IUiConfiguration> config;
+    ContextInject<IInteractiveUriRegister> uriRegister = { this };
+    ContextInject<IMainWindow> mainWindow = { this };
+    ContextInject<muse::extensions::IExtensionsProvider> extensionsProvider = { this };
+    ContextInject<shortcuts::IShortcutsRegister> shortcutsRegister = { this };
 
 public:
     explicit InteractiveProvider(const modularity::ContextPtr& iocCtx);
@@ -77,9 +82,10 @@ public:
 
     void raise(const UriQuery& uri) override;
 
-    void close(const Uri& uri) override;
-    void close(const UriQuery& uri) override;
-    void closeAllDialogs() override;
+    async::Promise<Ret> close(const Uri& uri) override;
+    async::Promise<Ret> close(const UriQuery& uri) override;
+    Ret closeSync(const UriQuery& uri) override;
+    Ret closeAllDialogsSync() override;
 
     ValCh<Uri> currentUri() const override;
     RetVal<bool> isCurrentUriDialog() const override;
@@ -124,16 +130,20 @@ private:
     Ret toRet(const QVariant& jsr) const;
     RetVal<Val> toRetVal(const QVariant& jsrv) const;
 
+    RetVal<bool> isOpened(const QString& objectId) const;
+
     RetVal<OpenData> openExtensionDialog(const UriQuery& q, const QVariantMap& params);
     RetVal<OpenData> openWidgetDialog(const Uri& uri, const QVariantMap& params);
     RetVal<OpenData> openQml(const Uri& uri, const QVariantMap& params);
 
-    void closeObject(const ObjectInfo& obj);
+    async::Promise<Ret> closeObjects(const std::vector<ObjectInfo>& objs);
+    Ret closeObjectsSync(const std::vector<ObjectInfo>& objs);
 
     void closeQml(const QVariant& objectId);
     void raiseQml(const QVariant& objectId);
 
     std::vector<ObjectInfo> allOpenObjects() const;
+    std::vector<ObjectInfo> collectOpenObjects(std::function<bool(const ObjectInfo&)> accepted) const;
 
     void notifyAboutCurrentUriChanged();
     void notifyAboutCurrentUriWillBeChanged();
@@ -146,6 +156,8 @@ private:
     async::Channel<Uri> m_currentUriChanged;
     async::Notification m_currentUriAboutToBeChanged;
     async::Channel<Uri> m_opened;
+
+    std::map<QString /*objectId*/, std::function<void(const Ret&)> > m_onClosedFuncs;
 
     bool m_isSelectColorOpened = false;
 };

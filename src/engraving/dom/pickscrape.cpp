@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -24,6 +24,7 @@
 
 #include "score.h"
 #include "system.h"
+#include "text.h"
 
 using namespace mu;
 using namespace mu::engraving;
@@ -42,6 +43,9 @@ static const ElementStyle pickScrapeStyle {
     { Sid::palmMuteTextAlign,                     Pid::BEGIN_TEXT_ALIGN },
     { Sid::palmMuteTextAlign,                     Pid::CONTINUE_TEXT_ALIGN },
     { Sid::palmMuteTextAlign,                     Pid::END_TEXT_ALIGN },
+    { Sid::palmMutePosition,                      Pid::BEGIN_TEXT_POSITION },
+    { Sid::palmMutePosition,                      Pid::CONTINUE_TEXT_POSITION },
+    { Sid::palmMutePosition,                      Pid::END_TEXT_POSITION },
     { Sid::palmMuteHookHeight,                    Pid::BEGIN_HOOK_HEIGHT },
     { Sid::palmMuteHookHeight,                    Pid::END_HOOK_HEIGHT },
     { Sid::palmMuteLineStyle,                     Pid::LINE_STYLE },
@@ -50,12 +54,20 @@ static const ElementStyle pickScrapeStyle {
     { Sid::palmMuteFontSpatiumDependent,          Pid::TEXT_SIZE_SPATIUM_DEPENDENT },
     { Sid::palmMuteEndHookType,                   Pid::END_HOOK_TYPE },
     { Sid::palmMuteLineWidth,                     Pid::LINE_WIDTH },
-    { Sid::palmMutePlacement,                     Pid::PLACEMENT }
+    { Sid::palmMutePlacement,                     Pid::PLACEMENT },
+    { Sid::palmMuteMusicalSymbolSize,             Pid::BEGIN_TEXT_MUSIC_SYMBOLS_SIZE },
+    { Sid::palmMuteMusicalSymbolSize,             Pid::CONTINUE_TEXT_MUSIC_SYMBOLS_SIZE },
+    { Sid::palmMuteMusicalSymbolSize,             Pid::END_TEXT_MUSIC_SYMBOLS_SIZE },
+    { Sid::dummyMusicalSymbolsScale,              Pid::BEGIN_TEXT_MUSICAL_SYMBOLS_SCALE },
+    { Sid::dummyMusicalSymbolsScale,              Pid::CONTINUE_TEXT_MUSICAL_SYMBOLS_SCALE },
+    { Sid::dummyMusicalSymbolsScale,              Pid::END_TEXT_MUSICAL_SYMBOLS_SCALE },
 };
 
 PickScrapeSegment::PickScrapeSegment(PickScrape* sp, System* parent)
     : TextLineBaseSegment(ElementType::PICK_SCRAPE_SEGMENT, sp, parent, ElementFlag::MOVABLE | ElementFlag::ON_STAFF)
 {
+    m_text->setTextStyleType(propertyDefault(Pid::TEXT_STYLE).value<TextStyleType>());
+    m_endText->setTextStyleType(propertyDefault(Pid::TEXT_STYLE).value<TextStyleType>());
 }
 
 //---------------------------------------------------------
@@ -132,6 +144,19 @@ PropertyValue PickScrape::propertyDefault(Pid propertyId) const
     case Pid::CONTINUE_TEXT_PLACE:
     case Pid::END_TEXT_PLACE:
         return TextPlace::AUTO;
+
+    case Pid::TEXT_STYLE:
+        return TextStyleType::PALM_MUTE;
+
+    case Pid::BEGIN_FILLED_ARROW_HEIGHT:   // No arrow endings for pick scrape
+    case Pid::BEGIN_FILLED_ARROW_WIDTH:
+    case Pid::END_FILLED_ARROW_HEIGHT:
+    case Pid::END_FILLED_ARROW_WIDTH:
+    case Pid::BEGIN_LINE_ARROW_HEIGHT:
+    case Pid::BEGIN_LINE_ARROW_WIDTH:
+    case Pid::END_LINE_ARROW_HEIGHT:
+    case Pid::END_LINE_ARROW_WIDTH:
+        return 0.0;
 
     default:
         return TextLineBase::propertyDefault(propertyId);

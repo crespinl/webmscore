@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -226,13 +226,67 @@ const UiActionList ApplicationUiActions::m_actions = {
     UiAction("preference-dialog",
              mu::context::UiCtxAny,
              mu::context::CTX_ANY,
-             TranslatableString("action", "&Preferences"),
-             TranslatableString("action", "Preferences…")
-             )
+             TranslatableString("action", "&Preferences…"),
+             TranslatableString("action", "Preferences")
+             ),
+
+    UiAction("action://copy",
+             { "action://notation/copy" },
+             mu::context::UiCtxAny,
+             mu::context::CTX_ANY,
+             TranslatableString("action", "&Copy"),
+             TranslatableString("action", "Copy"),
+             IconCode::Code::COPY
+             ),
+    UiAction("action://cut",
+             { "action://notation/cut" },
+             mu::context::UiCtxAny,
+             mu::context::CTX_ANY,
+             TranslatableString("action", "Cu&t"),
+             TranslatableString("action", "Cut"),
+             IconCode::Code::CUT
+             ),
+    UiAction("action://paste",
+             { "action://notation/paste" },
+             mu::context::UiCtxAny,
+             mu::context::CTX_ANY,
+             TranslatableString("action", "Past&e"),
+             TranslatableString("action", "Paste"),
+             IconCode::Code::PASTE
+             ),
+    UiAction("action://undo",
+             { "action://notation/undo" },
+             mu::context::UiCtxAny,
+             mu::context::CTX_ANY,
+             TranslatableString("action", "Undo"),
+             TranslatableString("action", "Undo"),
+             IconCode::Code::UNDO
+             ),
+    UiAction("action://redo",
+             { "action://notation/redo" },
+             mu::context::UiCtxAny,
+             mu::context::CTX_ANY,
+             TranslatableString("action", "Redo"),
+             TranslatableString("action", "Redo"),
+             IconCode::Code::REDO
+             ),
+    UiAction("action://delete",
+             { "action://notation/delete" },
+             mu::context::UiCtxAny,
+             mu::context::CTX_ANY,
+             TranslatableString("action", "De&lete"),
+             TranslatableString("action", "Delete"),
+             IconCode::Code::DELETE_TANK
+             ),
+    UiAction("action://cancel",
+             { "action://notation/cancel" },
+             mu::context::UiCtxAny,
+             mu::context::CTX_ANY
+             ),
 };
 
 ApplicationUiActions::ApplicationUiActions(std::shared_ptr<ApplicationActionController> controller, const modularity::ContextPtr& iocCtx)
-    : muse::Injectable(iocCtx), m_controller(controller)
+    : muse::Contextable(iocCtx), m_controller(controller)
 {
 }
 
@@ -254,7 +308,7 @@ void ApplicationUiActions::init()
         listenOpenedDocksChanged(dockWindowProvider()->window());
     });
 
-    notationConfiguration()->useNewPercussionPanelChanged().onNotify(this, [this]() {
+    notationSceneConfiguration()->useNewPercussionPanelChanged().onNotify(this, [this]() {
         m_actionEnabledChanged.send({ TOGGLE_PERCUSSION_PANEL_ACTION_CODE });
     });
 }
@@ -290,7 +344,7 @@ const muse::ui::UiActionList& ApplicationUiActions::actionsList() const
 bool ApplicationUiActions::actionEnabled(const UiAction& act) const
 {
     if (act.code == TOGGLE_PERCUSSION_PANEL_ACTION_CODE) {
-        return notationConfiguration()->useNewPercussionPanel();
+        return notationSceneConfiguration()->useNewPercussionPanel();
     }
 
     return m_controller->canReceiveAction(act.code);
@@ -314,10 +368,10 @@ bool ApplicationUiActions::actionChecked(const UiAction& act) const
     }
 
     if (dockName == NOTATION_BRAILLE_PANEL_NAME) {
-        return brailleConfiguration()->braillePanelEnabled();
+        return brailleConfiguration() && brailleConfiguration()->braillePanelEnabled();
     }
 
-    const IDockWindow* window = dockWindowProvider()->window();
+    const IDockWindow* window = dockWindowProvider() ? dockWindowProvider()->window() : nullptr;
     return window ? window->isDockOpen(dockName) : false;
 }
 

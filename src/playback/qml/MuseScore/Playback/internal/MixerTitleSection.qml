@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -19,12 +19,14 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-import QtQuick 2.15
 
-import Muse.Ui 1.0
-import Muse.UiComponents 1.0
-import Muse.Audio 1.0
-import MuseScore.Playback 1.0
+pragma ComponentBehavior: Bound
+
+import QtQuick
+
+import Muse.Ui
+import Muse.UiComponents
+import MuseScore.Playback
 
 MixerPanelSection {
     id: root
@@ -32,6 +34,10 @@ MixerPanelSection {
     headerTitle: qsTrc("playback", "Name")
 
     Rectangle {
+        id: content
+
+        required property MixerChannelItem channelItem
+
         width: root.channelItemWidth
         height: 22
 
@@ -72,7 +78,7 @@ MixerPanelSection {
             readonly property int margin: -8
             width: margin + parent.width + margin
 
-            text: channelItem.title
+            text: content.channelItem.title
         }
 
         MouseArea {
@@ -84,7 +90,7 @@ MixerPanelSection {
 
             onContainsMouseChanged: {
                 if (mouseArea.containsMouse && textLabel.truncated) {
-                    ui.tooltip.show(mouseArea, channelItem.title)
+                    ui.tooltip.show(mouseArea, content.channelItem.title)
                 } else {
                     ui.tooltip.hide(mouseArea)
                 }

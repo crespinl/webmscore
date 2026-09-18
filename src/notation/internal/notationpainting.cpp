@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -35,8 +35,8 @@ using namespace mu::notation;
 using namespace mu::engraving;
 using namespace muse::draw;
 
-NotationPainting::NotationPainting(Notation* notation)
-    : m_notation(notation)
+NotationPainting::NotationPainting(Notation* notation, const muse::modularity::ContextPtr& ctx)
+    : muse::Contextable(ctx), m_notation(notation)
 {
 }
 
@@ -159,8 +159,9 @@ void NotationPainting::paintPageSheet(Painter* painter, const Page* page, const 
         return;
     }
 
+    const double strokeWidth = 0.07 * DPMM;
     painter->setBrush(BrushStyle::NoBrush);
-    painter->setPen(Pen(configuration()->borderColor(), configuration()->borderWidth()));
+    painter->setPen(Pen(configuration()->borderColor(), strokeWidth));
     painter->drawRect(pageRect);
 
     if (!score()->showPageborders()) {
@@ -170,7 +171,7 @@ void NotationPainting::paintPageSheet(Painter* painter, const Page* page, const 
     RectF pageContentRect = page->ldata()->bbox().adjusted(page->lm(), page->tm(), -page->rm(), -page->bm());
 
     painter->setBrush(BrushStyle::NoBrush);
-    painter->setPen(engravingConfiguration()->scoreGreyColor());
+    painter->setPen(Pen(engravingConfiguration()->scoreGreyColor(), strokeWidth));
     painter->drawRect(pageContentRect);
 
     if (!page->isOdd()) {
@@ -188,6 +189,7 @@ void NotationPainting::paintView(Painter* painter, const RectF& frameRect, bool 
     opt.frameRect = frameRect;
     opt.deviceDpi = uiConfiguration()->logicalDpi();
     opt.isPrinting = isPrinting;
+    opt.invertColors = configuration()->shouldInvertScore();
     doPaint(painter, opt);
 #endif
 }

@@ -5,7 +5,7 @@
  * MuseScore
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore BVBA and others
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -25,17 +25,24 @@
 
 using namespace muse::api;
 
-/** APIDOC namespace: log
+/** APIDOC
  * Write messages to log and console
- * @namespace
+ * @namespace Log
+ * @example
+ * const Log = require("MuseApi.Log");
+ *
+ * function main() {
+ *     Log.info("called main function")
+ * }
  */
 LogApi::LogApi(api::IApiEngine* e)
     : ApiObject(e)
 {
 }
 
-/** APIDOC method
+/** APIDOC
  * Write error message with default tag
+ * @method
  * @param {String} message Message
  */
 void LogApi::error(const QString& message)
@@ -43,8 +50,9 @@ void LogApi::error(const QString& message)
     error("Api", message);
 }
 
-/** APIDOC method
+/** APIDOC
  * Write warning message with default tag
+ * @method
  * @param {String} message Message
  */
 void LogApi::warn(const QString& message)
@@ -52,8 +60,9 @@ void LogApi::warn(const QString& message)
     warn("Api", message);
 }
 
-/** APIDOC method
+/** APIDOC
  * Write info message with default tag
+ * @method
  * @param {String} message Message
  */
 void LogApi::info(const QString& message)
@@ -61,8 +70,9 @@ void LogApi::info(const QString& message)
     info("Api", message);
 }
 
-/** APIDOC method
+/** APIDOC
  * Write debug message with default tag
+ * @method
  * @param {String} message Message
  */
 void LogApi::debug(const QString& message)
@@ -70,8 +80,9 @@ void LogApi::debug(const QString& message)
     debug("Api", message);
 }
 
-/** APIDOC method
+/** APIDOC
  * Write error message with tag
+ * @method
  * @param {String} tag Tag
  * @param {String} message Message
  */
@@ -80,8 +91,9 @@ void LogApi::error(const QString& tag, const QString& message)
     LOGE_T(tag.toStdString())() << message;
 }
 
-/** APIDOC method
+/** APIDOC
  * Write warning message with tag
+ * @method
  * @param {String} tag Tag
  * @param {String} message Message
  */
@@ -90,8 +102,9 @@ void LogApi::warn(const QString& tag, const QString& message)
     LOGW_T(tag.toStdString())() << message;
 }
 
-/** APIDOC method
+/** APIDOC
  * Write info message with tag
+ * @method
  * @param {String} tag Tag
  * @param {String} message Message
  */
@@ -100,8 +113,9 @@ void LogApi::info(const QString& tag, const QString& message)
     LOGI_T(tag.toStdString())() << message;
 }
 
-/** APIDOC method
+/** APIDOC
  * Write debug message with tag
+ * @method
  * @param {String} tag Tag
  * @param {String} message Message
  */

@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2023 MuseScore Limited
+ * Copyright (C) 2023 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -25,6 +25,7 @@
 
 namespace mu::engraving {
 class Chord;
+class ChordBracket;
 class EngravingItem;
 class Fraction;
 class Lyrics;
@@ -143,6 +144,7 @@ private:
     static void computeLedgerRestPadding(const Rest* rest2, double& padding);
     static bool isSpecialLyricsPaddingType(ElementType type);
     static void computeLyricsPadding(const Lyrics* lyrics1, const EngravingItem* item2, double& padding);
+    static void computeChordBracketPadding(const EngravingItem* item1, const ChordBracket* chordBracket, double& padding);
 
     static bool isSameVoiceKerningLimited(const EngravingItem* item);
     static bool isNeverKernable(const EngravingItem* item);

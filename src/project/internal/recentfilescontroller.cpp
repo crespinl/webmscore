@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -25,7 +25,7 @@
 #include "global/defer.h"
 #include "global/serialization/json.h"
 
-#include "multiinstances/resourcelockguard.h"
+#include "multiwindows/resourcelockguard.h"
 
 #include "app_config.h"
 
@@ -45,7 +45,7 @@ void RecentFilesController::init()
 
     m_dirty = true;
 
-    multiInstancesProvider()->resourceChanged().onReceive(this, [this](const std::string& resourceName) {
+    multiwindowsProvider()->resourceChanged().onReceive(this, [this](const std::string& resourceName) {
         if (resourceName == RECENT_FILES_RESOURCE_NAME) {
             if (!m_isSaving) {
                 m_dirty = true;
@@ -136,7 +136,7 @@ void RecentFilesController::loadRecentFilesList()
 
     RetVal<ByteArray> data;
     {
-        mi::ReadResourceLockGuard lock_guard(multiInstancesProvider(), RECENT_FILES_RESOURCE_NAME);
+        mi::ReadResourceLockGuard lock_guard(multiwindowsProvider(), RECENT_FILES_RESOURCE_NAME);
         data = fileSystem()->readFile(configuration()->recentFilesJsonPath());
     }
 
@@ -244,10 +244,12 @@ void RecentFilesController::saveRecentFilesList()
 
     JsonDocument json(jsonArray);
 
-    mi::WriteResourceLockGuard resource_guard(multiInstancesProvider(), RECENT_FILES_RESOURCE_NAME);
-    Ret ret = fileSystem()->writeFile(configuration()->recentFilesJsonPath(), json.toJson());
-    if (!ret) {
-        LOGE() << "Failed to save recent files list: " << ret.toString();
+    {
+        mi::WriteResourceLockGuard resource_guard(multiwindowsProvider(), RECENT_FILES_RESOURCE_NAME);
+        Ret ret = fileSystem()->writeFile(configuration()->recentFilesJsonPath(), json.toJson());
+        if (!ret) {
+            LOGE() << "Failed to save recent files list: " << ret.toString();
+        }
     }
 }
 

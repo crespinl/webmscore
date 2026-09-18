@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2025 MuseScore Limited
+ * Copyright (C) 2025 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -33,15 +33,15 @@
 #include "audio/main/iplayback.h"
 
 namespace mu::playback {
-class OnlineSoundsController : public muse::actions::Actionable, public muse::async::Asyncable
+class OnlineSoundsController : public muse::actions::Actionable, public muse::async::Asyncable, public muse::Contextable
 {
-    muse::Inject<IPlaybackConfiguration> configuration;
-    muse::Inject<muse::actions::IActionsDispatcher> dispatcher;
-    muse::Inject<muse::IInteractive> interactive;
-    muse::Inject<muse::audio::IPlayback> playback;
+    muse::GlobalInject<IPlaybackConfiguration> configuration;
+    muse::ContextInject<muse::actions::IActionsDispatcher> dispatcher = { this };
+    muse::ContextInject<muse::IInteractive> interactive = { this };
+    muse::ContextInject<muse::audio::IPlayback> playback = { this };
 
 public:
-    OnlineSoundsController();
+    OnlineSoundsController(const muse::modularity::ContextPtr& iocCtx);
 
     void regActions();
 

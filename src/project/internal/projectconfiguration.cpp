@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -29,6 +29,7 @@
 #include "settings.h"
 
 #include "engraving/infrastructure/mscio.h"
+#include "project/internal/notationproject.h"
 
 #include "log.h"
 
@@ -61,12 +62,18 @@ static const Settings::Key OPEN_DETAILED_PROJECT_UPLOADED_DIALOG(module_name, "p
 static const Settings::Key HAS_ASKED_AUDIO_GENERATION_SETTINGS(module_name, "project/hasAskedAudioGenerationSettings");
 static const Settings::Key GENERATE_AUDIO_TIME_PERIOD_TYPE_KEY(module_name, "project/generateAudioTimePeriodType");
 static const Settings::Key NUMBER_OF_SAVES_TO_GENERATE_AUDIO_KEY(module_name, "project/numberOfSavesToGenerateAudio");
+static const Settings::Key SHOW_CONVERT_FILE_PROCESSING_DIALOG(module_name, "project/showConvertFileProcessingDialog");
 static const Settings::Key SHOW_CLOUD_IS_NOT_AVAILABLE_WARNING(module_name, "project/showCloudIsNotAvailableWarning");
 static const Settings::Key DISABLE_VERSION_CHECKING(module_name, "project/disableVersionChecking");
 static const Settings::Key CREATE_BACKUP_BEFORE_SAVING(module_name, "project/createBackupBeforeSaving");
 
 static const std::string DEFAULT_FILE_SUFFIX(".mscz");
 static const std::string DEFAULT_FILE_FILTER("*.mscz");
+
+ProjectConfiguration::ProjectConfiguration(const muse::modularity::ContextPtr& iocCtx)
+    : muse::Contextable(iocCtx)
+{
+}
 
 void ProjectConfiguration::init()
 {
@@ -109,6 +116,8 @@ void ProjectConfiguration::init()
 
     settings()->setDefaultValue(SHOW_ALSO_SHARE_AUDIO_COM_DIALOG, Val(true));
     settings()->setDefaultValue(HAS_ASKED_ALSO_SHARE_AUDIO_COM, Val(false));
+
+    settings()->setDefaultValue(SHOW_CONVERT_FILE_PROCESSING_DIALOG, Val(true));
 
     settings()->setDefaultValue(SHOULD_DESTINATION_FOLDER_BE_OPENED_ON_EXPORT, Val(false));
     settings()->setDefaultValue(OPEN_DETAILED_PROJECT_UPLOADED_DIALOG, Val(true));
@@ -238,6 +247,20 @@ muse::io::path_t ProjectConfiguration::defaultUserProjectsPath() const
     return settings()->defaultValue(USER_PROJECTS_PATH).toPath();
 }
 
+muse::io::path_t ProjectConfiguration::defaultOpenProjectsPath() const
+{
+    muse::io::path_t dir = lastOpenedProjectsPath();
+    if (dir.empty()) {
+        dir = userProjectsPath();
+    }
+
+    if (dir.empty()) {
+        dir = defaultUserProjectsPath();
+    }
+
+    return dir;
+}
+
 bool ProjectConfiguration::shouldAskSaveLocationType() const
 {
     return settings()->value(SHOULD_ASK_SAVE_LOCATION_TYPE).toBool();
@@ -303,6 +326,7 @@ muse::io::path_t ProjectConfiguration::defaultSavingFilePath(INotationProjectPtr
     muse::io::path_t folderPath;
     muse::io::path_t filename;
     std::string theSuffix = suffix;
+    std::string theFilenameAddition = filenameAddition;
 
     muse::io::path_t projectPath = project->path();
     bool isLocalProject = !project->isCloudProject();
@@ -350,9 +374,29 @@ muse::io::path_t ProjectConfiguration::defaultSavingFilePath(INotationProjectPtr
         theSuffix = DEFAULT_FILE_SUFFIX;
     }
 
+    if (project->isNewlyCreated() && filename.toQString() == NotationProject::scoreDefaultTitle()) {
+        theFilenameAddition += uniqueFileNameAddition(filename + theFilenameAddition, folderPath, theSuffix);
+    }
+
     return folderPath
-           .appendingComponent(filename + filenameAddition)
+           .appendingComponent(filename + theFilenameAddition)
            .appendingSuffix(theSuffix);
+}
+
+std::string ProjectConfiguration::uniqueFileNameAddition(const io::path_t& filename, const io::path_t& folderPath,
+                                                         const std::string& suffix) const
+{
+    // Return a filename addition which would make filename unique if it wasn't already
+    const std::string theSuffix = suffix.empty() ? DEFAULT_FILE_SUFFIX : suffix;
+    std::string addition;
+    int id = 1;
+    while (fileSystem()->exists(folderPath
+                                .appendingComponent(filename + addition)
+                                .appendingSuffix(theSuffix))) {
+        addition = " (" + std::to_string(id) + ")";
+        id++;
+    }
+    return addition;
 }
 
 SaveLocationType ProjectConfiguration::lastUsedSaveLocationType() const
@@ -621,6 +665,17 @@ QUrl ProjectConfiguration::supportForumUrl() const
     return QUrl("https://musescore.org/forum");
 }
 
+QUrl ProjectConfiguration::dotComBugReportUrl() const
+{
+    // The general .com bug report page
+    return QUrl("https://musescore.com/groups/bug-reports");
+}
+
+QUrl ProjectConfiguration::scoreUploadingGuidelinesUrl() const
+{
+    return QUrl("https://musescore.com/score-uploading-guidelines");
+}
+
 bool ProjectConfiguration::openDetailedProjectUploadedDialog() const
 {
     return settings()->value(OPEN_DETAILED_PROJECT_UPLOADED_DIALOG).toBool();
@@ -712,4 +767,24 @@ bool ProjectConfiguration::disableVersionChecking() const
 void ProjectConfiguration::setDisableVersionChecking(bool disable)
 {
     settings()->setSharedValue(DISABLE_VERSION_CHECKING, Val(disable));
+}
+
+bool ProjectConfiguration::showConvertFileProcessingDialog() const
+{
+    return settings()->value(SHOW_CONVERT_FILE_PROCESSING_DIALOG).toBool();
+}
+
+void ProjectConfiguration::setShowConvertFileProcessingDialog(bool show)
+{
+    settings()->setSharedValue(SHOW_CONVERT_FILE_PROCESSING_DIALOG, Val(show));
+}
+
+muse::io::path_t ProjectConfiguration::convertedScoresPath() const
+{
+    return globalConfiguration()->userAppDataPath() + "/converted_scores";
+}
+
+muse::io::path_t ProjectConfiguration::pendingConvertsJsonPath() const
+{
+    return globalConfiguration()->userAppDataPath().appendingComponent("pending_converts.json");
 }

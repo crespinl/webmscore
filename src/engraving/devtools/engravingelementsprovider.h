@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -49,13 +49,9 @@ public:
     bool isSelected(const mu::engraving::EngravingObject* e) const override;
     muse::async::Channel<const mu::engraving::EngravingObject*, bool> selectChanged() const override;
 
-    void checkTree(mu::engraving::Score* score);
-
 private:
 
-    void checkObjectTree(const mu::engraving::EngravingObject* obj);
     void dumpTree(const mu::engraving::EngravingItem* item, int& level);
-    void dumpTreeTree(const mu::engraving::EngravingObject* obj, int& level);
 
     struct ObjectStatistic
     {

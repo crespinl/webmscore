@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<museScore version="4.60">
+<museScore version="4.70">
   <Score>
     <eid>B_B</eid>
     <Division>480</Division>
     <Style>
-      <spatium>1.74978</spatium>
+      <spatium>1.75</spatium>
       </Style>
     <showInvisible>1</showInvisible>
     <showUnprintable>1</showUnprintable>
@@ -194,6 +194,8 @@
           <Spanner type="HairPin">
             <HairPin>
               <subtype>0</subtype>
+              <beginHookHeight>-1.9</beginHookHeight>
+              <endHookHeight>-1.9</endHookHeight>
               <eid>J_J</eid>
               </HairPin>
             <next>

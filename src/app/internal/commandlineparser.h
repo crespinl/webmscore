@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -42,15 +42,7 @@ public:
     void processBuiltinArgs(const QCoreApplication& app);
 
     muse::IApplication::RunMode runMode() const;
-
-    // CmdOptions
     const CmdOptions& options() const;
-
-    // Tasks
-    CmdOptions::ConverterTask converterTask() const;
-    CmdOptions::Diagnostic diagnostic() const;
-    CmdOptions::Autobot autobot() const;
-    CmdOptions::AudioPluginRegistration audioPluginRegistration() const;
 
 private:
     void printLongVersion() const;

@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2025 MuseScore Limited
+ * Copyright (C) 2025 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -23,7 +23,6 @@
 #include "indicatoricon.h"
 
 #include "mscore.h"
-#include "page.h"
 #include "system.h"
 
 using namespace mu::engraving;
@@ -37,8 +36,6 @@ IndicatorIcon::IndicatorIcon(const ElementType& type, System* parent, ElementFla
 Font IndicatorIcon::font() const
 {
     Font font(configuration()->iconsFontFamily(), Font::Type::Icon);
-    static constexpr double STANDARD_POINT_SIZE = 12.0;
-    const double scaling = spatium() / SPATIUM20;
-    font.setPointSizeF(STANDARD_POINT_SIZE * scaling);
+    font.setPointSizeF(UI_ICONS_DEFAULT_FONT_SIZE * magS());
     return font;
 }

@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -27,13 +27,13 @@
 #include "../iguitarproconfiguration.h"
 
 namespace mu::iex::guitarpro {
-class GuitarProReader : public project::INotationReader, public muse::Injectable
+class GuitarProReader : public project::INotationReader, public muse::Contextable
 {
-    muse::Inject<mu::iex::guitarpro::IGuitarProConfiguration> guitarProConfiguration = { this };
+    muse::GlobalInject<mu::iex::guitarpro::IGuitarProConfiguration> guitarProConfiguration;
 
 public:
     GuitarProReader(const muse::modularity::ContextPtr& iocCtx)
-        : muse::Injectable(iocCtx) {}
+        : muse::Contextable(iocCtx) {}
 
     muse::Ret read(mu::engraving::MasterScore* score, const muse::io::path_t& path, const Options& options = Options()) override;
 };

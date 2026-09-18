@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -111,29 +111,10 @@ typedef std::map<int, FretItem::Barre> BarreMap;
 typedef std::map<int, FretItem::Marker> MarkerMap;
 typedef std::map<int, std::vector<FretItem::Dot> > DotMap;
 
-class FretUndoData
-{
-public:
-    FretUndoData() {}
-    FretUndoData(FretDiagram* fd);
-
-    void updateDiagram();
-
-private:
-
-    FretDiagram* m_diagram = nullptr;
-    BarreMap m_barres;
-    MarkerMap m_markers;
-    DotMap m_dots;
-
-    int m_strings = 0;
-    int m_frets = 0;
-    int m_fretOffset = 0;
-    int m_maxFrets = 0;
-    bool m_showNut = true;
-    bool m_showFingering = false;
-    Orientation m_orientation = Orientation::VERTICAL;
-    double m_userMag = 1.0;
+struct DiagramInfo {
+    String harmonyName;
+    String diagramXml;
+    String diagramPattern;
 };
 
 //---------------------------------------------------------
@@ -157,22 +138,18 @@ public:
 
     ~FretDiagram();
 
-    // Score Tree functions
-    EngravingObject* scanParent() const override;
-    EngravingObjectList scanChildren() const override;
-
     EngravingItem* linkedClone() override;
     FretDiagram* clone() const override { return new FretDiagram(*this); }
 
     Segment* segment() const;
 
-    static String patternFromDiagram(const FretDiagram* diagram);
-    static std::vector<String> patternHarmonies(const String& pattern);
+    String patternFromDiagram() const;
+    std::vector<String> harmoniesFromPattern(const String& pattern) const;
+    std::vector<DiagramInfo> patternsFromHarmony(const String& harmonyName);
 
     void updateDiagram(const String& harmonyName);
 
     std::vector<LineF> dragAnchorLines() const override;
-    PointF pagePos() const override;
     double mainWidth() const;
 
     int  strings() const { return m_strings; }
@@ -207,7 +184,8 @@ public:
 
     Orientation orientation() const { return m_orientation; }
 
-    String harmonyText() const;
+    String harmonyPlainText() const;
+    String harmonyDisplayText() const;
     Harmony* harmony() const { return m_harmony; }
     void setHarmony(String harmonyText);
 
@@ -230,7 +208,7 @@ public:
     bool acceptDrop(EditData&) const override;
     EngravingItem* drop(EditData&) override;
 
-    void scanElements(void* data, void (* func)(void*, EngravingItem*), bool all=true) override;
+    void scanElements(std::function<void(EngravingItem*)> func) override;
 
     PropertyValue getProperty(Pid propertyId) const override;
     bool setProperty(Pid propertyId, const PropertyValue&) override;

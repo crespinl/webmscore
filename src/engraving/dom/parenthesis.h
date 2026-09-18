@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2024 MuseScore Limited
+ * Copyright (C) 2024 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -47,7 +47,7 @@ public:
     bool followParentCurColor() const;
     void setFollowParentColor(bool val);
 
-    Color curColor() const override;
+    Color curColor(const rendering::PaintOptions& opt) const override;
 
     struct LayoutData : public EngravingItem::LayoutData
     {
@@ -57,7 +57,9 @@ public:
         ld_field<double> midPointThickness = { "[Parenthesis] midPointThickness", 0.0 };
         ld_field<double> endPointThickness = { "[Parenthesis] endPointThickness", PARENTHESIS_END_WIDTH };
         ld_field<double> shoulderWidth = { "[Parenthesis] endPointThickness", 0.0 };
+        ld_field<double> intrinsicMag = { "[Parenthesis] intrinsicMag", 1.0 };      // Mag separate from staff scale
         ld_field<SymId> symId = { "[Parenthesis] symId", SymId::noSym };
+        ld_field<double> symScale = { "[Parenthesis] symScale", 1.0 };
     };
     DECLARE_LAYOUTDATA_METHODS(Parenthesis);
 

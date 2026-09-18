@@ -5,7 +5,7 @@
  * MuseScore
  * Music Composition & Notation
  *
- * Copyright (C) 2022 MuseScore BVBA and others
+ * Copyright (C) 2022 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -44,11 +44,6 @@ static const mpe::ArticulationTypeSet BEND_SUPPORTED_TYPES {
     mpe::ArticulationType::Multibend, mpe::ArticulationType::ContinuousGlissando,
 };
 
-static constexpr mpe::pitch_level_t MIN_SUPPORTED_PITCH_LEVEL = mpe::pitchLevel(mpe::PitchClass::C, 0);
-static constexpr int MIN_SUPPORTED_NOTE = 12; // VST equivalent for C0
-static constexpr mpe::pitch_level_t MAX_SUPPORTED_PITCH_LEVEL = mpe::pitchLevel(mpe::PitchClass::C, 8);
-static constexpr int MAX_SUPPORTED_NOTE = 108; // VST equivalent for C8
-
 void VstSequencer::init(ParamsMapping&& mapping, bool useDynamicEvents)
 {
     m_mapping = std::move(mapping);
@@ -82,6 +77,7 @@ void VstSequencer::updateMainStreamEvents(const mpe::PlaybackEventsMap& events, 
     }
 
     addPlaybackEvents(m_mainStreamEvents, events);
+    sortNoteOnEventsByPitch(m_mainStreamEvents);
 
     if (m_useDynamicEvents) {
         addDynamicEvents(m_mainStreamEvents, dynamics);
@@ -121,7 +117,7 @@ void VstSequencer::addDynamicEvents(EventSequenceMap& destination, const mpe::Dy
 {
     for (const auto& layer : layers) {
         for (const auto& dynamic : layer.second) {
-            destination[dynamic.first].emplace(expressionLevel(dynamic.second));
+            destination[dynamic.first].emplace_back(expressionLevel(dynamic.second));
         }
     }
 }
@@ -135,12 +131,12 @@ void VstSequencer::addNoteEvent(EventSequenceMap& destination, const mpe::NoteEv
     const float tuning = noteTuning(noteEvent, noteId);
 
     if (arrangementCtx.hasStart()) {
-        destination[arrangementCtx.actualTimestamp].emplace(buildEvent(VstEvent::kNoteOnEvent, noteId, velocityFraction, tuning));
+        destination[arrangementCtx.actualTimestamp].emplace_back(buildEvent(VstEvent::kNoteOnEvent, noteId, velocityFraction, tuning));
     }
 
     if (arrangementCtx.hasEnd()) {
         const mpe::timestamp_t timestampTo = arrangementCtx.actualTimestamp + noteEvent.arrangementCtx().actualDuration;
-        destination[timestampTo].emplace(buildEvent(VstEvent::kNoteOffEvent, noteId, velocityFraction, tuning));
+        destination[timestampTo].emplace_back(buildEvent(VstEvent::kNoteOffEvent, noteId, velocityFraction, tuning));
     }
 
     for (const auto& artPair : noteEvent.expressionCtx().articulations) {
@@ -150,7 +146,7 @@ void VstSequencer::addNoteEvent(EventSequenceMap& destination, const mpe::NoteEv
 
         const mpe::ArticulationMeta& meta = artPair.second.meta;
 
-        if (muse::contains(BEND_SUPPORTED_TYPES, meta.type)) {
+        if (!noteEvent.pitchCtx().pitchCurve.empty() && muse::contains(BEND_SUPPORTED_TYPES, meta.type)) {
             addPitchCurve(destination, noteEvent, meta);
             continue;
         }
@@ -205,14 +201,28 @@ void VstSequencer::addParamChange(EventSequenceMap& destination, const mpe::time
         return;
     }
 
-    destination[timestamp].emplace(ParamChangeEvent { controlIt->second, value });
+    const PluginParamId paramId = controlIt->second;
+    EventSequence& events = destination[timestamp];
+
+    for (const EventType& e : events) {
+        if (!std::holds_alternative<ParamChangeEvent>(e)) {
+            continue;
+        }
+
+        const ParamChangeEvent& pce = std::get<ParamChangeEvent>(e);
+        if (pce.paramId == paramId && RealIsEqual(pce.value, value)) {
+            return;
+        }
+    }
+
+    events.emplace_back(ParamChangeEvent { paramId, value });
 }
 
 void VstSequencer::addPitchCurve(EventSequenceMap& destination, const mpe::NoteEvent& noteEvent,
                                  const mpe::ArticulationMeta& artMeta)
 {
     auto pitchBendIt = m_mapping.find(PITCH_BEND_IDX);
-    if (pitchBendIt == m_mapping.cend() || noteEvent.pitchCtx().pitchCurve.empty()) {
+    if (pitchBendIt == m_mapping.cend()) {
         return;
     }
 
@@ -222,41 +232,42 @@ void VstSequencer::addPitchCurve(EventSequenceMap& destination, const mpe::NoteE
     ParamChangeEvent event;
     event.paramId = pitchBendIt->second;
     event.value = 0.5f;
-    destination[pitchBendTimestampTo].insert(event);
+    destination[pitchBendTimestampTo].push_back(event);
 
     auto currIt = noteEvent.pitchCtx().pitchCurve.cbegin();
     auto nextIt = std::next(currIt);
     auto endIt = noteEvent.pitchCtx().pitchCurve.cend();
 
-    auto makePoint = [](mpe::timestamp_t time, float value) {
-        return Interpolation::Point { static_cast<double>(time), value };
-    };
+    float prevBendValue = -1.f;
 
     for (; nextIt != endIt; currIt = nextIt, nextIt = std::next(currIt)) {
-        float currBendValue = pitchBendLevel(currIt->second);
-        float nextBendValue = pitchBendLevel(nextIt->second);
+        const float currValue = pitchBendLevel(currIt->second);
+        const float nextValue = pitchBendLevel(nextIt->second);
 
-        mpe::timestamp_t currTime = artMeta.timestamp + artMeta.overallDuration * mpe::percentageToFactor(currIt->first);
-        mpe::timestamp_t nextTime = artMeta.timestamp + artMeta.overallDuration * mpe::percentageToFactor(nextIt->first);
+        const mpe::timestamp_t currTime = artMeta.timestamp + artMeta.overallDuration * mpe::percentageToFactor(currIt->first);
+        const mpe::timestamp_t nextTime = artMeta.timestamp + artMeta.overallDuration * mpe::percentageToFactor(nextIt->first);
 
-        Interpolation::Point p0 = makePoint(currTime, currBendValue);
-        Interpolation::Point p1 = makePoint(nextTime, currBendValue);
-        Interpolation::Point p2 = makePoint(nextTime, nextBendValue);
+        using namespace muse::interpolation;
+        const Point currPoint { static_cast<double>(currTime), currValue };
+        const Point nextPoint { static_cast<double>(nextTime), nextValue };
 
         //! NOTE: Increasing this number results in fewer points being interpolated
-        constexpr mpe::pitch_level_t POINT_WEIGHT = mpe::PITCH_LEVEL_STEP / 5;
+        constexpr mpe::pitch_level_t POINT_WEIGHT = mpe::PITCH_LEVEL_STEP / 25;
         size_t pointCount = std::abs(nextIt->second - currIt->second) / POINT_WEIGHT;
         pointCount = std::max(pointCount, size_t(1));
 
-        std::vector<Interpolation::Point> points = Interpolation::quadraticBezierCurve(p0, p1, p2, pointCount);
+        const std::vector<Point> points = lerp(currPoint, nextPoint, pointCount);
 
-        for (const Interpolation::Point& point : points) {
-            mpe::timestamp_t time = static_cast<mpe::timestamp_t>(std::round(point.x));
-            if (time < pitchBendTimestampTo) {
-                float bendValue = static_cast<float>(point.y);
+        for (const Point& point : points) {
+            const mpe::timestamp_t time = static_cast<mpe::timestamp_t>(std::round(point.x));
+            const float bendValue = static_cast<float>(point.y);
+
+            if (time < pitchBendTimestampTo && !RealIsEqual(prevBendValue, bendValue)) {
                 event.value = bendValue;
-                destination[time].insert(event);
+                destination[time].push_back(event);
             }
+
+            prevBendValue = bendValue;
         }
     }
 }
@@ -278,6 +289,32 @@ void VstSequencer::addSostenutoEvents(EventSequenceMap& destination, const Soste
         if (timestampTo <= nextTnD.timestamp) { // handle potential overlap
             addParamChange(destination, timestampTo, SOSTENUTO_IDX, 0);
         }
+    }
+}
+
+//! Hack to make keyswitches work until we have proper UI support
+//! see: https://github.com/musescore/MuseScore/issues/32150
+void VstSequencer::sortNoteOnEventsByPitch(EventSequenceMap& destination)
+{
+    for (auto& [_, seq] : destination) {
+        if (seq.size() <= 1) {
+            continue;
+        }
+
+        std::stable_sort(seq.begin(), seq.end(), [](const EventType& e1, const EventType& e2) {
+            if (!std::holds_alternative<VstEvent>(e1) || !std::holds_alternative<VstEvent>(e2)) {
+                return false;
+            }
+
+            const VstEvent& ve1 = std::get<VstEvent>(e1);
+            const VstEvent& ve2 = std::get<VstEvent>(e2);
+
+            if (ve1.type == VstEvent::kNoteOnEvent && ve2.type == VstEvent::kNoteOnEvent) {
+                return ve1.noteOn.pitch < ve2.noteOn.pitch;
+            }
+
+            return false;
+        });
     }
 }
 
@@ -311,24 +348,16 @@ VstEvent VstSequencer::buildEvent(const VstEvent::EventTypes type, const int32_t
 
 int32_t VstSequencer::noteIndex(const mpe::pitch_level_t pitchLevel) const
 {
-    if (pitchLevel <= MIN_SUPPORTED_PITCH_LEVEL) {
-        return MIN_SUPPORTED_NOTE;
-    }
+    float stepCount = mpe::ZERO_PITCH_LEVEL_MIDI_EQUIVALENT + pitchLevel / static_cast<float>(mpe::PITCH_LEVEL_STEP);
 
-    if (pitchLevel >= MAX_SUPPORTED_PITCH_LEVEL) {
-        return MAX_SUPPORTED_NOTE;
-    }
-
-    float stepCount = MIN_SUPPORTED_NOTE + ((pitchLevel - MIN_SUPPORTED_PITCH_LEVEL) / static_cast<float>(mpe::PITCH_LEVEL_STEP));
-
-    return stepCount;
+    return std::clamp(stepCount, 0.f, 127.f);
 }
 
 float VstSequencer::noteTuning(const mpe::NoteEvent& noteEvent, const int noteIdx) const
 {
-    int semitonesCount = noteIdx - MIN_SUPPORTED_NOTE;
+    int semitonesCount = noteIdx - mpe::ZERO_PITCH_LEVEL_MIDI_EQUIVALENT;
 
-    mpe::pitch_level_t tuningPitchLevel = noteEvent.pitchCtx().nominalPitchLevel - (semitonesCount * mpe::PITCH_LEVEL_STEP);
+    mpe::pitch_level_t tuningPitchLevel = noteEvent.pitchCtx().nominalPitchLevel - semitonesCount * mpe::PITCH_LEVEL_STEP;
 
     return (tuningPitchLevel / static_cast<float>(mpe::PITCH_LEVEL_STEP)) * 100.f;
 }

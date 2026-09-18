@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -20,24 +20,12 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef __PLUGIN_API_UTIL_H__
-#define __PLUGIN_API_UTIL_H__
+#pragma once
 
 #include <QDir>
 #include <QProcess>
-#include <QNetworkAccessManager>
 
-#include "uicomponents/view/quickpaintedview.h"
-
-#include "engraving/dom/mscoreview.h"
-
-namespace mu::engraving {
-class Score;
-}
-
-namespace mu::plugins::api {
-class Score;
-
+namespace mu::engraving::apiv1 {
 //---------------------------------------------------------
 ///   \class FileIO
 ///   Provides a simple API to perform file reading and
@@ -84,8 +72,23 @@ public:
     /// Writes a string to the file.
     /// \warning This function overwrites all the contents of
     /// the file pointed by FileIO::source so it becomes lost.
+    /// \note For security reasons, files can only be written within
+    /// the user's MuseScore data directories (userAppDataPath and userDataPath).
+    /// Attempts to write outside these directories will be blocked.
     /// \returns `true` if an operation finished successfully.
     Q_INVOKABLE bool write(const QString& data);
+    /**
+     * Writes binary data to the file.
+     * Each character code (0-255) in the string is written as a single byte.
+     * Use this for binary files like images, soundfonts, etc.
+     * \warning This function overwrites all the contents of
+     * the file pointed by FileIO::source so it becomes lost.
+     * \note For security reasons, files can only be written within
+     * the user's MuseScore data directories (userAppDataPath and userDataPath).
+     * Attempts to write outside these directories will be blocked.
+     * \returns `true` if an operation finished successfully.
+     */
+    Q_INVOKABLE bool writeBinary(const QString& data);
     /// Removes the file
     Q_INVOKABLE bool remove();
     /// muse::Returns user's home directory
@@ -139,65 +142,9 @@ public slots:
     /// \param args An array of arguments passed to the program.
     /// \since MuseScore 4.3
     Q_INVOKABLE void startWithArgs(const QString& program, const QStringList& args);
-    //@ --
+    /// --
     Q_INVOKABLE bool waitForFinished(int msecs = 30000) { return QProcess::waitForFinished(msecs); }
-    //@ --
+    /// --
     Q_INVOKABLE QByteArray readAllStandardOutput() { return QProcess::readAllStandardOutput(); }
 };
-
-//---------------------------------------------------------
-//   @@ ScoreView
-///    This is an GUI element to show a score. \since MuseScore 3.2
-//---------------------------------------------------------
-
-class ScoreView : public uicomponents::QuickPaintedView, public engraving::MuseScoreView
-{
-    Q_OBJECT
-    /// Background color
-    Q_PROPERTY(QColor color READ color WRITE setColor)
-    /// Scaling factor
-    Q_PROPERTY(qreal scale READ scale WRITE setScale)
-
-    mu::engraving::Score* score;
-    int m_currentPage;
-    QColor m_color;
-    qreal mag;
-    int playPos;
-    QRectF m_boundingRect;
-
-    QNetworkAccessManager* networkManager;
-
-    virtual void setScore(mu::engraving::Score*) override;
-
-    virtual void dataChanged(const RectF&) override { update(); }
-    virtual void updateAll() override { update(); }
-
-    virtual void paint(QPainter*) override;
-
-    virtual QRectF boundingRect() const override { return m_boundingRect; }
-    virtual void drawBackground(muse::draw::Painter*, const RectF&) const override {}
-
-public slots:
-    //@ --
-    Q_INVOKABLE void setScore(mu::plugins::api::Score*);
-    //@ --
-    Q_INVOKABLE void setCurrentPage(int n);
-    //@ --
-    Q_INVOKABLE void nextPage();
-    //@ --
-    Q_INVOKABLE void prevPage();
-
-public:
-    /// \cond MS_INTERNAL
-    ScoreView(QQuickItem* parent = 0);
-    virtual ~ScoreView() {}
-    QColor color() const { return m_color; }
-    void setColor(const QColor& c) { m_color = c; }
-    qreal scale() const { return mag; }
-    void setScale(qreal v) { mag = v; }
-    virtual const muse::Rect geometry() const override { return muse::Rect(x(), y(), width(), height()); }
-    /// \endcond
-};
-} // namespace mu::plugins::api
-
-#endif
+}

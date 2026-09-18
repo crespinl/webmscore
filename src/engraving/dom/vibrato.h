@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -44,7 +44,7 @@ public:
 
     Vibrato* vibrato() const { return toVibrato(spanner()); }
 
-    EngravingItem* propertyDelegate(Pid) override;
+    EngravingObject* propertyDelegate(Pid) const override;
 
     const SymIdList& symbols() const { return m_symbols; }
     void setSymbols(const SymIdList& s) { m_symbols = s; }
@@ -76,7 +76,6 @@ public:
     LineSegment* createLineSegment(System* parent) override;
     PointF linePos(Grip grip, System** system) const override;
 
-    void undoSetVibratoType(VibratoType val);
     void setVibratoType(VibratoType tt) { m_vibratoType = tt; }
     VibratoType vibratoType() const { return m_vibratoType; }
     String vibratoTypeUserName() const;

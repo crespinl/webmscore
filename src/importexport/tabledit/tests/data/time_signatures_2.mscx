@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<museScore version="4.60">
+<museScore version="4.70">
   <Score>
     <eid>B_B</eid>
     <Division>480</Division>
     <Style>
-      <spatium>1.74978</spatium>
+      <spatium>1.75</spatium>
       </Style>
     <showInvisible>1</showInvisible>
     <showUnprintable>1</showUnprintable>
@@ -290,8 +290,8 @@
               <eid>h_h</eid>
               <pitch>60</pitch>
               <tpc>14</tpc>
-              <fret>1</fret>
-              <string>1</string>
+              <fret>5</fret>
+              <string>2</string>
               </Note>
             </Chord>
           </voice>
@@ -332,8 +332,8 @@
               <linkedTo>h_h</linkedTo>
               <pitch>60</pitch>
               <tpc>14</tpc>
-              <fret>1</fret>
-              <string>1</string>
+              <fret>5</fret>
+              <string>2</string>
               </Note>
             </Chord>
           </voice>

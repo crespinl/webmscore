@@ -5,7 +5,7 @@
 # MuseScore Studio
 # Music Composition & Notation
 #
-# Copyright (C) 2025 MuseScore Limited
+# Copyright (C) 2025 MuseScore Limited and others
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 3 as
@@ -60,7 +60,7 @@ source $BUILD_TOOLS/environment.sh
 export CMAKE_TOOLCHAIN_FILE=${QT_ROOT_DIR}/lib/cmake/Qt6/qt.toolchain.cmake
 
 # =========== Build =======================
-echo "=== BUILD ==="
+echo "=== BUILD MuseStudio ==="
 
 MUSESCORE_REVISION=$(git rev-parse --short=7 HEAD)
 
@@ -76,3 +76,17 @@ bash ./buildscripts/ci/tools/make_version_env.sh $BUILD_NUMBER
 bash ./buildscripts/ci/tools/make_revision_env.sh $MUSESCORE_REVISION
 bash ./buildscripts/ci/tools/make_branch_env.sh
 
+echo "=== BUILD MuseAudio ==="
+
+mkdir -p build.audio.release
+cd build.audio.release
+
+cmake ../src/web/audioengine -GNinja -DCMAKE_BUILD_TYPE="Release" 
+
+if [ $(which nproc) ]; then
+    JOBS=$(nproc --all)
+else
+    JOBS=4
+fi
+
+ninja -j $JOBS

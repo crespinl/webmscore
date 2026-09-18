@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2024 MuseScore Limited
+ * Copyright (C) 2024 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -19,16 +19,16 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-import QtQuick 2.15
-import QtQuick.Layouts 1.15
 
-import Muse.Ui 1.0
-import Muse.UiComponents 1.0
+import QtQuick
+
+import Muse.Ui
+import Muse.UiComponents
 
 Item {
     id: root
 
-    property var model: null
+    property SoundFlagSettingsModel model: null
 
     property NavigationSection navigationPanelSection: null
     property int navigationPanelOrderStart: 0
@@ -65,7 +65,7 @@ Item {
 
             needAddPaddingForScrollbar: modifySoundView.isTruncated || playingTechniquesGridView.isTruncated
 
-            onToggleParamRequested: {
+            onToggleParamRequested: function(paramCode) {
                 root.model.togglePreset(paramCode)
             }
 
@@ -92,7 +92,7 @@ Item {
 
             needAddPaddingForScrollbar: modifySoundView.isTruncated || playingTechniquesGridView.isTruncated
 
-            onToggleParamRequested: {
+            onToggleParamRequested: function(paramCode) {
                 root.model.togglePlayingTechnique(paramCode)
             }
 
@@ -105,9 +105,14 @@ Item {
     StyledTextLabel {
         id: noOptionsLabel
 
+        width: parent.width
+
         text: qsTrc("playback", "Sound flag options are not available for this sound.")
         horizontalAlignment: Text.AlignLeft
         wrapMode: Text.Wrap
+        maximumLineCount: 2
+
+        displayTruncatedTextOnHover: true
 
         visible: root.noOptions
     }

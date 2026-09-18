@@ -5,7 +5,7 @@
  * MuseScore
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore BVBA and others
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -42,19 +42,19 @@
 #include "autobotinteractive.h"
 
 namespace muse::autobot {
-class Autobot : public IAutobot, public Injectable, public async::Asyncable
+class Autobot : public IAutobot, public Contextable, public async::Asyncable
 {
-    Inject<IApplication> application = { this };
-    Inject<IAutobotConfiguration> configuration= { this };
-    Inject<io::IFileSystem> fileSystem= { this };
-    Inject<muse::ui::INavigationController> navigation= { this };
-    Inject<shortcuts::IShortcutsRegister> shortcutsRegister= { this };
-    Inject<IInteractive> interactive= { this };
-    Inject<muse::ui::IMainWindow> mainWindow= { this };
+    GlobalInject<IAutobotConfiguration> configuration;
+    GlobalInject<io::IFileSystem> fileSystem;
+    ContextInject<IApplication> application = { this };
+    ContextInject<muse::ui::INavigationController> navigation = { this };
+    ContextInject<shortcuts::IShortcutsRegister> shortcutsRegister = { this };
+    ContextInject<IInteractive> interactive = { this };
+    ContextInject<muse::ui::IMainWindow> mainWindow = { this };
 
 public:
     Autobot(const modularity::ContextPtr& iocCtx)
-        : Injectable(iocCtx), m_report(iocCtx) {}
+        : Contextable(iocCtx), m_report(iocCtx) {}
 
     void init();
 

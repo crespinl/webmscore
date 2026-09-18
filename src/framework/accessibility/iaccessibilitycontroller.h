@@ -5,7 +5,7 @@
  * MuseScore
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore BVBA and others
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -27,7 +27,7 @@
 #include "iaccessible.h"
 
 namespace muse::accessibility {
-class IAccessibilityController : MODULE_EXPORT_INTERFACE
+class IAccessibilityController : MODULE_CONTEXT_INTERFACE
 {
     INTERFACE_ID(IAccessibilityController)
 public:
@@ -35,6 +35,7 @@ public:
 
     virtual void reg(IAccessible* item) = 0;
     virtual void unreg(IAccessible* item) = 0;
+    virtual bool isReg(IAccessible* item) const = 0;
 
     virtual void announce(const QString& announcement) = 0;
     virtual QString announcement() const = 0;

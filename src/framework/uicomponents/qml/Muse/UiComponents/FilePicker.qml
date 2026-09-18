@@ -5,7 +5,7 @@
  * MuseScore
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore BVBA and others
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -19,11 +19,11 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-import QtQuick 2.15
-import QtQuick.Layouts 1.15
+import QtQuick
+import QtQuick.Layouts
 
-import Muse.Ui 1.0
-import Muse.UiComponents 1.0
+import Muse.Ui
+import Muse.UiComponents
 
 Item {
     id: root
@@ -31,7 +31,8 @@ Item {
     enum PickerType {
         File,
         Directory,
-        MultipleDirectories
+        MultipleDirectories,
+        Any
     }
     property int pickerType: FilePicker.PickerType.File
 
@@ -41,13 +42,19 @@ Item {
     property alias filter: filePickerModel.filter
     property alias dir: filePickerModel.dir
 
+    property int buttonType: FlatButton.IconOnly
+    property string buttonText: qsTrc("ui", "Browse")
+    property int buttonOrientation: Qt.Vertical
+    property alias buttonWidth: button.implicitWidth
+
     property NavigationPanel navigation: null
     property int navigationRowOrderStart: 0
     property int navigationColumnOrderStart: 0
 
+    property alias showPathField: pathField.visible
     property string pathFieldTitle: qsTrc("ui", "Current path:")
-
     property alias pathFieldWidth: pathField.implicitWidth
+
     property alias spacing: row.spacing
 
     signal pathEdited(var newPath)
@@ -59,6 +66,32 @@ Item {
         id: filePickerModel
     }
 
+    Item {
+        id: prv
+
+        property bool isNavigationBoth: root.navigation && root.navigation.direction === NavigationPanel.Both
+
+        states: [
+            State {
+                when: prv.isNavigationBoth
+                PropertyChanges {
+                    pathField.navigation.row: root.navigationRowOrderStart
+                    pathField.navigation.column: root.navigationColumnOrderStart
+
+                    button.navigation.row: root.navigationRowOrderStart
+                    button.navigation.column: root.navigationColumnOrderStart + 1
+                }
+            },
+            State {
+                when: !prv.isNavigationBoth
+                PropertyChanges {
+                    pathField.navigation.order: root.navigationRowOrderStart
+                    button.navigation.order: root.navigationRowOrderStart + 1
+                }
+            }
+        ]
+    }
+
     RowLayout {
         id: row
         anchors.fill: parent
@@ -66,6 +99,7 @@ Item {
 
         TextInputField {
             id: pathField
+
             Layout.fillWidth: true
             Layout.minimumWidth: implicitWidth
             Layout.alignment: Qt.AlignVCenter
@@ -74,9 +108,7 @@ Item {
 
             navigation.name: "PathFieldBox"
             navigation.panel: root.navigation
-            navigation.row: root.navigationRowOrderStart
             navigation.enabled: root.visible && root.enabled
-            navigation.column: root.navigationColumnOrderStart
             navigation.accessible.name: root.pathFieldTitle + " " + pathField.currentText
 
             onTextEditingFinished: function(newTextValue) {
@@ -89,11 +121,13 @@ Item {
             Layout.alignment: Qt.AlignVCenter
             icon: IconCode.OPEN_FILE
 
+            text: root.buttonText
+            buttonType: root.buttonType
+            orientation: root.buttonOrientation
+
             navigation.name: "FilePickerButton"
             navigation.panel: root.navigation
-            navigation.row: root.navigationRowOrderStart
             navigation.enabled: root.visible && root.enabled
-            navigation.column: root.navigationColumnOrderStart + 1
             accessible.name: root.pickerType === FilePicker.PickerType.File ? qsTrc("ui", "Choose file")
                                                                             : qsTrc("ui", "Choose directory")
 
@@ -118,6 +152,14 @@ Item {
                 case FilePicker.PickerType.MultipleDirectories:{
                     var selectedDirectories = filePickerModel.selectMultipleDirectories(root.path)
                     root.pathEdited(selectedDirectories)
+                    break
+                }
+                case FilePicker.PickerType.Any:{
+                    var selectedAny = filePickerModel.selectAny()
+                    if (Boolean(selectedAny)) {
+                        root.pathEdited(selectedAny)
+                    }
+
                     break
                 }
                 }

@@ -1,10 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<museScore version="4.60">
+<museScore version="4.70">
   <Score>
     <eid>B_B</eid>
     <Division>480</Division>
     <Style>
       <maskBarlinesForText>0</maskBarlinesForText>
+      <dividerLeftAlignToSystemBarline>0</dividerLeftAlignToSystemBarline>
+      <dividerRightAlignToSystemBarline>0</dividerRightAlignToSystemBarline>
       <scaleRythmicSpacingForSmallNotes>0</scaleRythmicSpacingForSmallNotes>
       <verticallyAlignChordSymbols>0</verticallyAlignChordSymbols>
       <changesBeforeBarlineRepeats>0</changesBeforeBarlineRepeats>
@@ -138,10 +140,10 @@
           </voice>
         </Measure>
       <Measure>
-        <eid>c_c</eid>
+        <eid>e_e</eid>
         <voice>
           <Rest>
-            <eid>d_d</eid>
+            <eid>f_f</eid>
             <durationType>measure</durationType>
             <duration>4/4</duration>
             </Rest>

@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -19,33 +19,34 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-#ifndef MU_NOTATION_NOTATION_H
-#define MU_NOTATION_NOTATION_H
+#pragma once
 
 #include "async/asyncable.h"
 #include "modularity/ioc.h"
 
-#include "engraving/iengravingconfiguration.h"
-
+#include "../imasternotation.h"
 #include "../inotation.h"
-#include "igetscore.h"
 #include "../inotationconfiguration.h"
+#include "igetscore.h"
 
 namespace mu::engraving {
 class Score;
 }
 
 namespace mu::notation {
+class MasterNotation;
 class NotationInteraction;
 class NotationPlayback;
-class Notation : virtual public INotation, public IGetScore, public muse::Injectable, public muse::async::Asyncable
+class Notation : virtual public INotation, public IGetScore, public muse::Contextable, public muse::async::Asyncable
 {
-    muse::Inject<INotationConfiguration> configuration = { this };
-    muse::Inject<engraving::IEngravingConfiguration> engravingConfiguration = { this };
+    muse::GlobalInject<INotationConfiguration> configuration;
 
 public:
-    explicit Notation(const muse::modularity::ContextPtr& iocCtx, engraving::Score* score = nullptr);
+    explicit Notation(MasterNotation* master, const muse::modularity::ContextPtr& iocCtx, engraving::Score* score = nullptr);
     ~Notation() override;
+
+    project::INotationProject* project() const override;
+    IMasterNotationPtr masterNotation() const override;
 
     QString name() const override;
     QString projectName() const override;
@@ -91,6 +92,8 @@ protected:
     INotationUndoStackPtr m_undoStack = nullptr;
     muse::async::Notification m_notationChanged;
 
+    MasterNotation* m_masterNotation = nullptr;
+
 private:
     friend class NotationInteraction;
     friend class NotationPainting;
@@ -110,5 +113,3 @@ private:
     INotationElementsPtr m_elements = nullptr;
 };
 }
-
-#endif // MU_NOTATION_NOTATION_H

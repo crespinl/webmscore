@@ -5,7 +5,7 @@
  * MuseScore
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore BVBA and others
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -428,20 +428,20 @@ PwStream::PwStream(pw_core* core, const IAudioDriver::Spec& spec, const std::str
         PW_KEY_MEDIA_ROLE, "Production",
         nullptr);
 
-    if (!m_spec.samples) {
+    if (m_spec.output.samplesPerChannel == 0) {
         // could be null if upgrading from a previous version
-        m_spec.samples = MINIMUM_BUFFER_SIZE * 4;
+        m_spec.output.samplesPerChannel = MINIMUM_BUFFER_SIZE * 4;
     }
 
-    m_spec.samples = std::max(static_cast<uint16_t>(MINIMUM_BUFFER_SIZE), m_spec.samples);
-    m_spec.samples = std::min(static_cast<uint16_t>(MAXIMUM_BUFFER_SIZE), m_spec.samples);
+    m_spec.output.samplesPerChannel = std::max(MINIMUM_BUFFER_SIZE, m_spec.output.samplesPerChannel);
+    m_spec.output.samplesPerChannel = std::min(MAXIMUM_BUFFER_SIZE, m_spec.output.samplesPerChannel);
     // Request for a specific number of samples.
     // This is done through the "node.latency" property.
     // Note: user system configuration can override this. e.g.:
     //  - PIPEWIRE_QUANTUM or PIPEWIRE_LATENCY environment variable.
     //  - "clock.force-quantum" setting
     std::ostringstream lat;
-    lat << m_spec.samples << "/" << m_spec.sampleRate;
+    lat << m_spec.output.samplesPerChannel << "/" << m_spec.output.sampleRate;
     pw_properties_set(props, PW_KEY_NODE_LATENCY, lat.str().c_str());
 
     if (deviceId != PW_DEFAULT_DEVICE) {
@@ -451,24 +451,10 @@ PwStream::PwStream(pw_core* core, const IAudioDriver::Spec& spec, const std::str
     }
 
     spa_audio_info_raw formatInfo {};
-    formatInfo.rate = m_spec.sampleRate;
-    formatInfo.channels = m_spec.channels;
-    switch (m_spec.format) {
-    case IAudioDriver::Format::AudioF32:
-        formatInfo.format = SPA_AUDIO_FORMAT_F32;
-        m_stride = m_spec.channels * 4;
-        break;
-    case IAudioDriver::Format::AudioS16:
-        formatInfo.format = SPA_AUDIO_FORMAT_S16;
-        m_stride = m_spec.channels * 2;
-        break;
-    default:
-        LOGW() << "Unknow format, falling back to F32";
-        formatInfo.format = SPA_AUDIO_FORMAT_F32;
-        m_spec.format = IAudioDriver::Format::AudioF32;
-        m_stride = m_spec.channels * 4;
-        break;
-    }
+    formatInfo.rate = m_spec.output.sampleRate;
+    formatInfo.channels = m_spec.output.audioChannelCount;
+    formatInfo.format = SPA_AUDIO_FORMAT_F32;
+    m_stride = m_spec.output.audioChannelCount * 4;
 
     char buf[1024];
     auto builder = SPA_POD_BUILDER_INIT(buf, sizeof(buf));
@@ -528,7 +514,7 @@ void PwStream::process()
     const auto numFrames = b->requested ? SPA_MIN(b->requested, maxFrames) : maxFrames;
     const auto len = numFrames * m_stride;
 
-    m_spec.callback(m_spec.userdata, dst, len);
+    m_spec.callback(dst, len);
 
     buf->datas[0].chunk->offset = 0;
     buf->datas[0].chunk->stride = m_stride;
@@ -539,8 +525,6 @@ void PwStream::process()
 
 PwAudioDriver::PwAudioDriver()
 {
-    m_deviceId = PW_DEFAULT_DEVICE;
-
     static bool initDone = false;
 
     if (!initDone) {
@@ -614,7 +598,15 @@ void PwAudioDriver::init()
     LOGD() << "Running with version " << pw_get_library_version();
 }
 
-std::string PwAudioDriver::name() const { return "MUAUDIO(PipeWire)"; }
+std::string PwAudioDriver::name() const
+{
+    return "PipeWire";
+}
+
+AudioDeviceID PwAudioDriver::defaultDevice() const
+{
+    return PW_DEFAULT_DEVICE;
+}
 
 bool PwAudioDriver::open(const Spec& spec, Spec* activeSpec)
 {
@@ -624,16 +616,19 @@ bool PwAudioDriver::open(const Spec& spec, Spec* activeSpec)
 
     PwLoopLock lk { m_loop };
 
-    LOGI() << "Connecting to " << m_deviceId << " / " << spec.sampleRate << "Hz / " << spec.samples << " samples";
+    LOGI() << "Connecting to " << spec.deviceId << " / " << spec.output.sampleRate << "Hz / "
+           << spec.output.samplesPerChannel << " samples";
 
-    m_stream = std::make_unique<PwStream>(m_core, spec, m_deviceId);
+    m_stream = std::make_unique<PwStream>(m_core, spec, spec.deviceId);
 
     m_formatSpec = m_stream->spec();
     if (activeSpec) {
         *activeSpec = m_stream->spec();
     }
 
-    LOGD() << "Connected to " << outputDevice();
+    m_activeSpecChanged.send(m_formatSpec);
+
+    LOGD() << "Connected to " << spec.deviceId;
     return true;
 }
 
@@ -648,52 +643,7 @@ bool PwAudioDriver::isOpened() const { return m_stream != nullptr; }
 
 const IAudioDriver::Spec& PwAudioDriver::activeSpec() const { return m_formatSpec; }
 
-AudioDeviceID PwAudioDriver::outputDevice() const { return m_deviceId; }
-
-bool PwAudioDriver::selectOutputDevice(const AudioDeviceID& deviceId)
-{
-    LOGD() << "Selecting output device: " << deviceId;
-
-    if (m_deviceId == deviceId) {
-        LOGD() << "Output device already selected: " << deviceId;
-        return true;
-    }
-
-    auto devices = availableOutputDevices();
-    bool reopen = isOpened();
-
-    close();
-
-    auto dev = std::find_if(devices.begin(), devices.end(), [&](const AudioDevice& device) { return device.id == deviceId; });
-    if (dev == devices.end()) {
-        LOGW() << "Could not find device \"" << m_deviceId << "\". Falling back to \"" << PW_DEFAULT_DEVICE << "\"";
-        m_deviceId = PW_DEFAULT_DEVICE;
-    } else {
-        LOGI() << "Selecting device \"" << dev->name << "\" (" << dev->id << ")";
-        m_deviceId = deviceId;
-    }
-
-    bool ok = true;
-    if (reopen) {
-        ok = open(m_formatSpec, nullptr);
-    }
-
-    if (ok) {
-        m_outputDeviceChanged.notify();
-    }
-
-    return ok;
-}
-
-bool PwAudioDriver::resetToDefaultOutputDevice()
-{
-    return selectOutputDevice(PW_DEFAULT_DEVICE);
-}
-
-async::Notification PwAudioDriver::outputDeviceChanged() const
-{
-    return m_outputDeviceChanged;
-}
+async::Channel<IAudioDriver::Spec> PwAudioDriver::activeSpecChanged() const { return m_activeSpecChanged; }
 
 AudioDeviceList PwAudioDriver::availableOutputDevices() const
 {
@@ -717,47 +667,11 @@ async::Notification PwAudioDriver::availableOutputDevicesChanged() const
     return m_registry->availableOutputDevicesChanged();
 }
 
-unsigned int PwAudioDriver::outputDeviceBufferSize() const
+std::vector<samples_t> PwAudioDriver::availableOutputDeviceBufferSizes() const
 {
-    PwLoopLock lk { m_loop };
+    std::vector<samples_t> result;
 
-    return m_stream ? m_stream->spec().samples : 0;
-}
-
-bool PwAudioDriver::setOutputDeviceBufferSize(unsigned int bufferSize)
-{
-    if (m_formatSpec.samples == bufferSize) {
-        return true;
-    }
-
-    bool reopen = isOpened();
-
-    close();
-    m_formatSpec.samples = bufferSize;
-
-    bool ok = true;
-    if (reopen) {
-        ok = open(m_formatSpec, nullptr);
-    }
-
-    if (ok) {
-        m_bufferSizeChanged.notify();
-    }
-
-    return ok;
-}
-
-async::Notification PwAudioDriver::outputDeviceBufferSizeChanged() const
-{
-    return m_bufferSizeChanged;
-}
-
-std::vector<unsigned int>
-PwAudioDriver::availableOutputDeviceBufferSizes() const
-{
-    std::vector<unsigned int> result;
-
-    unsigned int n = MAXIMUM_BUFFER_SIZE;
+    samples_t n = MAXIMUM_BUFFER_SIZE;
     while (n >= MINIMUM_BUFFER_SIZE) {
         result.push_back(n);
         n /= 2;
@@ -768,43 +682,7 @@ PwAudioDriver::availableOutputDeviceBufferSizes() const
     return result;
 }
 
-unsigned int PwAudioDriver::outputDeviceSampleRate() const
-{
-    PwLoopLock lk { m_loop };
-
-    return m_stream ? m_stream->spec().sampleRate : 0;
-}
-
-bool PwAudioDriver::setOutputDeviceSampleRate(unsigned int sampleRate)
-{
-    if (m_formatSpec.sampleRate == sampleRate) {
-        return true;
-    }
-
-    bool reopen = isOpened();
-
-    close();
-    m_formatSpec.sampleRate = sampleRate;
-
-    bool ok = true;
-    if (reopen) {
-        ok = open(m_formatSpec, nullptr);
-    }
-
-    if (ok) {
-        m_sampleRateChanged.notify();
-    }
-
-    return ok;
-}
-
-async::Notification PwAudioDriver::outputDeviceSampleRateChanged() const
-{
-    return m_sampleRateChanged;
-}
-
-std::vector<unsigned int>
-PwAudioDriver::availableOutputDeviceSampleRates() const
+std::vector<sample_rate_t> PwAudioDriver::availableOutputDeviceSampleRates() const
 {
     return {
         44100,
@@ -812,20 +690,4 @@ PwAudioDriver::availableOutputDeviceSampleRates() const
         88200,
         96000,
     };
-}
-
-void PwAudioDriver::resume()
-{
-    if (m_stream) {
-        PwLoopLock lk { m_loop };
-        m_stream->resume();
-    }
-}
-
-void PwAudioDriver::suspend()
-{
-    if (m_stream) {
-        PwLoopLock lk { m_loop };
-        m_stream->suspend();
-    }
 }

@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -20,8 +20,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef MU_NOTATION_EXCERPTNOTATION_H
-#define MU_NOTATION_EXCERPTNOTATION_H
+#pragma once
 
 #include "../iexcerptnotation.h"
 #include "notation.h"
@@ -30,7 +29,7 @@ namespace mu::notation {
 class ExcerptNotation : public IExcerptNotation, public Notation, public std::enable_shared_from_this<ExcerptNotation>
 {
 public:
-    explicit ExcerptNotation(mu::engraving::Excerpt* excerpt, const muse::modularity::ContextPtr& iocCtx);
+    explicit ExcerptNotation(MasterNotation* master, engraving::Excerpt* excerpt, const muse::modularity::ContextPtr& iocCtx);
 
     ~ExcerptNotation() override;
 
@@ -55,10 +54,7 @@ public:
     IExcerptNotationPtr clone() const override;
 
 private:
-
     mu::engraving::Excerpt* m_excerpt = nullptr;
     bool m_inited = false;
 };
 }
-
-#endif // MU_NOTATION_EXCERPTNOTATION_H

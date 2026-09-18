@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -95,7 +95,7 @@ Font Bend::font(double sp) const
     f.setUnderline(m_fontStyle & FontStyle::Underline);
     f.setStrike(m_fontStyle & FontStyle::Strike);
     double m = m_fontSize;
-    m *= sp / SPATIUM20;
+    m *= sp / defaultSpatium();
 
     f.setPointSizeF(m);
     return f;
@@ -155,7 +155,7 @@ PropertyValue Bend::getProperty(Pid id) const
     case Pid::FONT_STYLE:
         return int(m_fontStyle);
     case Pid::PLAY:
-        return bool(playBend());
+        return playBend();
     case Pid::LINE_WIDTH:
         return m_lineWidth;
     case Pid::BEND_TYPE:

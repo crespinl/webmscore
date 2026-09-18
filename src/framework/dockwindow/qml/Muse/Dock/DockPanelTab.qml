@@ -5,7 +5,7 @@
  * MuseScore
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore BVBA and others
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -20,16 +20,17 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import QtQuick 2.15
-import QtQuick.Controls 2.15
+import QtQuick
 
-import Muse.Ui 1.0
-import Muse.UiComponents 1.0
+import Muse.Ui
+import Muse.UiComponents
 
 StyledTabButton {
     id: root
 
     property alias contextMenuModel: contextMenuButton.menuModel
+
+    property bool isCutOff: false
 
     signal handleContextMenuItemRequested(string itemId)
 
@@ -109,7 +110,7 @@ StyledTabButton {
     }
 
     Rectangle {
-        visible: root.width < root.implicitWidth
+        visible: root.isCutOff
 
         anchors.top: root.top
         anchors.right: root.right
@@ -119,7 +120,6 @@ StyledTabButton {
 
         width: 20
 
-        opacity: 0.7
         gradient: Gradient {
             orientation: Qt.Horizontal
 
@@ -129,7 +129,7 @@ StyledTabButton {
             }
             GradientStop {
                 position: 1.0
-                color: backgroundRect.color
+                color: Utils.colorWithAlpha(backgroundRect.color, 0.7)
             }
         }
     }

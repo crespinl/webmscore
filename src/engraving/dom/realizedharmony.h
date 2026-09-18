@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -80,9 +80,6 @@ public:
     Harmony* harmony() { return m_harmony; }
 
     bool valid() const { return !m_dirty && m_harmony; }
-
-    const std::vector<int> pitches() const { return muse::keys(notes()); }
-    const std::vector<int> tpcs() const { return muse::values(notes()); }
 
     const PitchMap& notes() const;
     const PitchMap generateNotes(int rootTpc, int bassTpc, bool literal, Voicing voicing, int transposeOffset) const;

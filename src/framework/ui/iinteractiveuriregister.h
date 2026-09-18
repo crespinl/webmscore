@@ -5,7 +5,7 @@
  * MuseScore
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore BVBA and others
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -19,8 +19,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-#ifndef MUSE_UI_IINTERACTIVEURIREGISTER_H
-#define MUSE_UI_IINTERACTIVEURIREGISTER_H
+
+#pragma once
 
 #include <type_traits>
 
@@ -29,21 +29,26 @@
 #include "uitypes.h"
 
 namespace muse::ui {
-class IInteractiveUriRegister : MODULE_EXPORT_INTERFACE
+class IInteractiveUriRegister : MODULE_CONTEXT_INTERFACE
 {
     INTERFACE_ID(IInteractiveUriRegister)
 
 public:
     virtual ~IInteractiveUriRegister() = default;
 
-    virtual void registerUri(const Uri& uri, const ContainerMeta& meta) = 0;
-    virtual void unregisterUri(const Uri& uri) = 0;
-    virtual ContainerMeta meta(const Uri& uri) const = 0;
+    void registerPageUri(const Uri& uri)
+    {
+        registerUri(uri, ContainerMeta(ContainerType::Type::PrimaryPage));
+    }
 
-    // useful
     void registerQmlUri(const Uri& uri, const QString& qmlPath)
     {
         registerUri(uri, ContainerMeta(ContainerType::Type::QmlDialog, qmlPath));
+    }
+
+    void registerQmlUri(const Uri& uri, const QString& qmlModule, const QString& qmlPath)
+    {
+        registerUri(uri, ContainerMeta(ContainerType::Type::QmlDialog, qmlModule, qmlPath));
     }
 
     template<typename T>
@@ -52,7 +57,11 @@ public:
         static_assert(std::is_base_of<QWidget, T>::value, "T must derive from QWidget");
         registerUri(uri, ContainerMeta(ContainerType::Type::QWidgetDialog, qRegisterMetaType<T>()));
     }
+
+    virtual void unregisterUri(const Uri& uri) = 0;
+    virtual ContainerMeta meta(const Uri& uri) const = 0;
+
+protected:
+    virtual void registerUri(const Uri& uri, const ContainerMeta& meta) = 0;
 };
 }
-
-#endif // MUSE_UI_IINTERACTIVEURIREGISTER_H

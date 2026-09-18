@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -39,6 +39,7 @@ public:
     Text(EngravingItem* parent, TextStyleType tid = TextStyleType::DEFAULT);
     Text* clone() const override { return new Text(*this); }
 
+    EngravingObject* propertyDelegate(Pid) const override;
     PropertyValue propertyDefault(Pid id) const override;
     PropertyValue getProperty(Pid id) const override;
 
@@ -48,6 +49,10 @@ public:
 
     bool hasVoiceAssignmentProperties() const override;
     VoiceAssignment voiceAssignment() const;
+
+    bool collectForDrawing() const override;
+
+    bool positionRelativeToNoteheadRest() const override;
 };
 } // namespace mu::engraving
 

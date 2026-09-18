@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -119,24 +119,6 @@ void InstrumentName::setInstrumentNameType(InstrumentNameType st)
         setTextStyleType(TextStyleType::INSTRUMENT_LONG);
         initElementStyle(&longInstrumentStyle);
     }
-}
-
-//---------------------------------------------------------
-//   playTick
-//---------------------------------------------------------
-
-Fraction InstrumentName::playTick() const
-{
-    // Instrument names always have a tick value of zero, so play from the start of the first measure in the system that the instrument name belongs to.
-    const auto sys = system();
-    if (sys) {
-        const auto firstMeasure = sys->firstMeasure();
-        if (firstMeasure) {
-            return firstMeasure->tick();
-        }
-    }
-
-    return tick();
 }
 
 //---------------------------------------------------------

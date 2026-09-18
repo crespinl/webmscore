@@ -17,8 +17,8 @@
     </identification>
   <part-list>
     <score-part id="P1">
-      <part-name>Piano</part-name>
-      <part-abbreviation>Pno.</part-abbreviation>
+      <part-name print-object="no">Piano</part-name>
+      <part-abbreviation print-object="no">Pno.</part-abbreviation>
       <score-instrument id="P1-I1">
         <instrument-name>Piano</instrument-name>
         </score-instrument>
@@ -370,7 +370,7 @@
     <measure number="7">
       <direction placement="below">
         <direction-type>
-          <pedal type="resume" line="yes" sign="yes"/>
+          <pedal type="start" line="yes" sign="yes"/>
           </direction-type>
         </direction>
       <note>
@@ -474,7 +474,7 @@
         </note>
       </measure>
     <measure number="9">
-      <direction placement="above">
+      <direction>
         <direction-type>
           <octave-shift type="down" size="8" number="1"/>
           </direction-type>
@@ -519,7 +519,7 @@
         <type>quarter</type>
         <stem>up</stem>
         </note>
-      <direction placement="above">
+      <direction>
         <direction-type>
           <octave-shift type="stop" size="8" number="1"/>
           </direction-type>

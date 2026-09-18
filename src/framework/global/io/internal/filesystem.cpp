@@ -5,7 +5,7 @@
  * MuseScore
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore BVBA and others
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -24,10 +24,7 @@
 #include <QDir>
 #include <QDirIterator>
 #include <QFileInfo>
-
-#if QT_VERSION >= QT_VERSION_CHECK(6, 8, 0)
 #include <QDirListing>
-#endif
 
 #ifdef Q_OS_WIN
 #include <windows.h>
@@ -38,6 +35,15 @@
 
 using namespace muse;
 using namespace muse::io;
+
+FileSystem::~FileSystem()
+{
+    std::lock_guard<std::mutex> lock(m_openStreamsMutex);
+    for (auto& [id, file] : m_openStreams) {
+        file->close();
+    }
+    m_openStreams.clear();
+}
 
 Ret FileSystem::exists(const io::path_t& path) const
 {
@@ -67,7 +73,6 @@ Ret FileSystem::clear(const io::path_t& path)
         return true;
     }
 
-#if QT_VERSION >= QT_VERSION_CHECK(6, 8, 0)
     using ItFlag = QDirListing::IteratorFlag;
     for (const auto& dirEntry : QDirListing{ qPath, ItFlag::IncludeHidden }) {
         if (dirEntry.isDir() && !dirEntry.isSymLink()) {
@@ -84,25 +89,6 @@ Ret FileSystem::clear(const io::path_t& path)
             return didRemove;
         }
     }
-#else
-    QDirIterator di(qPath, QDir::AllEntries | QDir::Hidden | QDir::System | QDir::NoDotAndDotDot);
-    while (di.hasNext()) {
-        const QString& filePath = di.next();
-        const QFileInfo& fi = di.fileInfo();
-
-        if (fi.isDir() && !fi.isSymLink()) {
-            const Ret didRemove = removeDir(filePath); // recursive
-            if (!didRemove) {
-                return didRemove;
-            }
-            continue;
-        }
-        const Ret didRemove = removeFile(filePath);
-        if (!didRemove) {
-            return didRemove;
-        }
-    }
-#endif
 
     return make_ok();
 }
@@ -299,6 +285,9 @@ RetVal<io::paths_t> FileSystem::scanFiles(const io::path_t& rootDir, const std::
     case ScanMode::FilesInCurrentDir:
         filters |= QDir::Files;
         break;
+    case ScanMode::FoldersInCurrentDir:
+        filters |= QDir::Dirs;
+        break;
     case ScanMode::FilesAndFoldersInCurrentDir:
         filters |= QDir::Files | QDir::Dirs;
         break;
@@ -328,13 +317,14 @@ Ret FileSystem::removeFile(const io::path_t& path)
     QFile file(path.toQString());
     if (!file.remove()) {
         // Read-only files prevent directory deletion on Windows, retry with Write permission.
-        LOGW() << "Failed to delete file. Setting write permission and trying again...";
+        LOGW() << "Failed to delete file: " << file.errorString()
+               << "\nSetting write permission and trying again...";
         if (!file.setPermissions(file.permissions() | QFile::WriteUser)) {
-            LOGE() << "Failed to set write permission for file";
+            LOGE() << "Failed to set write permission for file: " << file.errorString();
             return make_ret(Err::FSRemoveError);
         }
         if (!file.remove()) {
-            LOGE() << "Second delete attempt failed";
+            LOGE() << "Second delete attempt failed: " << file.errorString();
             return make_ret(Err::FSRemoveError);
         }
 
@@ -465,6 +455,81 @@ DateTime FileSystem::lastModified(const io::path_t& filePath) const
     return DateTime::fromQDateTime(QFileInfo(filePath.toQString()).lastModified());
 }
 
+RetVal<StreamId> FileSystem::openStream(const io::path_t& filePath, OpenMode mode)
+{
+    RetVal<StreamId> result;
+
+    auto file = std::make_unique<QFile>(filePath.toQString());
+
+    QIODevice::OpenMode qmode = (mode == OpenMode::Append) ? QIODevice::Append : QIODevice::WriteOnly;
+
+    if (!file->open(qmode)) {
+        result.ret = make_ret(Err::FSWriteError);
+        result.ret.setText(file->errorString().toStdString());
+        return result;
+    }
+
+    std::lock_guard<std::mutex> lock(m_openStreamsMutex);
+    StreamId id = m_nextStreamId++;
+    m_openStreams.emplace(id, std::move(file));
+
+    result.ret = make_ret(Err::NoError);
+    result.val = id;
+    return result;
+}
+
+Ret FileSystem::writeToStream(StreamId fileId, const ByteArray& data, uint64_t offset)
+{
+    std::lock_guard<std::mutex> lock(m_openStreamsMutex);
+    auto it = m_openStreams.find(fileId);
+    if (it == m_openStreams.end()) {
+        return make_ret(Err::FSWriteError);
+    }
+
+    QFile* file = it->second.get();
+    IF_ASSERT_FAILED(file) {
+        return make_ret(Err::FSWriteError);
+    }
+
+    if (offset != STREAM_POS_CURRENT) {
+        if (!file->seek(static_cast<qint64>(offset))) {
+            Ret ret = make_ret(Err::FSWriteError);
+            ret.setText(file->errorString().toStdString());
+            return ret;
+        }
+    }
+
+    const auto numBytesToWrite = static_cast<qint64>(data.size());
+    const qint64 written = file->write(data.constChar(), numBytesToWrite);
+    if (written != numBytesToWrite) {
+        Ret ret = make_ret(Err::FSWriteError);
+        ret.setText(file->errorString().toStdString());
+        return ret;
+    }
+
+    return make_ret(Err::NoError);
+}
+
+Ret FileSystem::closeStream(StreamId fileId)
+{
+    std::lock_guard<std::mutex> lock(m_openStreamsMutex);
+
+    auto it = m_openStreams.find(fileId);
+    if (it == m_openStreams.end()) {
+        return make_ret(Err::FSWriteError);
+    }
+
+    std::unique_ptr<QFile> file = std::move(it->second);
+    m_openStreams.erase(it);
+
+    IF_ASSERT_FAILED(file) {
+        return make_ret(Err::FSWriteError);
+    }
+
+    file->close();
+    return make_ret(Err::NoError);
+}
+
 Ret FileSystem::isWritable(const io::path_t& filePath) const
 {
     Ret ret = muse::make_ok();
@@ -483,10 +548,10 @@ Ret FileSystem::isWritable(const io::path_t& filePath) const
         file.remove();
     } else if (!fileInfo.isWritable()) {
         QFile file(filePath.toQString());
-        file.open(QFile::WriteOnly);
-
-        ret = make_ret(Err::FSWriteError);
-        ret.setText(file.errorString().toStdString());
+        if (!file.open(QFile::WriteOnly)) {
+            ret = make_ret(Err::FSWriteError);
+            ret.setText(file.errorString().toStdString());
+        }
 
         file.close();
     }

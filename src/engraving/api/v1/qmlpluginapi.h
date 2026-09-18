@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -25,17 +25,24 @@
 
 #include "extensions/api/v1/ipluginapiv1.h"
 
+#include "global/api/apiutils.h"
+
 #include "modularity/ioc.h"
 #include "actions/iactionsdispatcher.h"
 #include "context/iglobalcontext.h"
 #include "global/iapplication.h"
 
-#include "enums.h"
+#include "../../iengravingpluginapihelper.h"
+
 #include "apitypes.h"
 #include "cursor.h"
+#include "enums.h"
+
+#include "log.h"
 
 namespace mu::engraving {
 class EngravingItem;
+class Score;
 }
 
 /**
@@ -45,7 +52,7 @@ class EngravingItem;
 
 namespace mu::engraving::apiv1 {
 class EngravingItem;
-class FractionWrapper;
+class Fraction;
 class OrnamentIntervalWrapper;
 class MsProcess;
 class Score;
@@ -85,7 +92,7 @@ class Score;
 //   @P scores               array[mu::engraving::Score]  all currently open scores (read only)
 //---------------------------------------------------------
 
-class PluginAPI : public QQuickItem, public muse::extensions::apiv1::IPluginApiV1, public muse::Injectable
+class PluginAPI : public QQuickItem, public muse::extensions::apiv1::IPluginApiV1, public muse::Contextable
 {
     Q_OBJECT
 
@@ -127,15 +134,16 @@ class PluginAPI : public QQuickItem, public muse::extensions::apiv1::IPluginApiV
     /// List of currently open scores (read only).\n \since MuseScore 3.2
     Q_PROPERTY(QQmlListProperty<mu::engraving::apiv1::Score> scores READ scores)
 
-public:
-    muse::Inject<muse::actions::IActionsDispatcher> actionsDispatcher = { this };
-    muse::Inject<mu::context::IGlobalContext> context = { this };
-    muse::Inject<muse::IApplication> application = { this };
+private:
+    muse::ContextInject<muse::actions::IActionsDispatcher> actionsDispatcher = { this };
+    muse::ContextInject<mu::context::IGlobalContext> context = { this };
+    muse::ContextInject<muse::IApplication> application = { this };
+    muse::ContextInject<mu::engraving::IEngravingPluginAPIHelper> helper = { this };
 
 public:
     // Should be initialized in qmlpluginapi.cpp
     /// Contains mu::engraving::ElementType enumeration values
-    DECLARE_API_ENUM(Element,          elementTypeEnum,        mu::engraving::apiv1::enums::ElementType)
+    DECLARE_API_ENUM(Element, elementTypeEnum, mu::engraving::apiv1::enums::ElementType)
     /// Contains mu::engraving::AccidentalType enumeration values
     DECLARE_API_ENUM(Accidental,       accidentalTypeEnum,     mu::engraving::apiv1::enums::AccidentalType)
     /// Contains mu::engraving::AccidentalBracket enumeration values
@@ -310,9 +318,6 @@ public:
     /// Contains mu::engraving::ChordStylePreset enumeration values
     /// \since MuseScore 4.6
     DECLARE_API_ENUM(ChordStylePreset, chordStylePresetEnum, mu::engraving::apiv1::enums::ChordStylePreset)
-    /// Contains mu::engraving::AnnotationCategory enumeration values
-    /// \since MuseScore 4.6
-    DECLARE_API_ENUM(AnnotationCategory, annotationCategoryEnum, mu::engraving::apiv1::enums::AnnotationCategory)
     /// Contains mu::engraving::PlayingTechniqueType enumeration values
     /// \since MuseScore 4.6
     DECLARE_API_ENUM(PlayingTechniqueType, playingTechniqueTypeEnum, mu::engraving::apiv1::enums::PlayingTechniqueType)
@@ -476,7 +481,7 @@ signals:
     ///
     /// Example:
     /// \code
-    /// import QtQuick 2.0
+    /// import QtQuick
     /// import MuseScore 3.0
     ///
     /// MuseScore {
@@ -530,7 +535,8 @@ public:
     Q_INVOKABLE apiv1::MsProcess* newQProcess();
     Q_INVOKABLE bool writeScore(apiv1::Score*, const QString& name, const QString& ext);
     Q_INVOKABLE apiv1::Score* readScore(const QString& name, bool noninteractive = false);
-    Q_INVOKABLE void closeScore(apiv1::Score*);
+    Q_INVOKABLE void closeScore(apiv1::Score* score);
+    Q_INVOKABLE void closeScore();
 
     Q_INVOKABLE void log(const QString&);
     Q_INVOKABLE void logn(const QString&);
@@ -538,8 +544,8 @@ public:
     Q_INVOKABLE void openLog(const QString&);
     Q_INVOKABLE void closeLog();
 
-    Q_INVOKABLE apiv1::FractionWrapper* fraction(int numerator, int denominator) const;
-    Q_INVOKABLE apiv1::FractionWrapper* fractionFromTicks(int ticks) const;
+    Q_INVOKABLE apiv1::Fraction* fraction(int numerator, int denominator) const;
+    Q_INVOKABLE apiv1::Fraction* fractionFromTicks(int ticks) const;
 
     Q_INVOKABLE apiv1::OrnamentIntervalWrapper* ornamentInterval(int step, int type) const;
 
@@ -586,6 +592,7 @@ public:
 private:
     mu::engraving::Score* currentScore() const;
 
+    muse::api::IApiEngine* m_engine = nullptr;
     QString m_pluginType;
     QString m_title;
     QString m_version;

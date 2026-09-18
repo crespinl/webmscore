@@ -5,7 +5,7 @@
  * MuseScore
  * Music Composition & Notation
  *
- * Copyright (C) 2024 MuseScore BVBA and others
+ * Copyright (C) 2024 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -26,19 +26,19 @@
 
 #include "modularity/ioc.h"
 #include "global/iglobalconfiguration.h"
-#include "multiinstances/imultiinstancesprovider.h"
+#include "multiwindows/imultiwindowsprovider.h"
 
 #include "global/async/asyncable.h"
 
 namespace muse::extensions {
-class ExtensionsConfiguration : public IExtensionsConfiguration, public Injectable, public async::Asyncable
+class ExtensionsConfiguration : public IExtensionsConfiguration, public Contextable, public async::Asyncable
 {
-    Inject<IGlobalConfiguration> globalConfiguration = { this };
-    Inject<mi::IMultiInstancesProvider> multiInstancesProvider = { this };
+    GlobalInject<IGlobalConfiguration> globalConfiguration;
+    GlobalInject<mi::IMultiWindowsProvider> multiwindowsProvider;
 
 public:
     ExtensionsConfiguration(const modularity::ContextPtr& iocCtx)
-        : Injectable(iocCtx) {}
+        : Contextable(iocCtx) {}
 
     void init();
 

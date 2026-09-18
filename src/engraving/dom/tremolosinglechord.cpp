@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -44,7 +44,7 @@ using namespace mu::engraving;
 
 namespace mu::engraving {
 TremoloSingleChord::TremoloSingleChord(Chord* parent)
-    : EngravingItem(ElementType::TREMOLO_SINGLECHORD, parent, ElementFlag::MOVABLE)
+    : EngravingItem(ElementType::TREMOLO_SINGLECHORD, parent, ElementFlag::MOVABLE | ElementFlag::ON_STAFF)
 {
 }
 
@@ -207,24 +207,6 @@ void TremoloSingleChord::reset()
     resetProperty(Pid::BEAM_NO_SLOPE);
 }
 
-//---------------------------------------------------------
-//   pagePos
-//---------------------------------------------------------
-
-PointF TremoloSingleChord::pagePos() const
-{
-    EngravingObject* e = explicitParent();
-    while (e && (!e->isSystem() && e->explicitParent())) {
-        e = e->explicitParent();
-    }
-    if (!e || !e->isSystem()) {
-        return pos();
-    }
-    System* s = toSystem(e);
-    double yp = y() + s->staff(vStaffIdx())->y() + s->y();
-    return PointF(pageX(), yp);
-}
-
 TDuration TremoloSingleChord::durationType() const
 {
     return m_durationType;
@@ -260,17 +242,7 @@ Fraction TremoloSingleChord::tremoloLen() const
     return f;
 }
 
-void TremoloSingleChord::triggerLayout() const
-{
-    EngravingItem::triggerLayout();
-}
-
 void TremoloSingleChord::endEdit(EditData&)
-{
-    UNREACHABLE;
-}
-
-void TremoloSingleChord::editDrag(EditData&)
 {
     UNREACHABLE;
 }
@@ -365,11 +337,11 @@ PropertyValue TremoloSingleChord::propertyDefault(Pid propertyId) const
 //   scanElements
 //---------------------------------------------------------
 
-void TremoloSingleChord::scanElements(void* data, void (* func)(void*, EngravingItem*), bool all)
+void TremoloSingleChord::scanElements(std::function<void(EngravingItem*)> func)
 {
     if (chord() && chord()->tremoloChordType() == TremoloChordType::TremoloSecondChord) {
         return;
     }
-    EngravingItem::scanElements(data, func, all);
+    EngravingItem::scanElements(func);
 }
 }

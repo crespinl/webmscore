@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2023 MuseScore Limited
+ * Copyright (C) 2023 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -19,8 +19,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-#ifndef MU_ENGRAVING_SCORERENDERER_DEV_H
-#define MU_ENGRAVING_SCORERENDERER_DEV_H
+#pragma once
 
 #include "../iscorerenderer.h"
 
@@ -35,11 +34,12 @@ public:
 
     // Main interface
     void layoutScore(Score* score, const Fraction& st, const Fraction& et) const override;
+    void layoutHeadersFooters(Score* score) const override;
 
     SizeF pageSizeInch(const Score* score) const override;
-    SizeF pageSizeInch(const Score* score, const PaintOptions& opt) const override;
-    void paintScore(muse::draw::Painter* painter, Score* score, const IScoreRenderer::PaintOptions& opt) const override;
-    void paintItem(muse::draw::Painter& painter, const EngravingItem* item) const override;
+    SizeF pageSizeInch(const Score* score, const ScorePaintOptions& opt) const override;
+    void paintScore(muse::draw::Painter* painter, Score* score, const ScorePaintOptions& opt) const override;
+    void paintItem(muse::draw::Painter& painter, const EngravingItem* item, const PaintOptions& opt) const override;
 
     //! TODO Investigation is required, probably these functions or their calls should not be.
     // Other
@@ -53,12 +53,12 @@ public:
     void computeBezier(TieSegment* tieSeg, PointF shoulderOffset = PointF()) override;
     void computeBezier(SlurSegment* slurSeg, PointF shoulderOffset = PointF()) override;
 
+    bool scoreHasTimestampHeadersFooters(const Score* score) const override;
+
 private:
     // Layout Single Item
     void doLayoutItem(EngravingItem* item) override;
 
-    void doDrawItem(const EngravingItem* item, muse::draw::Painter* p) override;
+    void doDrawItem(const EngravingItem* item, muse::draw::Painter* p, const PaintOptions& opt) override;
 };
 }
-
-#endif // MU_ENGRAVING_SCORERENDERER_DEV_H

@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2025 MuseScore Limited
+ * Copyright (C) 2025 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -38,6 +38,8 @@ class BarLine;
 class Dynamic;
 class SlurTieSegment;
 class TextBase;
+class TextBlock;
+class TextFragment;
 }
 
 namespace mu::engraving::rendering::editmode {
@@ -46,14 +48,23 @@ class EditModeRenderer : public IEditModeRenderer
 public:
     EditModeRenderer() = default;
 
-    void drawItem(EngravingItem* item, muse::draw::Painter* p, EditData& ed, double currentViewScaling) override;
+    void drawItem(const EngravingItem* item, muse::draw::Painter* p, const EditData& ed, double currentViewScaling,
+                  const PaintOptions& opt) override;
 
 private:
-    static void drawEngravingItem(EngravingItem* item, muse::draw::Painter* painter, EditData& ed, double currentViewScaling);
+    static void drawEngravingItem(const EngravingItem* item, muse::draw::Painter* painter, const EditData& ed, double currentViewScaling,
+                                  const PaintOptions& opt);
 
-    static void drawBarline(BarLine* item, muse::draw::Painter* painter, EditData& ed, double currentViewScaling);
-    static void drawDynamic(Dynamic* item, muse::draw::Painter* painter, EditData& ed, double currentViewScaling);
-    static void drawSlurTieSegment(SlurTieSegment* item, muse::draw::Painter* painter, EditData& ed, double currentViewScaling);
-    static void drawTextBase(TextBase* item, muse::draw::Painter* painter, EditData& ed, double currentViewScaling);
+    static void drawBarline(const BarLine* item, muse::draw::Painter* painter, const EditData& ed, double currentViewScaling,
+                            const PaintOptions& opt);
+    static void drawDynamic(const Dynamic* item, muse::draw::Painter* painter, const EditData& ed, double currentViewScaling,
+                            const PaintOptions& opt);
+    static void drawSlurTieSegment(const SlurTieSegment* item, muse::draw::Painter* painter, const EditData& ed, double currentViewScaling,
+                                   const PaintOptions& opt);
+
+    static void drawTextBase(const TextBase* item, muse::draw::Painter* painter, const EditData& ed, double currentViewScaling,
+                             const PaintOptions& opt);
+    static void draw(const TextBlock& textBlock, const TextBase* item, muse::draw::Painter* painter);
+    static void draw(const TextFragment& textFragment, const TextBase* item, muse::draw::Painter* painter);
 };
 }

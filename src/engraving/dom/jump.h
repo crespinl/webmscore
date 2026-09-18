@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -65,9 +65,6 @@ public:
     void setJumpTo(const String& s) { m_jumpTo = s; }
     void setPlayUntil(const String& s) { m_playUntil = s; }
     void setContinueAt(const String& s) { m_continueAt = s; }
-    void undoSetJumpTo(const String& s);
-    void undoSetPlayUntil(const String& s);
-    void undoSetContinueAt(const String& s);
     bool playRepeats() const { return m_playRepeats; }
     void setPlayRepeats(bool val) { m_playRepeats = val; }
 
@@ -79,7 +76,7 @@ public:
     EngravingItem* prevSegmentElement() override;
     String accessibleInfo() const override;
 
-    void setLayoutToParentWidth(bool v) { m_layoutToParentWidth = v; }
+    bool positionRelativeToNoteheadRest() const override { return false; }
 
 private:
     String m_jumpTo;

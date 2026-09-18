@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -52,7 +52,7 @@ public:
     bool isEditAllowed(EditData&) const override;
     bool edit(EditData&) override;
 
-    void editDrag(EditData& ed) override;
+    void dragGrip(EditData& ed) override;
 
     Slur* slur() const { return toSlur(spanner()); }
 
@@ -60,7 +60,7 @@ public:
     double midWidth() const override;
     double dottedWidth() const override;
 
-    Color curColor() const override;
+    Color curColor(const rendering::PaintOptions& opt) const override;
 
 protected:
     void changeAnchor(EditData&, EngravingItem*) override;

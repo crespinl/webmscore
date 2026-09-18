@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2024 MuseScore Limited
+ * Copyright (C) 2024 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -23,15 +23,14 @@
 
 #include "gtest/gtest.h"
 
-#include "dom/excerpt.h"
-#include "dom/masterscore.h"
-#include "dom/part.h"
-#include "dom/score.h"
+#include "engraving/dom/excerpt.h"
+#include "engraving/dom/masterscore.h"
+#include "engraving/dom/part.h"
+#include "engraving/dom/score.h"
 
-using namespace mu;
 using namespace mu::engraving;
 
-mu::engraving::Score* mu::engraving::TestUtils::createPart(MasterScore* masterScore, size_t partNumber)
+Score* TestUtils::createPart(MasterScore* masterScore, size_t partNumber)
 {
     std::vector<Part*> parts;
     parts.push_back(masterScore->parts().at(partNumber));
@@ -41,6 +40,22 @@ mu::engraving::Score* mu::engraving::TestUtils::createPart(MasterScore* masterSc
     ex->setExcerptScore(nscore);
     ex->setParts(parts);
     ex->setName(parts.front()->partName());
+    Excerpt::createExcerpt(ex);
+
+    masterScore->excerpts().push_back(ex);
+    masterScore->setExcerptsChanged(true);
+
+    EXPECT_TRUE(nscore);
+    return nscore;
+}
+
+Score* TestUtils::createEmptyPart(MasterScore* masterScore)
+{
+    Score* nscore = masterScore->createScore();
+
+    Excerpt* ex = new Excerpt(masterScore);
+    ex->setExcerptScore(nscore);
+
     Excerpt::createExcerpt(ex);
 
     masterScore->excerpts().push_back(ex);

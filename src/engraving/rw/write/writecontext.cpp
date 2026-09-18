@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -27,25 +27,28 @@ using namespace mu::engraving::write;
 
 bool WriteContext::canWrite(const EngravingItem* e) const
 {
-    if (!_clipboardmode) {
+    if (!_filter.has_value()) {
         return true;
     }
-    return _filter.canSelect(e);
+
+    return _filter.value().canSelect(e);
 }
 
 bool WriteContext::canWriteNoteIdx(size_t noteIdx, size_t totalNotesInChord) const
 {
-    if (!_clipboardmode) {
+    if (!_filter.has_value()) {
         return true;
     }
+
     const Selection& sel = m_score->selection();
-    return _filter.canSelectNoteIdx(noteIdx, totalNotesInChord, sel.rangeContainsMultiNoteChords());
+    return _filter.value().canSelectNoteIdx(noteIdx, totalNotesInChord, sel.rangeContainsMultiNoteChords());
 }
 
 bool WriteContext::canWriteVoice(track_idx_t track) const
 {
-    if (!_clipboardmode) {
+    if (!_filter.has_value()) {
         return true;
     }
-    return _filter.canSelectVoice(track);
+
+    return _filter.value().canSelectVoice(track);
 }

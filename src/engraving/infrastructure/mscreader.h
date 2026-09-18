@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -54,6 +54,7 @@ public:
     muse::Ret open();
     void close();
     bool isOpened() const;
+    bool isContainer() const;
 
     muse::ByteArray readStyleFile() const;
     muse::ByteArray readScoreFile() const;
@@ -71,6 +72,7 @@ public:
     muse::ByteArray readAudioFile() const;
     muse::ByteArray readAudioSettingsJsonFile(const muse::io::path_t& pathPrefix = "") const;
     muse::ByteArray readViewSettingsJsonFile(const muse::io::path_t& pathPrefix = "") const;
+    muse::ByteArray readAutomationJsonFile() const;
 
 private:
 

@@ -5,7 +5,7 @@
  * MuseScore
  * Music Composition & Notation
  *
- * Copyright (C) 2024 MuseScore BVBA and others
+ * Copyright (C) 2024 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -62,7 +62,8 @@ public:
     void listen(const OnResult& f);
     void destroy();
 
-    static GraphicsTestObject* graphicsTestObject;
+    inline static bool testObjectIsAlive = false;
+    inline static bool testObjectHasPainted = false;
 
 private:
 
@@ -83,16 +84,5 @@ private:
     GraphicsProblemsDetectorLogDest* m_logDest = nullptr;
     OnResult m_onResult;
     QTimer m_timer;
-};
-
-class GraphicsTestObject : public QQuickPaintedItem
-{
-public:
-    GraphicsTestObject();
-    ~GraphicsTestObject();
-
-    bool painted = false;
-
-    void paint(QPainter*) override;
 };
 }

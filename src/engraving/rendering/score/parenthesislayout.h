@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2025 MuseScore Limited
+ * Copyright (C) 2025 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -35,22 +35,28 @@ class ParenthesisLayout
 {
 public:
     static void layoutParentheses(const EngravingItem* parent, const LayoutContext& ctx);
+    static void layoutChordParentheses(const Chord* chord, const LayoutContext& ctx);
     static void layoutParenthesis(Parenthesis* item, Parenthesis::LayoutData* ldata, const LayoutContext& ctx);
 
     static double computeParenthesisPadding(const EngravingItem* item1, const EngravingItem* item2);
     static double computeInternalParenthesisPadding(const EngravingItem* item1, const EngravingItem* item2);
 
     static void createPathAndShape(Parenthesis* item, Parenthesis::LayoutData* ldata);
+    static void createSmuflShape(Parenthesis* item, Parenthesis::LayoutData* ldata);
 private:
+    static void layoutParentheses(Parenthesis* leftParen, Parenthesis* rightParen, Shape& dummyItemShape, bool itemAddToSkyline,
+                                  const LayoutContext& ctx);
 
     static void setLayoutValues(Parenthesis* item, Parenthesis::LayoutData* ldata, const LayoutContext& ctx);
     static void setClefValues(Parenthesis* item, Parenthesis::LayoutData* ldata);
     static void setTimeSigValues(Parenthesis* item, Parenthesis::LayoutData* ldata, const LayoutContext& ctx);
-    static void setNoteValues(Parenthesis* item, Parenthesis::LayoutData* ldata);
-    static void setHarmonyValues(Parenthesis* item, Parenthesis::LayoutData* ldata);
+    static void setChordValues(Parenthesis* item, Parenthesis::LayoutData* ldata);
+    static void setHarmonyValues(Parenthesis* item, Parenthesis::LayoutData* ldata, const LayoutContext& ctx);
     static void setDefaultValues(Parenthesis* item, Parenthesis::LayoutData* ldata);
 
     static Shape getParentShape(const EngravingItem* parent);
+
+    static Shape getNoteShape(const Note* note, Parenthesis* paren);
 
     static bool isInternalParenPadding(const EngravingItem* item1, const EngravingItem* item2);
     static double computeExternalParenthesisPadding(const EngravingItem* item1, const EngravingItem* item2);

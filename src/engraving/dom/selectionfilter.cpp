@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2025 MuseScore Limited
+ * Copyright (C) 2025 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -175,6 +175,7 @@ bool SelectionFilter::canSelect(const EngravingItem* e) const
     case ElementType::PEDAL_SEGMENT:
         return isFiltered(ElementsSelectionFilterTypes::PEDAL_LINE);
     case ElementType::ARPEGGIO:
+    case ElementType::CHORD_BRACKET:
         return isFiltered(ElementsSelectionFilterTypes::ARPEGGIO);
     case ElementType::GLISSANDO:
     case ElementType::GLISSANDO_SEGMENT:

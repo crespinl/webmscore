@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -38,10 +38,10 @@ class Score;
 }
 
 namespace mu::notation {
-class NotationNoteInput : public INotationNoteInput, public muse::Injectable, public muse::async::Asyncable
+class NotationNoteInput : public INotationNoteInput, public muse::Contextable, public muse::async::Asyncable
 {
-    muse::Inject<INotationConfiguration> configuration = { this };
-    muse::Inject<muse::accessibility::IAccessibilityController> accessibilityController = { this };
+    muse::GlobalInject<INotationConfiguration> configuration;
+    muse::ContextInject<muse::accessibility::IAccessibilityController> accessibilityController = { this };
 
 public:
     NotationNoteInput(const IGetScore* getScore, INotationInteraction* interaction, INotationUndoStackPtr undoStack,

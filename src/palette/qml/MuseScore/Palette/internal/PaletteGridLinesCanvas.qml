@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -19,11 +19,12 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-import QtQuick 2.15
+import QtQuick
 
 Canvas {
     property bool drawGrid: false
-    readonly property real verticalGridWidth: parent.stretchWidth ? (width - (width % cellWidth)) : width
+    property bool stretchWidth: false
+    readonly property real verticalGridWidth: stretchWidth ? (width - (width % cellWidth)) : width
     property real offsetX: 0.
     property real offsetY: 0.
     property int cellWidth: 24

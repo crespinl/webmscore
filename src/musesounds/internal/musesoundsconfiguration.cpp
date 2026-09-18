@@ -5,7 +5,7 @@
  * MuseScore
  * Music Composition & Notation
  *
- * Copyright (C) 2024 MuseScore BVBA and others
+ * Copyright (C) 2024 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -76,8 +76,8 @@ RequestHeaders MuseSoundsConfiguration::headers() const
 UriQuery MuseSoundsConfiguration::soundsUri() const
 {
     return !getSoundsTestMode()
-           ? UriQuery("https://cosmos-customer-webservice.azurewebsites.net/graphql")
-           : UriQuery("https://cosmos-customer-webservice-dev.azurewebsites.net/graphql");
+           ? UriQuery("https://customers-api.musehub.com/graphql/v3")
+           : UriQuery("https://customers-api-dev.musehub.com/graphql/v3");
 }
 
 UriQuery MuseSoundsConfiguration::soundPageUri(const muse::String& soundCode) const
@@ -95,7 +95,7 @@ QUrl MuseSoundsConfiguration::checkForMuseSoundsUpdateUrl() const
 
 QUrl MuseSoundsConfiguration::checkForMuseSamplerUpdateUrl() const
 {
-    return QUrl("https://cosmos-customer-webservice.azurewebsites.net/graphql");
+    return QUrl("https://customers-api.musehub.com/graphql/v3");
 }
 
 QString MuseSoundsConfiguration::getMuseSamplerVersionQuery() const

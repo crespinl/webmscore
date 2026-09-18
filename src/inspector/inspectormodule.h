@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -19,22 +19,22 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-#ifndef MU_INSPECTOR_INSPECTORMODULE_H
-#define MU_INSPECTOR_INSPECTORMODULE_H
+
+#pragma once
 
 #include "modularity/imodulesetup.h"
 
 namespace mu::inspector {
+class InspectorPopupController;
 class InspectorModule : public muse::modularity::IModuleSetup
 {
 public:
-    InspectorModule() = default;
-
     std::string moduleName() const override;
+
     void registerExports() override;
-    void registerResources() override;
-    void registerUiTypes() override;
+    void onInit(const muse::IApplication::RunMode& mode) override;
+
+private:
+    std::shared_ptr<InspectorPopupController> m_popupController;
 };
 }
-
-#endif // MU_INSPECTOR_INSPECTORMODULE_H

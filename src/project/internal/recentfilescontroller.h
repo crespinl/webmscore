@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -19,8 +19,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-#ifndef MU_PROJECT_RECENTFILESCONTROLLER_H
-#define MU_PROJECT_RECENTFILESCONTROLLER_H
+#pragma once
 
 #include "irecentfilescontroller.h"
 
@@ -34,15 +33,15 @@
 #include "iprojectconfiguration.h"
 #include "imscmetareader.h"
 #include "io/ifilesystem.h"
-#include "multiinstances/imultiinstancesprovider.h"
+#include "multiwindows/imultiwindowsprovider.h"
 
 namespace mu::project {
 class RecentFilesController : public IRecentFilesController, public muse::async::Asyncable
 {
-    INJECT(IProjectConfiguration, configuration)
-    INJECT(IMscMetaReader, mscMetaReader)
-    INJECT(muse::io::IFileSystem, fileSystem)
-    INJECT(muse::mi::IMultiInstancesProvider, multiInstancesProvider)
+    muse::GlobalThreadSafeInject<IProjectConfiguration> configuration;
+    muse::GlobalThreadSafeInject<muse::io::IFileSystem> fileSystem;
+    muse::GlobalThreadSafeInject<muse::mi::IMultiWindowsProvider> multiwindowsProvider;
+    muse::GlobalThreadSafeInject<IMscMetaReader> mscMetaReader;
 
 public:
     void init();
@@ -82,5 +81,3 @@ private:
     mutable std::map<muse::io::path_t, CachedThumbnail> m_thumbnailCache;
 };
 }
-
-#endif // MU_PROJECT_RECENTFILESCONTROLLER_H

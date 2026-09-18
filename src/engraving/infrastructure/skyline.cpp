@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2023 MuseScore Limited
+ * Copyright (C) 2023 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -77,7 +77,7 @@ void Skyline::add(const ShapeElement& r)
             }
         }
     }
-    if (item && item->isArpeggio()) {
+    if (item && (item->isArpeggio() || item->isChordBracket())) {
         const Arpeggio* arpeggio = toArpeggio(item);
         if (arpeggio->crossStaff()) {
             crossSouth = true;

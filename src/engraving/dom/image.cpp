@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -27,6 +27,9 @@
 
 #include "draw/types/pixmap.h"
 #include "draw/svgrenderer.h"
+
+#include "../editing/editdata.h"
+#include "../editing/elementeditdata.h"
 
 #include "imageStore.h"
 #include "masterscore.h"
@@ -54,7 +57,7 @@ static bool defaultSizeIsSpatium    = true;
 //---------------------------------------------------------
 
 Image::Image(EngravingItem* parent)
-    : BSymbol(ElementType::IMAGE, parent, ElementFlag::MOVABLE), muse::Injectable(BSymbol::iocContext())
+    : BSymbol(ElementType::IMAGE, parent, ElementFlag::MOVABLE), muse::Contextable(BSymbol::iocContext())
 {
     m_imageType        = ImageType::NONE;
     m_size            = SizeF(0.0, 0.0);
@@ -66,7 +69,7 @@ Image::Image(EngravingItem* parent)
 }
 
 Image::Image(const Image& img)
-    : BSymbol(img), muse::Injectable(img.muse::Injectable::iocContext())
+    : BSymbol(img), muse::Contextable(img.muse::Contextable::iocContext())
 {
     m_imageType        = img.m_imageType;
     m_buffer           = img.m_buffer;
@@ -287,19 +290,19 @@ bool Image::loadFromData(const std::string& name, const muse::ByteArray& ba)
 //   startDrag
 //---------------------------------------------------------
 
-void Image::startEditDrag(EditData& data)
+void Image::startDragGrip(EditData& data)
 {
-    BSymbol::startEditDrag(data);
+    BSymbol::startDragGrip(data);
     ElementEditDataPtr eed = data.getData(this);
 
     eed->pushProperty(Pid::SIZE);
 }
 
 //---------------------------------------------------------
-//   editDrag
+//   dragGrip
 //---------------------------------------------------------
 
-void Image::editDrag(EditData& ed)
+void Image::dragGrip(EditData& ed)
 {
     if (ed.curGrip == Grip::MIDDLE) {
         setOffset(offset() + ed.evtDelta);

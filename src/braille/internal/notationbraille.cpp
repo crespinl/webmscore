@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -78,12 +78,12 @@ void NotationBraille::init()
         if (notation()) {
             notation()->interaction()->selectionChanged().onNotify(this, [this]() {
                 doBraille();
-            });
+            }, Mode::SetReplace);
 
             notation()->notationChanged().onNotify(this, [this]() {
                 setCurrentItemPosition(0, 0);
                 doBraille(true);
-            });
+            }, Mode::SetReplace);
 
             notation()->interaction()->noteInput()->stateChanged().onNotify(this, [this]() {
                 if (interaction()->noteInput()->isNoteInputMode()) {
@@ -95,7 +95,7 @@ void NotationBraille::init()
                         setMode(BrailleMode::Navigation);
                     }
                 }
-            });
+            }, Mode::SetReplace);
 
             notation()->interaction()->noteInput()->noteAdded().onNotify(this, [this]() {
                 if (currentEngravingItem() && currentEngravingItem()->isNote()) {
@@ -103,9 +103,9 @@ void NotationBraille::init()
                     Note* note = toNote(currentEngravingItem());
                     brailleInput()->setOctave(note->octave());
                 }
-            });
+            }, Mode::SetReplace);
         }
-    });
+    }, Mode::SetReplace);
 }
 
 void NotationBraille::updateTableForLyricsFromPreferences()

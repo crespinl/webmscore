@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -120,7 +120,7 @@ static T findTypeByXmlTag(const C& cont, const AsciiStringView& tag, T def, bool
     if (it == cont.cend()) {
         if (!silent) {
             LOGE() << "not found type for tag: " << tag;
-            assert(it != cont.cend());
+            //assert(it != cont.cend());
         }
         return def;
     }
@@ -235,6 +235,9 @@ static const std::array ELEMENT_TYPES {
     Item{ ElementType::ARPEGGIO, "Arpeggio",
           TranslatableString("engraving", "arpeggio(s)", nullptr, 1),
           TranslatableString("engraving", "Arpeggio(s)", nullptr, 1) },
+    Item{ ElementType::CHORD_BRACKET, "ChordBracket",
+          TranslatableString("engraving", "chord bracket(s)", nullptr, 1),
+          TranslatableString("engraving", "Chord bracket(s)", nullptr, 1) },
     Item{ ElementType::ACCIDENTAL, "Accidental",
           TranslatableString("engraving", "accidental(s)", nullptr, 1),
           TranslatableString("engraving", "Accidental(s)", nullptr, 1) },
@@ -659,6 +662,7 @@ static const std::vector<Item<AlignH> > ALIGN_H = {
     { AlignH::LEFT,     "left" },
     { AlignH::RIGHT,    "right" },
     { AlignH::HCENTER,  "center" },
+    { AlignH::JUSTIFY,  "justify" },
 };
 
 static const std::vector<Item<AlignV> > ALIGN_V = {
@@ -1017,6 +1021,22 @@ AutoOnOff TConv::fromXml(const AsciiStringView& str, AutoOnOff def)
     return findTypeByXmlTag<AutoOnOff>(AUTO_ON_OFF, str, def);
 }
 
+static const std::vector<Item<CapoParams::TransposeMode> > CAPO_TRANSPOSE_MODE = {
+    { CapoParams::TransposeMode::PLAYBACK_ONLY, "playback" },
+    { CapoParams::TransposeMode::STANDARD_ONLY, "standard" },
+    { CapoParams::TransposeMode::TAB_ONLY,      "tab" },
+};
+
+AsciiStringView TConv::toXml(CapoParams::TransposeMode mode)
+{
+    return findXmlTagByType<CapoParams::TransposeMode>(CAPO_TRANSPOSE_MODE, mode);
+}
+
+CapoParams::TransposeMode TConv::fromXml(const AsciiStringView& str, CapoParams::TransposeMode def)
+{
+    return findTypeByXmlTag<CapoParams::TransposeMode>(CAPO_TRANSPOSE_MODE, str, def);
+}
+
 static const std::vector<Item<PartialSpannerDirection> > PARTIAL_SPANNER_DIRECTION = {
     { PartialSpannerDirection::NONE,     "none" },
     { PartialSpannerDirection::OUTGOING, "outgoing" },
@@ -1097,7 +1117,9 @@ static const std::vector<Item<NoteHeadScheme> > NOTEHEAD_SCHEMES = {
     { NoteHeadScheme::HEAD_AUTO,                "auto",              muse::TranslatableString("engraving", "Auto") },
     { NoteHeadScheme::HEAD_NORMAL,              "normal",            muse::TranslatableString("engraving/noteheadscheme", "Normal") },
     { NoteHeadScheme::HEAD_PITCHNAME,           "name-pitch",        muse::TranslatableString("engraving/noteheadscheme", "Pitch names") },
+    { NoteHeadScheme::HEAD_PITCHNAME_NO_ACCIDENTALS, "name-pitch-no-acc", muse::TranslatableString("engraving/noteheadscheme", "Pitch names, no accidentals") },
     { NoteHeadScheme::HEAD_PITCHNAME_GERMAN,    "name-pitch-german", muse::TranslatableString("engraving/noteheadscheme", "German pitch names") },
+    { NoteHeadScheme::HEAD_PITCHNAME_GERMAN_NO_ACCIDENTALS, "name-pitch-german-no-acc", muse::TranslatableString("engraving/noteheadscheme", "German pitch names, no accidentals") },
     { NoteHeadScheme::HEAD_SOLFEGE,             "solfege-movable",   muse::TranslatableString("engraving/noteheadscheme", "Solf\u00e8ge movable Do") },  // &egrave;
     { NoteHeadScheme::HEAD_SOLFEGE_FIXED,       "solfege-fixed",     muse::TranslatableString("engraving/noteheadscheme", "Solf\u00e8ge fixed Do") },    // &egrave;
     { NoteHeadScheme::HEAD_SHAPE_NOTE_4,        "shape-4",           muse::TranslatableString("engraving/noteheadscheme", "4-shape (Walker)") },
@@ -1735,13 +1757,15 @@ static const std::vector<Item<TextStyleType> > TEXTSTYLE_TYPES = {
     { TextStyleType::ARTICULATION, "articulation", muse::TranslatableString("engraving", "Articulation") },
 
     { TextStyleType::TEXTLINE,          "textline",             muse::TranslatableString("engraving", "Text line") },
+    { TextStyleType::SYSTEM_TEXTLINE,   "system_textline",      muse::TranslatableString("engraving", "System text line") },
     { TextStyleType::NOTELINE,          "noteline",             muse::TranslatableString("engraving", "Note-anchored line") },
     { TextStyleType::VOLTA,             "volta",                muse::TranslatableString("engraving", "Volta") },
     { TextStyleType::OTTAVA,            "ottava",               muse::TranslatableString("engraving", "Ottava") },
     { TextStyleType::GLISSANDO,         "glissando",            muse::TranslatableString("engraving", "Glissando") },
     { TextStyleType::PEDAL,             "pedal",                muse::TranslatableString("engraving", "Pedal") },
-    { TextStyleType::BEND,              "bend",                 muse::TranslatableString("engraving", "Bend") },
+    { TextStyleType::BEND,              "bend",                 muse::TranslatableString("engraving", "Bends & Dives") },
     { TextStyleType::LET_RING,          "let_ring",             muse::TranslatableString("engraving", "Let ring") },
+    { TextStyleType::WHAMMY_BAR,        "whammy_bar",           muse::TranslatableString("engraving", "Whammy bar") },
     { TextStyleType::PALM_MUTE,         "palm_mute",            muse::TranslatableString("engraving", "Palm mute") },
 
     { TextStyleType::USER1,             "user_1",               muse::TranslatableString("engraving", "User-1") },
@@ -2471,6 +2495,26 @@ TremoloType TConv::fromXml(const AsciiStringView& tag, TremoloType def)
     return findTypeByXmlTag<TremoloType>(TREMOLO_TYPES, tag, def);
 }
 
+static const std::vector<Item<TremoloBarType> > TREMOLOBAR_TYPES = { {
+    { TremoloBarType::DIP, "dip" },
+    { TremoloBarType::DIVE, "dive" },
+    { TremoloBarType::RELEASE_UP, "release (up)" },
+    { TremoloBarType::INVERTED_DIP, "inverted dip" },
+    { TremoloBarType::RETURN, "return" },
+    { TremoloBarType::RELEASE_DOWN, "release (down)" },
+    { TremoloBarType::CUSTOM, "custom" }
+} };
+
+AsciiStringView TConv::toXml(TremoloBarType v)
+{
+    return findXmlTagByType<TremoloBarType>(TREMOLOBAR_TYPES, v);
+}
+
+TremoloBarType TConv::fromXml(const AsciiStringView& tag, TremoloBarType def)
+{
+    return findTypeByXmlTag<TremoloBarType>(TREMOLOBAR_TYPES, tag, def);
+}
+
 static const std::vector<Item<BracketType> > BRACKET_TYPES = {
     { BracketType::NORMAL,     "Normal",    muse::TranslatableString("engraving/brackettype", "Normal") },
     { BracketType::BRACE,      "Brace",     muse::TranslatableString("engraving/brackettype", "Brace") },
@@ -3164,7 +3208,8 @@ TrillType TConv::fromXml(const AsciiStringView& tag, TrillType def)
     return def;
 }
 
-const std::array<Item<VibratoType>, 4> VIBRATO_TYPES = { {
+const std::array<Item<VibratoType>, 5> VIBRATO_TYPES = { {
+    { VibratoType::NONE,                  "none",                muse::TranslatableString("engraving/vibratotype", "None") },
     { VibratoType::GUITAR_VIBRATO,        "guitarVibrato",       muse::TranslatableString("engraving/vibratotype", "Guitar vibrato") },
     { VibratoType::GUITAR_VIBRATO_WIDE,   "guitarVibratoWide",   muse::TranslatableString("engraving/vibratotype", "Guitar vibrato wide") },
     { VibratoType::VIBRATO_SAWTOOTH,      "vibratoSawtooth",     muse::TranslatableString("engraving/vibratotype", "Vibrato sawtooth") },

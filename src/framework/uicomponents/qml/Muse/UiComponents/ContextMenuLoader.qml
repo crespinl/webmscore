@@ -5,7 +5,7 @@
  * MuseScore
  * Music Composition & Notation
  *
- * Copyright (C) 2022 MuseScore BVBA and others
+ * Copyright (C) 2022 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -19,13 +19,14 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-import QtQuick 2.15
+import QtQuick
 
 Item {
     id: container
 
     // Useful for static context menus
     property var items: []
+    property alias parentWindow: contextMenuLoader.parentWindow
 
     signal handleMenuItem(string itemId)
     signal opened()
@@ -35,6 +36,7 @@ Item {
     //  next(depending on the limitation) to the pressed position.
     width: 0
     height: 0
+    visible: false
 
     function show(position: point, items) {
         if (!items) {

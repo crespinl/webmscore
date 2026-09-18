@@ -5,7 +5,7 @@
  * MuseScore
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore BVBA and others
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -43,6 +43,10 @@ public:
     MOCK_METHOD(RetVal<ByteArray>, readFile, (const io::path_t&), (const, override));
     MOCK_METHOD(Ret, readFile, (const io::path_t& filePath, ByteArray & data), (const, override));
     MOCK_METHOD(Ret, writeFile, (const io::path_t& filePath, const ByteArray& data), (override));
+
+    MOCK_METHOD(RetVal<StreamId>, openStream, (const io::path_t& filePath, OpenMode mode), (override));
+    MOCK_METHOD(Ret, writeToStream, (StreamId fileId, const ByteArray& data, uint64_t offset), (override));
+    MOCK_METHOD(Ret, closeStream, (StreamId fileId), (override));
 
     MOCK_METHOD(Ret, makePath, (const io::path_t&), (const, override));
     MOCK_METHOD(Ret, makeLink, (const io::path_t& targetPath, const io::path_t& linkPath), (const, override));

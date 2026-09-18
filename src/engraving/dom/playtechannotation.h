@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -38,6 +38,8 @@ public:
 
     PlayingTechniqueType techniqueType() const;
     void setTechniqueType(const PlayingTechniqueType techniqueType);
+    bool playPlayTechAnnotation() const { return m_playPlayTechAnnotation; }
+    void setPlayPlayTechAnnotation(bool play) { m_playPlayTechAnnotation = play; }
 
     PlayTechAnnotation* clone() const override;
     TranslatableString subtypeUserName() const override;
@@ -51,6 +53,7 @@ public:
 
 private:
     PlayingTechniqueType m_techniqueType = PlayingTechniqueType::Undefined;
+    bool m_playPlayTechAnnotation = true;
 };
 }
 

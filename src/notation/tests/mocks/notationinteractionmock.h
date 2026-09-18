@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2024 MuseScore Limited
+ * Copyright (C) 2024 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -32,10 +32,11 @@ public:
     MOCK_METHOD(INotationNoteInputPtr, noteInput, (), (const, override));
 
     MOCK_METHOD(mu::engraving::ShadowNote*, shadowNote, (), (const, override));
-    MOCK_METHOD(bool, showShadowNote, (const muse::PointF&), (override));
+    MOCK_METHOD(void, showShadowNoteForPosition, (const muse::PointF&), (override));
+    MOCK_METHOD(void, showShadowNoteForMidiPitch, (const uint8_t), (override));
     MOCK_METHOD(void, hideShadowNote, (), (override));
     MOCK_METHOD(muse::RectF, shadowNoteRect, (), (const, override));
-    MOCK_METHOD(muse::async::Notification, shadowNoteChanged, (), (const, override));
+    MOCK_METHOD(muse::async::Channel<bool>, shadowNoteChanged, (), (const, override));
 
     MOCK_METHOD(void, toggleVisible, (), (override));
 
@@ -68,7 +69,7 @@ public:
     MOCK_METHOD(muse::async::Notification, dragChanged, (), (const, override));
 
     MOCK_METHOD(bool, isOutgoingDragElementAllowed, (const EngravingItem*), (const, override));
-    MOCK_METHOD(void, startOutgoingDragElement, (const EngravingItem*, QObject*), (override));
+    MOCK_METHOD(void, startOutgoingDragElement, (const EngravingItem*, QObject*, const muse::PointF&), (override));
     MOCK_METHOD(void, startOutgoingDragRange, (QObject*), (override));
     MOCK_METHOD(bool, isOutgoingDragStarted, (), (const, override));
     MOCK_METHOD(void, endOutgoingDrag, (), (override));
@@ -131,7 +132,8 @@ public:
     MOCK_METHOD(void, startEditGrip, (EngravingItem*, mu::engraving::Grip), (override));
     MOCK_METHOD(void, endEditGrip, (), (override));
 
-    MOCK_METHOD(bool, isElementEditStarted, (), (const, override));
+    MOCK_METHOD(bool, isEditingElement, (), (const, override));
+    MOCK_METHOD(muse::async::Notification, isEditingElementChanged, (), (const, override));
     MOCK_METHOD(void, startEditElement, (EngravingItem*), (override));
     MOCK_METHOD(void, changeEditElement, (EngravingItem*), (override));
     MOCK_METHOD(bool, isEditAllowed, (QKeyEvent*), (override));
@@ -144,12 +146,11 @@ public:
     MOCK_METHOD(void, splitSelectedMeasure, (), (override));
     MOCK_METHOD(void, joinSelectedMeasures, (), (override));
 
-    MOCK_METHOD(muse::Ret, canAddBoxes, (), (const, override));
     MOCK_METHOD(void, addBoxes, (BoxType, int, AddBoxesTarget), (override));
     MOCK_METHOD(void, addBoxes, (BoxType, int, int, bool), (override));
 
     MOCK_METHOD(void, copySelection, (), (override));
-    MOCK_METHOD(muse::Ret, repeatSelection, (), (override));
+    MOCK_METHOD(void, repeatSelection, (), (override));
     MOCK_METHOD(void, copyLyrics, (), (override));
     MOCK_METHOD(void, pasteSelection, (const Fraction&), (override));
     MOCK_METHOD(void, swapSelection, (), (override));
@@ -199,14 +200,11 @@ public:
     MOCK_METHOD(void, addAnchoredLineToSelectedNotes, (), (override));
 
     MOCK_METHOD(void, addTextToTopFrame, (TextStyleType), (override));
-
-    MOCK_METHOD(muse::Ret, canAddTextToItem, (TextStyleType, const EngravingItem*), (const, override));
     MOCK_METHOD(void, addTextToItem, (TextStyleType, EngravingItem*), (override));
 
     MOCK_METHOD(muse::Ret, canAddImageToItem, (const EngravingItem*), (const, override));
     MOCK_METHOD(void, addImageToItem, (const muse::io::path_t&, EngravingItem*), (override));
 
-    MOCK_METHOD(muse::Ret, canAddFiguredBass, (), (const, override));
     MOCK_METHOD(void, addFiguredBass, (), (override));
 
     MOCK_METHOD(void, addStretch, (qreal), (override));
@@ -218,6 +216,7 @@ public:
     MOCK_METHOD(void, implodeSelectedStaff, (), (override));
 
     MOCK_METHOD(void, realizeSelectedChordSymbols, (bool, Voicing, HarmonyDurationType), (override));
+    MOCK_METHOD(void, extendToNextNote, (), (override));
     MOCK_METHOD(void, removeSelectedMeasures, (), (override));
     MOCK_METHOD(void, removeSelectedRange, (), (override));
     MOCK_METHOD(void, removeEmptyTrailingMeasures, (), (override));
@@ -227,6 +226,8 @@ public:
 
     MOCK_METHOD(void, changeEnharmonicSpelling, (bool), (override));
     MOCK_METHOD(void, spellPitches, (), (override));
+    MOCK_METHOD(void, spellPitchesWithSharps, (), (override));
+    MOCK_METHOD(void, spellPitchesWithFlats, (), (override));
     MOCK_METHOD(void, regroupNotesAndRests, (), (override));
     MOCK_METHOD(void, resequenceRehearsalMarks, (), (override));
 
@@ -242,10 +243,7 @@ public:
     MOCK_METHOD(void, addMelisma, (), (override));
     MOCK_METHOD(void, addLyricsVerse, (), (override));
 
-    MOCK_METHOD(muse::Ret, canAddGuitarBend, (), (const, override));
     MOCK_METHOD(void, addGuitarBend, (GuitarBendType), (override));
-
-    MOCK_METHOD(muse::Ret, canAddFretboardDiagram, (), (const, override));
     MOCK_METHOD(void, addFretboardDiagram, (), (override));
 
     MOCK_METHOD(void, navigateToLyrics, (MoveDirection, bool), (override));
@@ -287,5 +285,6 @@ public:
 
     MOCK_METHOD(void, setGetViewRectFunc, (const std::function<muse::RectF()>&), (override));
     MOCK_METHOD(void, checkAndShowError, (), (override));
+    MOCK_METHOD(void, toggleDebugShowGapRests, (), (override));
 };
 }

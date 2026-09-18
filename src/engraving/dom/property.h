@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -68,7 +68,7 @@ enum class PropertyFlags : char {
 //   EngravingItem Properties
 //------------------------------------------------------------------------
 
-enum class Pid {
+enum class Pid : short {
     SUBTYPE,
     SELECTED,
     GENERATED,
@@ -83,6 +83,7 @@ enum class Pid {
     KEYSIG_MODE,
     SLUR_STYLE_TYPE,
     PITCH,
+    CENT_OFFSET,
 
     TPC1,
     TPC2,
@@ -101,8 +102,10 @@ enum class Pid {
     NO_STEM,
     SLUR_DIRECTION,
     LEADING_SPACE,
+    END_OF_MEASURE_CHANGE,
     MIRROR_HEAD,
     HAS_PARENTHESES,
+    HIDE_GENERATED_PARENTHESES,
     DOT_POSITION,
     COMBINE_VOICE,
     TUNING,
@@ -352,17 +355,29 @@ enum class Pid {
     BEGIN_TEXT,
 
     BEGIN_TEXT_ALIGN,
+    BEGIN_TEXT_POSITION,
     BEGIN_TEXT_PLACE,
     BEGIN_HOOK_TYPE,
     BEGIN_HOOK_HEIGHT,
+    BEGIN_LINE_ARROW_HEIGHT,
+    BEGIN_LINE_ARROW_WIDTH,
+    BEGIN_FILLED_ARROW_HEIGHT,
+    BEGIN_FILLED_ARROW_WIDTH,
     BEGIN_FONT_FACE,
     BEGIN_FONT_SIZE,
     BEGIN_FONT_STYLE,
+    BEGIN_TEXT_MUSICAL_SYMBOLS_SCALE,
+    CONTINUE_TEXT_MUSICAL_SYMBOLS_SCALE,
+    END_TEXT_MUSICAL_SYMBOLS_SCALE,
+    BEGIN_TEXT_MUSIC_SYMBOLS_SIZE,
+    CONTINUE_TEXT_MUSIC_SYMBOLS_SIZE,
+    END_TEXT_MUSIC_SYMBOLS_SIZE,
     BEGIN_TEXT_OFFSET,
     GAP_BETWEEN_TEXT_AND_LINE,
 
     CONTINUE_TEXT,
     CONTINUE_TEXT_ALIGN,
+    CONTINUE_TEXT_POSITION,
     CONTINUE_TEXT_PLACE,
     CONTINUE_FONT_FACE,
     CONTINUE_FONT_SIZE,
@@ -371,9 +386,14 @@ enum class Pid {
     END_TEXT,
 
     END_TEXT_ALIGN,
+    END_TEXT_POSITION,
     END_TEXT_PLACE,
     END_HOOK_TYPE,
     END_HOOK_HEIGHT,
+    END_LINE_ARROW_HEIGHT,
+    END_LINE_ARROW_WIDTH,
+    END_FILLED_ARROW_HEIGHT,
+    END_FILLED_ARROW_WIDTH,
     END_FONT_FACE,
     END_FONT_SIZE,
     END_FONT_STYLE,
@@ -424,12 +444,21 @@ enum class Pid {
 
     ARPEGGIO_SPAN,
 
+    BRACKET_HOOK_LEN,
+    BRACKET_HOOK_POS,
+    BRACKET_RIGHT_SIDE,
+
     BEND_TYPE,
     BEND_CURVE,
     BEND_VERTEX_OFF,
     BEND_SHOW_HOLD_LINE,
     BEND_START_TIME_FACTOR,
+    BEND_TARGET_TIME_FACTOR,
     BEND_END_TIME_FACTOR,
+    GUITAR_DIVE_TAB_POS,
+    GUITAR_BEND_AMOUNT,
+    VIBRATO_LINE_TYPE,
+    GUITAR_DIVE_IS_SLACK,
 
     TREMOLOBAR_TYPE,
     TREMOLOBAR_CURVE,
@@ -453,6 +482,7 @@ enum class Pid {
     CAPO_FRET_POSITION,
     CAPO_IGNORED_STRINGS,
     CAPO_GENERATE_TEXT,
+    CAPO_TRANSPOSE_MODE,
 
     TIE_PLACEMENT,
     MIN_LENGTH,
@@ -484,6 +514,11 @@ enum class Pid {
     PLAY_COUNT_TEXT,
 
     ALIGN_WITH_OTHER_RESTS,
+
+    STAFF_CUTAWAY,
+    STAFF_HIDE_SYSTEM_BARLINE,
+    STAFF_MERGE_MATCHING_RESTS,
+    STAFF_REFLECT_TRANSPOSITION,
 
     END
 };

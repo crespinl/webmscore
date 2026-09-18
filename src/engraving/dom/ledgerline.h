@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -49,7 +49,6 @@ public:
 
     LedgerLine* clone() const override { return new LedgerLine(*this); }
 
-    PointF pagePos() const override;        ///< position in page coordinates
     Chord* chord() const { return toChord(explicitParent()); }
 
     double len() const { return m_len; }
@@ -57,8 +56,6 @@ public:
 
     void setVertical(bool v) { m_vertical = v; }
     bool vertical() const { return m_vertical; }
-
-    double measureXPos() const;
 
     void spatiumChanged(double /*oldValue*/, double /*newValue*/) override;
 

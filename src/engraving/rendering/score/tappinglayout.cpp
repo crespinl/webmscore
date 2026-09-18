@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2023 MuseScore Limited
+ * Copyright (C) 2023 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -23,6 +23,7 @@
 #include "slurtielayout.h"
 #include "tappinglayout.h"
 #include "tlayout.h"
+#include "textlayout.h"
 
 #include "dom/chord.h"
 #include "dom/slur.h"
@@ -97,7 +98,7 @@ void TappingLayout::layoutLeftHandTapping(Tapping* item, Tapping::LayoutData* ld
         text->setXmlText("T");
         text->setFrameType(FrameType::CIRCLE);
         text->setAlign(Align(AlignH::LEFT, AlignV::BASELINE));
-        TLayout::layoutBaseTextBase(text, ctx);
+        TextLayout::layoutBaseTextBase(text, ctx);
         // Move the circle up very slightly to look better centered on the T
         text->mutldata()->frame.translate(0.0, -0.02 * text->height());
     }
@@ -217,6 +218,6 @@ void TappingLayout::layoutRightHandTapping(Tapping* item, Tapping::LayoutData* l
         text->setTrack(item->track());
         text->setXmlText("T");
         text->setAlign(Align(AlignH::LEFT, AlignV::BASELINE));
-        TLayout::layoutBaseTextBase(text, ctx);
+        TextLayout::layoutBaseTextBase(text, ctx);
     }
 }

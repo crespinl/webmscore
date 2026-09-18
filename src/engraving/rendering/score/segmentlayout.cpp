@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2023 MuseScore Limited
+ * Copyright (C) 2023 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -159,7 +159,7 @@ void SegmentLayout::layoutChordDrumset(const Staff* staff, const Segment& segmen
             if (!drumset->isValid(pitch)) {
                 // LOGD("unmapped drum note %d", pitch);
             } else if (!note->fixed()) {
-                note->undoChangeProperty(Pid::HEAD_GROUP, int(drumset->noteHead(pitch)));
+                note->undoChangeProperty(Pid::HEAD_GROUP, drumset->noteHead(pitch));
                 int line = drumset->line(pitch);
                 note->setLine(line);
 

@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -22,17 +22,24 @@
 
 #include "engravingcompat.h"
 
+#include "engraving/style/defaultstyle.h"
 #include "dom/marker.h"
 #include "dom/system.h"
 #include "engraving/dom/beam.h"
 #include "engraving/dom/box.h"
 #include "engraving/dom/chord.h"
 #include "engraving/dom/instrument.h"
+#include "engraving/dom/lyrics.h"
 #include "engraving/dom/masterscore.h"
+#include "engraving/dom/note.h"
+#include "engraving/dom/parenthesis.h"
 #include "engraving/dom/part.h"
 #include "engraving/dom/pedal.h"
 #include "engraving/dom/spanner.h"
 #include "engraving/dom/staff.h"
+#include "rw/compat/compatutils.h"
+
+#include "engraving/editing/editchord.h"
 
 using namespace mu::engraving;
 
@@ -40,6 +47,11 @@ namespace mu::engraving::compat {
 void EngravingCompat::doPreLayoutCompatIfNeeded(MasterScore* score)
 {
     int mscVersion = score->mscVersion();
+
+    if (mscVersion < 470) {
+        pre470TextCompat(score);
+        migrateNoteParens(score);
+    }
 
     if (mscVersion < 460) {
         resetMarkerLeftFontSize(score);
@@ -220,16 +232,82 @@ void EngravingCompat::adjustVBoxDistances(MasterScore* masterScore)
             if (mb->isVBoxBase()) {
                 VBox* vbox = static_cast<VBox*>(mb);
                 vbox->setProperty(Pid::PADDING_TO_NOTATION_ABOVE, Spatium()); // Because pre-4.6 these didn't exist
+                vbox->setPropertyFlags(Pid::PADDING_TO_NOTATION_ABOVE, PropertyFlags::UNSTYLED);
                 vbox->setProperty(Pid::PADDING_TO_NOTATION_BELOW, Spatium());
+                vbox->setPropertyFlags(Pid::PADDING_TO_NOTATION_BELOW, PropertyFlags::UNSTYLED);
                 if (nextmb && nextmb->isVBoxBase()) {
                     VBox* first = static_cast<VBox*>(mb);
                     VBox* second = static_cast<VBox*>(nextmb);
-                    if (first->bottomGap() > Spatium(0) && second->topGap() > Spatium(0)) {
-                        first->setBottomGap(first->bottomGap() + second->topGap()); // Because pre-4.6 these used to be added
+                    if (first->bottomGap() > 0_sp && second->topGap() > 0_sp) {
+                        first->setProperty(Pid::BOTTOM_GAP, first->bottomGap() + second->topGap()); // Because pre-4.6 these used to be added
+                        first->setPropertyFlags(Pid::BOTTOM_GAP, PropertyFlags::UNSTYLED);
                     }
                 }
             }
         }
+    }
+}
+
+static constexpr std::array<ElementType, 6> OFFSET_UNIT_CONVERT_TYPES = {
+    ElementType::FINGERING,
+    ElementType::HAMMER_ON_PULL_OFF_TEXT,
+    ElementType::LYRICS,
+    ElementType::TAPPING
+};
+
+void EngravingCompat::pre470TextCompat(MasterScore* masterScore)
+{
+    auto doCompat = [](EngravingItem* item) {
+        if (!item->isTextBase()) {
+            return;
+        }
+
+        TextBase* text = toTextBase(item);
+
+        if (!text->isStyled(Pid::FRAME_ROUND)) {
+            text->setFrameRound(compat::CompatUtils::convertPre470FrameRadius(text->frameRound().val()));
+        }
+
+        // Text offset could have been in mm for these types prior to 4.7
+        // Convert actual distance to spatium
+        if (muse::contains(OFFSET_UNIT_CONVERT_TYPES, item->type()) && !item->sizeIsSpatiumDependent()) {
+            PointF offset = item->offset();
+            double spatium = item->style().spatium();
+            offset /= spatium;
+            offset *= DPMM;
+
+            item->setProperty(Pid::OFFSET, offset);
+        }
+
+        // Staff text, system text, and harp pedal diagrams are the only types which are attached to notes and weren't already
+        // placed with their left edges / centres / right edges aligned to the left / centre / right of the notehead
+        if (text->positionRelativeToNoteheadRest()
+            && (text->isStaffText() || text->isSystemText() || text->isHarpPedalDiagram())) {
+            double mag = item->staff() ? item->staff()->staffMag(item) : 1.0;
+            double xAdj = item->symWidth(SymId::noteheadBlack) * mag;
+
+            switch (text->position()) {
+            case AlignH::HCENTER:
+                text->setProperty(Pid::OFFSET, PointF(text->offset().x() - xAdj / 2, text->offset().y()));
+                break;
+            case AlignH::RIGHT:
+                text->setProperty(Pid::OFFSET, PointF(text->offset().x() - xAdj, text->offset().y()));
+                break;
+            default:
+                break;
+            }
+        }
+    };
+
+    for (Score* score : masterScore->scoreList()) {
+        score->scanElements(doCompat);
+    }
+}
+
+void EngravingCompat::migrateNoteParens(MasterScore* masterScore)
+{
+    for (Score* score : masterScore->scoreList()) {
+        score->scanElements(CompatUtils::doMigrateNoteParens);
     }
 }
 
@@ -239,8 +317,8 @@ void EngravingCompat::doPostLayoutCompatIfNeeded(MasterScore* score)
 
     int mscVersion = score->mscVersion();
 
-    if (mscVersion < 460) {
-        needRelayout |= resetHookHeightSign(score);
+    if (mscVersion < 470) {
+        needRelayout |= setLyricLineVisibility(score);
     }
 
     if (mscVersion < 440) {
@@ -292,32 +370,22 @@ bool EngravingCompat::relayoutUserModifiedCrossStaffBeams(MasterScore* score)
     return found;
 }
 
-bool EngravingCompat::resetHookHeightSign(MasterScore* masterScore)
+bool EngravingCompat::setLyricLineVisibility(MasterScore* masterScore)
 {
     bool needRelayout = false;
-
     for (Score* score : masterScore->scoreList()) {
-        for (auto pair : score->spanner()) {
-            Spanner* spanner = pair.second;
-            if (spanner->isTextLineBase()) {
-                for (SpannerSegment* spannerSeg : spanner->spannerSegments()) {
-                    TextLineBaseSegment* textLineSeg = static_cast<TextLineBaseSegment*>(spannerSeg);
-                    if (textLineSeg->placeBelow()) {
-                        if (!textLineSeg->isStyled(Pid::BEGIN_HOOK_HEIGHT)) {
-                            Spatium beginHookHeight = textLineSeg->getProperty(Pid::BEGIN_HOOK_HEIGHT).value<Spatium>();
-                            textLineSeg->setProperty(Pid::BEGIN_HOOK_HEIGHT, -beginHookHeight);
-                            spanner->triggerLayout();
-                            needRelayout = true;
-                        }
-                        if (!textLineSeg->isStyled(Pid::END_HOOK_HEIGHT)) {
-                            Spatium endHookHeight = textLineSeg->getProperty(Pid::END_HOOK_HEIGHT).value<Spatium>();
-                            textLineSeg->setProperty(Pid::END_HOOK_HEIGHT, -endHookHeight);
-                            spanner->triggerLayout();
-                            needRelayout = true;
-                        }
-                    }
-                }
+        for (Spanner* sp : score->unmanagedSpanners()) {
+            if (!sp->isLyricsLine()) {
+                continue;
             }
+
+            LyricsLine* ll = toLyricsLine(sp);
+            if (!ll->lyrics() || ll->visible() == ll->lyrics()->visible()) {
+                continue;
+            }
+
+            ll->setVisible(ll->lyrics()->visible());
+            needRelayout = true;
         }
     }
 

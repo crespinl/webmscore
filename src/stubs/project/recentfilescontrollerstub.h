@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2023 MuseScore Limited
+ * Copyright (C) 2023 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -19,8 +19,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-#ifndef MU_PROJECT_RECENTFILESCONTROLLERSTUB_H
-#define MU_PROJECT_RECENTFILESCONTROLLERSTUB_H
+
+#pragma once
 
 #include "project/irecentfilescontroller.h"
 
@@ -37,8 +37,6 @@ public:
     void moveRecentFile(const muse::io::path_t& before, const RecentFile& after) override;
     void clearRecentFiles() override;
 
-    muse::async::Promise<QPixmap> thumbnail(const RecentFile& file) const override;
+    muse::async::Promise<QPixmap> thumbnail(const muse::io::path_t& filePath) const override;
 };
 }
-
-#endif // MU_PROJECT_RECENTFILESCONTROLLERSTUB_H

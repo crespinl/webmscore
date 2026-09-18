@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2023 MuseScore Limited
+ * Copyright (C) 2023 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -137,7 +137,7 @@ void ScoreHorizontalViewLayout::resetSystems(LayoutContext& ctx, bool layoutAll)
         page = Factory::createPage(ctx.mutDom().rootItem());
         ctx.mutDom().pages().push_back(page);
         page->mutldata()->setBbox(0.0, 0.0, ctx.conf().loWidth(), ctx.conf().loHeight());
-        page->setNo(0);
+        page->setPageNumber(0);
 
         System* system = Factory::createSystem(page);
         ctx.mutDom().systems().push_back(system);
@@ -296,7 +296,7 @@ void ScoreHorizontalViewLayout::collectLinearSystem(LayoutContext& ctx)
     std::set<Measure*> measuresToLayout;
 
     while (ctx.state().curMeasure()) {
-        if (ctx.state().curMeasure()->isVBox() || ctx.state().curMeasure()->isTBox() || ctx.state().curMeasure()->isFBox()) {
+        if (ctx.state().curMeasure()->isVBoxBase()) {
             ctx.mutState().curMeasure()->resetExplicitParent();
             MeasureLayout::getNextMeasure(ctx);
             continue;
@@ -326,7 +326,7 @@ void ScoreHorizontalViewLayout::collectLinearSystem(LayoutContext& ctx)
                 MeasureLayout::removeSystemHeader(m);
             }
             if (m->trailer()) {
-                MeasureLayout::removeSystemTrailer(m);
+                MeasureLayout::removeSystemTrailer(m, ctx);
             }
 
             if (m->tick() >= ctx.state().startTick() && m->tick() <= ctx.state().endTick()) {
@@ -467,9 +467,9 @@ std::pair<double, double> ScoreHorizontalViewLayout::computeCellWidth(const Segm
         if (cr) {
             width = calculateWidth(cr);
 
-            if (cr->type() == ElementType::REST) {
+            if (cr->isRest()) {
                 //spacing = 0; //!not necessary. It is to more clearly understanding code
-            } else if (cr->type() == ElementType::CHORD) {
+            } else if (cr->isChord()) {
                 Chord* ch = toChord(cr);
 
                 //! check that gracenote exist. If exist add additional spacing

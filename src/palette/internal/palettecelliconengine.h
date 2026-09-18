@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -19,8 +19,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-#ifndef MU_PALETTE_PALETTECELLICONENGINE_H
-#define MU_PALETTE_PALETTECELLICONENGINE_H
+
+#pragma once
 
 #include <QIconEngine>
 
@@ -35,25 +35,23 @@ class Painter;
 }
 
 namespace mu::palette {
-class PaletteCellIconEngine : public QIconEngine
+class PaletteCellIconEngine : public QIconEngine, public muse::Contextable
 {
-    INJECT_STATIC(IPaletteConfiguration, configuration)
-    INJECT_STATIC(engraving::rendering::ISingleRenderer, engravingRender)
+    muse::GlobalInject<IPaletteConfiguration> configuration;
+    muse::ContextInject<engraving::rendering::ISingleRenderer> engravingRender = { this };
 
 public:
-    explicit PaletteCellIconEngine(PaletteCellConstPtr cell, qreal extraMag = 1.0);
+    explicit PaletteCellIconEngine(PaletteCellConstPtr cell, const muse::modularity::ContextPtr& ctx, qreal extraMag = 1.0);
 
     QIconEngine* clone() const override;
 
     void paint(QPainter* painter, const QRect& rect, QIcon::Mode mode, QIcon::State state) override;
 
 private:
-    void paintCell(muse::draw::Painter& painter, const muse::RectF& rect, bool selected, bool current, qreal dpi) const;
+    void paintCell(muse::draw::Painter& painter, const muse::RectF& rect, bool selected, bool current) const;
     void paintBackground(muse::draw::Painter& painter, const muse::RectF& rect, bool selected, bool current) const;
 
     PaletteCellConstPtr m_cell;
     qreal m_extraMag = 1.0;
 };
 }
-
-#endif // MU_PALETTE_PALETTECELLICONENGINE_H

@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -29,19 +29,23 @@
 #include "draw/types/geometry.h"
 
 namespace mu::engraving {
-class Score;
 class Chord;
 class ChordRest;
+class Drumset;
 class EngravingItem;
 class KeySig;
-class Note;
-class Rest;
+class Lyrics;
 class Measure;
+class Note;
+class PartialLyricsLine;
+class Rest;
+class Score;
 class Score;
 class Segment;
+class Selection;
 class Spanner;
-class System;
 class Staff;
+class System;
 class Tuplet;
 class Volta;
 struct NoteVal;
@@ -58,17 +62,6 @@ extern int quantizeLen(int, int);
 extern String pitch2string(int v, bool useFlats = false);
 extern int string2pitch(const String& s);
 extern String convertPitchStringFlatsAndSharpsToUnicode(const String& str);
-
-extern void transposeInterval(int pitch, int tpc, int* rpitch, int* rtpc, Interval, bool useDoubleSharpsFlats);
-extern int transposeTpc(int tpc, Interval interval, bool useDoubleSharpsFlats);
-extern int transposeTpcDiatonicByKey(int tpc, int steps, Key key, bool keepAlteredDegrees, bool useDoubleSharpsFlats);
-
-constexpr int intervalListSize = 26;
-extern Interval intervalList[intervalListSize];
-extern int searchInterval(int steps, int semitones);
-extern int chromatic2diatonic(int val);
-
-int diatonicUpDown(Key, int pitch, int steps);
 
 extern Note* nextChordNote(Note* note);
 extern Note* prevChordNote(Note* note);
@@ -122,16 +115,24 @@ extern String formatUniqueExcerptName(const String& baseName, const StringList& 
 
 extern bool isFirstSystemKeySig(const KeySig* ks);
 
-extern String bendAmountToString(int fulls, int quarts);
+extern String bendAmountToString(int fulls, int quarts, bool useFractions = true);
 
 extern InstrumentTrackId makeInstrumentTrackId(const EngravingItem* item);
 
 extern std::vector<Measure*> findFollowingRepeatMeasures(const Measure* measure);
 extern std::vector<Measure*> findPreviousRepeatMeasures(const Measure* measure);
 extern bool repeatHasPartialLyricLine(const Measure* endRepeatMeasure);
-extern bool segmentsAreAdjacentInRepeatStructure(const Segment* firstSeg, const Segment* secondSeg);
+extern bool segmentsAreAdjacent(const Segment* firstSeg, const Segment* secondSeg);
 extern bool segmentsAreInDifferentRepeatSegments(const Segment* firstSeg, const Segment* secondSeg);
 extern bool isValidBarLineForRepeatSection(const Segment* firstSeg, const Segment* secondSeg);
 
+extern PartialLyricsLine* findPrevPartialLyricsLineDash(Lyrics* lyrics);
+
 extern bool isElementInFretBox(const EngravingItem* item);
+
+extern std::vector<EngravingItem*> filterTargetElements(const Selection& sel, EngravingItem* dropElement, bool& unique);
+
+extern Lyrics* searchNextLyrics(Segment* s, staff_idx_t staffIdx, int verse, PlacementV p);
+extern bool noteIsBefore(const Note* n1, const Note* n2);
+extern void updatePercussionNotes(Chord* c, const Drumset* drumset);
 } // namespace mu::engraving

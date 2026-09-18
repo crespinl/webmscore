@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -22,8 +22,8 @@
 
 #include "repeatlist.h"
 
-#include <algorithm>
 #include <list>
+#include <set>
 #include <utility> // std::pair
 
 #include "jump.h"
@@ -135,6 +135,24 @@ const std::vector<const Measure*>& RepeatSegment::measureList() const
     return m_measureList;
 }
 
+bool operator==(const RepeatSegment& lhs, const RepeatSegment& rhs)
+{
+    if (lhs.m_measureList.size() != rhs.m_measureList.size()) {
+        return false;
+    }
+    for (size_t i = 0; i < lhs.m_measureList.size(); i++) {
+        if (lhs.m_measureList.at(i) != rhs.m_measureList.at(i)) {
+            return false;
+        }
+    }
+    return lhs.tick == rhs.tick
+           && lhs.utick == rhs.utick
+           && muse::RealIsEqual(lhs.utime, rhs.utime)
+           && muse::RealIsEqual(lhs.timeOffset, rhs.timeOffset)
+           && muse::RealIsEqual(lhs.pause, rhs.pause)
+           && lhs.playbackCount == rhs.playbackCount;
+}
+
 //---------------------------------------------------------
 //   RepeatList
 //---------------------------------------------------------
@@ -178,15 +196,30 @@ void RepeatList::update(bool expand, bool updateTies)
         return;
     }
 
+    std::vector<RepeatSegment> oldSegments;
+    for (RepeatSegment* rs : *this) {
+        oldSegments.push_back(*rs);
+    }
+
     if (expand) {
         unwind();
     } else {
         flatten();
     }
 
+    bool structureChanged = (oldSegments.size() != size());
+    if (!structureChanged) {
+        for (size_t i = 0; i < size(); ++i) {
+            if (!(oldSegments[i] == *at(i))) {
+                structureChanged = true;
+                break;
+            }
+        }
+    }
+
     m_scoreChanged = false;
 
-    if (updateTies) {
+    if (updateTies && structureChanged) {
         m_score->undoRemoveStaleTieJumpPoints();
     }
 }
@@ -202,6 +235,18 @@ void RepeatList::updateTempo()
         return;
     }
 
+    // Collect the end-ticks of all segments that carry a section-break pause.
+    // tick2time() always includes the pause at the queried tick, so for repeated
+    // sections every segment ending at a section break would accumulate the pause
+    // once per iteration.  We subtract it from non-final segments so that it is
+    // counted only once (in the last segment, where s->pause > 0.0).
+    std::set<int> sectionBreakEndTicks;
+    for (RepeatSegment* s : *this) {
+        if (s->pause > 0.0) {
+            sectionBreakEndTicks.insert(s->tick + s->len());
+        }
+    }
+
     int utick = 0;
     double t  = 0;
 
@@ -212,7 +257,13 @@ void RepeatList::updateTempo()
         s->timeOffset = t - ct;
         int len       = s->len();
         utick        += len;
-        t            += tl->tick2time(s->tick + len) - ct;
+        double delta  = tl->tick2time(s->tick + len) - ct;
+        // For a non-final segment that ends at a section break, remove the
+        // section-break pause from the delta so the pause is not double-counted.
+        if (s->pause == 0.0 && sectionBreakEndTicks.count(s->tick + len)) {
+            delta -= tl->pauseSecs(s->tick + len);
+        }
+        t            += delta;
     }
 }
 
@@ -949,7 +1000,9 @@ void RepeatList::unwind()
 
                         // Execute
                         if (jumpTo.first != m_rlElements.cend()) {
-                            push_back(rs);
+                            if (rs && !rs->isEmpty()) {
+                                push_back(rs);
+                            }
                             rs = nullptr;
 
                             activeJump = jumpOccurrence.first;
@@ -1029,8 +1082,11 @@ void RepeatList::unwind()
                     && ((playbackCount == startRepeatReference->getRepeatCount())
                         || ((activeVolta != nullptr) && (playbackCount == activeVolta->lastEnding()))
                         )
-                    ) {               // Found final playThrough of this Marker
-                    push_back(rs);
+                    ) {
+                    // Found final playThrough of this Marker
+                    if (rs && !rs->isEmpty()) {
+                        push_back(rs);
+                    }
                     rs = nullptr;
                     playUntil.first = m_rlElements.cend();                 // Clear this reference - processed
                     forceFinalRepeat = false;

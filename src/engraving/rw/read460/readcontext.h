@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -65,6 +65,7 @@ public:
     ~ReadContext();
 
     Score* score() const;
+    void setScore(Score* score);
 
     const MStyle& style() const;
     std::shared_ptr<IEngravingFontsProvider> engravingFonts() const;
@@ -82,6 +83,9 @@ public:
     void setSpatium(double v);
     void setPropertiesToSkip(const PropertyIdSet& propertiesToSkip) { m_propertiesToSkip = propertiesToSkip; }
     bool shouldSkipProperty(Pid pid) const { return muse::contains(m_propertiesToSkip, pid); }
+
+    bool forcePageMode() const { return m_forcePageMode; }
+    void setForcePageMode(bool v) { m_forcePageMode = v; }
 
     compat::DummyElement* dummy() const;
 
@@ -136,6 +140,7 @@ private:
     Score* m_score = nullptr;
 
     bool _pasteMode = false;  // modifies read behaviour on paste operation
+    bool m_forcePageMode = false;
 
     std::vector<std::shared_ptr<ConnectorInfoReader> > _connectors;
     std::vector<std::shared_ptr<ConnectorInfoReader> > _pendingConnectors;  // connectors that are pending to be updated and added to _connectors. That will happen when checkConnectors() is called.

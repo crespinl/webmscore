@@ -5,7 +5,7 @@
  * MuseScore
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore BVBA and others
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -19,33 +19,27 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-#ifndef MUSE_AUDIO_AUDIOMODULE_H
-#define MUSE_AUDIO_AUDIOMODULE_H
+
+#pragma once
 
 #include <memory>
-#include <QTimer>
 
 #include "modularity/imodulesetup.h"
 #include "global/async/asyncable.h"
-
-#include "audio/iaudiodrivercontroller.h"
-
-namespace muse::audio::worker  {
-class AudioWorkerModule;
-class AudioThread;
-}
+#include "global/ticker.h"
 
 namespace muse::audio::rpc  {
-class GeneralRpcChannel;
+class IRpcChannel;
 }
 
 namespace muse::audio {
 class AudioConfiguration;
-class AudioOutputDeviceController;
+class AudioActionsController;
+class TransportEventsController;
+class StartAudioController;
 class Playback;
-class SoundFontController;
-class KnownAudioPluginsRegister;
-class RegisterAudioPluginsScenario;
+class ISoundFontController;
+class AudioDriverController;
 class AudioModule : public modularity::IModuleSetup, public async::Asyncable
 {
 public:
@@ -54,33 +48,24 @@ public:
     std::string moduleName() const override;
 
     void registerExports() override;
-    void registerResources() override;
-    void registerUiTypes() override;
     void resolveImports() override;
     void onInit(const IApplication::RunMode& mode) override;
     void onDeinit() override;
-    void onDestroy() override;
 
 private:
-    void setupAudioDriver(const IApplication::RunMode& mode);
-    void setupAudioWorker(const IAudioDriver::Spec& activeSpec);
-
     std::shared_ptr<AudioConfiguration> m_configuration;
-    std::shared_ptr<AudioOutputDeviceController> m_audioOutputController;
+    std::shared_ptr<AudioActionsController> m_actionsController;
+    std::shared_ptr<TransportEventsController> m_transportEventsController;
+    std::shared_ptr<StartAudioController> m_startAudioController;
     std::shared_ptr<Playback> m_mainPlayback;
-    std::shared_ptr<SoundFontController> m_soundFontController;
+    std::shared_ptr<ISoundFontController> m_soundFontController;
 
-    std::shared_ptr<worker::AudioThread> m_audioThread;
-    std::shared_ptr<worker::AudioWorkerModule> m_workerModule;
+    Ticker m_rpcTicker;
+    std::shared_ptr<rpc::IRpcChannel> m_rpcChannel;
 
-    QTimer m_rpcTimer;
-    std::shared_ptr<rpc::GeneralRpcChannel> m_rpcChannel;
-
-    std::shared_ptr<IAudioDriverController> m_audioDriverController;
+    std::shared_ptr<AudioDriverController> m_audioDriverController;
 
     bool m_audioInited = false;
     bool m_workerInitializedInline = false;
 };
 }
-
-#endif // MUSE_AUDIO_AUDIOMODULE_H

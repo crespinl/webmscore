@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -20,8 +20,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef MU_ENGRAVING_MMREST_H
-#define MU_ENGRAVING_MMREST_H
+#pragma once
 
 #include "rest.h"
 
@@ -50,8 +49,8 @@ public:
     RectF numberRect() const override;
     PointF numberPos() const;
 
-    void setNumberOffset(double y) { m_numberOffset = y; }
-    double numberOffset() const { return m_numberOffset; }
+    void setNumberOffset(const Spatium y) { m_numberOffset = y; }
+    Spatium numberOffset() const { return m_numberOffset; }
 
     double yNumberPos() const;
 
@@ -71,9 +70,7 @@ public:
     DECLARE_LAYOUTDATA_METHODS(MMRest)
 
 private:
-
-    double m_numberOffset = 0.0;   // vertical position of number relative to staff
-    bool m_numberVisible = false;   // show or hide number
+    Spatium m_numberOffset = 0.0_sp; // vertical position of number relative to staff
+    bool m_numberVisible = false; // show or hide number
 };
-} // namespace mu::engraving
-#endif
+}

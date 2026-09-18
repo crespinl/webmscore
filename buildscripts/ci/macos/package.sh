@@ -5,7 +5,7 @@
 # MuseScore Studio
 # Music Composition & Notation
 #
-# Copyright (C) 2021 MuseScore Limited
+# Copyright (C) 2021 MuseScore Limited and others
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 3 as
@@ -24,11 +24,19 @@ trap 'echo Package failed; exit 1' ERR
 ARTIFACTS_DIR="build.artifacts"
 SIGN_CERTIFICATE_ENCRYPT_SECRET="''"
 SIGN_CERTIFICATE_PASSWORD="''"
+APPLE_TEAM_ID=""
+APPLE_USERNAME=""
+APPLE_PASSWORD=""
+
+SIGN_ARGS=""
 
 while [[ "$#" -gt 0 ]]; do
     case $1 in
         --signsecret) SIGN_CERTIFICATE_ENCRYPT_SECRET="$2"; shift ;;
         --signpass) SIGN_CERTIFICATE_PASSWORD="$2"; shift ;;
+        --team-id) APPLE_TEAM_ID="$2"; shift ;;
+        -u|--user) APPLE_USERNAME="$2"; shift ;;
+        -p|--password) APPLE_PASSWORD="$2"; shift ;;
         *) echo "Unknown parameter passed: $1"; exit 1 ;;
     esac
     shift
@@ -56,42 +64,44 @@ if [ "$SIGN_CERTIFICATE_ENCRYPT_SECRET" != "''" ]; then
     security import $CERTIFICATE_P12 -k $KEYCHAIN -P "$SIGN_CERTIFICATE_PASSWORD" -T /usr/bin/codesign
 
     security set-key-partition-list -S apple-tool:,apple: -s -k ci $KEYCHAIN
+
+    SIGN_ARGS="--sign"
 fi
 
 BUILD_MODE=$(cat $ARTIFACTS_DIR/env/build_mode.env)
 BUILD_VERSION=$(cat $ARTIFACTS_DIR/env/build_version.env)
 BUILD_REVISION=$(cat $ARTIFACTS_DIR/env/build_revision.env)
+BUILD_NUMBER=$(cat $ARTIFACTS_DIR/env/build_number.env)
 
 VERSION_MAJOR="$(cut -d'.' -f1 <<<"$BUILD_VERSION")"
 VERSION_MINOR="$(cut -d'.' -f2 <<<"$BUILD_VERSION")"
 VERSION_PATCH="$(cut -d'.' -f3 <<<"$BUILD_VERSION")"
 
-APP_LONGER_NAME="MuseScore $VERSION_MAJOR"
-PACKAGE_VERSION="$BUILD_VERSION"
+# TODO: rename to MuseScore Studio (https://github.com/musescore/MuseScore/issues/32235)
+APP_NAME="MuseScore $VERSION_MAJOR"
 if [ "$BUILD_MODE" == "devel" ]; then
-    APP_LONGER_NAME="MuseScore $BUILD_VERSION Devel"
-    PACKAGE_VERSION="${VERSION_MAJOR}.${VERSION_MINOR}b-${BUILD_REVISION}"
+    APP_NAME="MuseScore $BUILD_VERSION Development"
+    VOL_NAME="MuseScore-Studio-${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}.${BUILD_NUMBER}-${BUILD_REVISION}"
 fi
 if [ "$BUILD_MODE" == "nightly" ]; then
-    APP_LONGER_NAME="MuseScore $BUILD_VERSION Nightly"
-    PACKAGE_VERSION="${VERSION_MAJOR}.${VERSION_MINOR}b-${BUILD_REVISION}"
+    APP_NAME="MuseScore $BUILD_VERSION Nightly"
+    VOL_NAME="MuseScore-Studio-${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}.${BUILD_NUMBER}-${BUILD_REVISION}"
 fi
 if [ "$BUILD_MODE" == "testing" ]; then
-    APP_LONGER_NAME="MuseScore $BUILD_VERSION Testing"
-    PACKAGE_VERSION="${VERSION_MAJOR}.${VERSION_MINOR}b-${BUILD_REVISION}"
+    APP_NAME="MuseScore $BUILD_VERSION Testing"
+    VOL_NAME="MuseScore-Studio-${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}.${BUILD_NUMBER}-${BUILD_REVISION}"
 fi
 if [ "$BUILD_MODE" == "stable" ]; then
-    APP_LONGER_NAME="MuseScore $VERSION_MAJOR"
-    PACKAGE_VERSION="${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}"
+    APP_NAME="MuseScore $VERSION_MAJOR"
+    VOL_NAME="MuseScore-Studio-${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}"
 fi
 
-buildscripts/packaging/macOS/package.sh --longer_name "$APP_LONGER_NAME" --version "$PACKAGE_VERSION"
+buildscripts/packaging/macOS/package.sh --app-name "$APP_NAME" --vol-name "$VOL_NAME" --user "$APPLE_USERNAME" --password "$APPLE_PASSWORD" --team-id "$APPLE_TEAM_ID" $SIGN_ARGS
 
 DMGFILE="$(ls applebuild/*.dmg)"
 echo "DMGFILE: $DMGFILE"
 
 if [ "$BUILD_MODE" == "nightly" ]; then
-    BUILD_NUMBER=$(cat $ARTIFACTS_DIR/env/build_number.env)
     BUILD_BRANCH=$(cat $ARTIFACTS_DIR/env/build_branch.env)
     ARTIFACT_NAME=MuseScore-Studio-Nightly-${BUILD_NUMBER}-${BUILD_BRANCH}-${BUILD_REVISION}.dmg
 else

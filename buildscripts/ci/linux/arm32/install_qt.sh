@@ -5,7 +5,7 @@
 # MuseScore Studio
 # Music Composition & Notation
 #
-# Copyright (C) 2025 MuseScore Limited
+# Copyright (C) 2025 MuseScore Limited and others
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 3 as
@@ -25,7 +25,7 @@ trap 'echo Qt installation failed; exit 1' ERR
 BUILD_TOOLS=$HOME/build_tools
 ENV_FILE=$BUILD_TOOLS/environment.sh
 
-# TODO: Update to Qt 6.9
+# TODO: Update to Qt 6.10
 apt_packages_qt6=(
     libqt6core5compat6-dev
     libqt6networkauth6-dev
@@ -36,6 +36,7 @@ apt_packages_qt6=(
     libqt6quickcontrols2-6
     libqt6quicktemplates2-6
     libqt6quickwidgets6
+    libqt6shadertools6-dev
     libqt6svg6-dev
     libqt6websockets6-dev
     libqt6xml6

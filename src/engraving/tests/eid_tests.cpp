@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -22,13 +22,10 @@
 
 #include <gtest/gtest.h>
 
-#include "dom/engravingitem.h"
+#include "engraving/dom/engravingitem.h"
 
 #include "utils/scorerw.h"
-#include "utils/scorecomp.h"
-#include "utils/testutils.h"
 
-using namespace mu;
 using namespace mu::engraving;
 
 static const String DATA_DIR("all_elements_data/");
@@ -37,29 +34,24 @@ class Engraving_EIDTests : public ::testing::Test
 {
 };
 
-static void checkRegister(void*, EngravingItem* item)
-{
-    EID eid = item->eid();
-    if (eid.isValid()) {
-        EngravingObject* registeredItem = item->masterScore()->eidRegister()->itemFromEID(item->eid());
-        EXPECT_TRUE(registeredItem);
-        EXPECT_EQ(registeredItem, item);
-    }
-}
-
 TEST_F(Engraving_EIDTests, testRegisteredItems)
 {
-    bool useRead302 = MScore::useRead302InTestMode;
-    MScore::useRead302InTestMode = false;
-
     MasterScore* score = ScoreRW::readScore(DATA_DIR + u"random_elements.mscx");
     EXPECT_TRUE(score);
 
-    score->scanElements(nullptr, checkRegister, true);
+    auto checkRegister = [&](EngravingItem* item) {
+        EID eid = item->eid();
+        if (eid.isValid()) {
+            EngravingObject* registeredItem = item->masterScore()->eidRegister()->itemFromEID(item->eid());
+            EXPECT_TRUE(registeredItem);
+            EXPECT_EQ(registeredItem, item);
+        }
+    };
+
+    score->scanElements(checkRegister);
     for (MeasureBase* mb = score->first(); mb; mb = mb->next()) {
-        checkRegister(nullptr, mb);
+        checkRegister(mb);
     }
 
     delete score;
-    MScore::useRead302InTestMode = useRead302;
 }

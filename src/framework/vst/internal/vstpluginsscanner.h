@@ -5,7 +5,7 @@
  * MuseScore
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore BVBA and others
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -19,8 +19,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-#ifndef MUSE_VST_VSTPLUGINSSCANNER_H
-#define MUSE_VST_VSTPLUGINSSCANNER_H
+
+#pragma once
 
 #include "audioplugins/iaudiopluginsscanner.h"
 
@@ -28,18 +28,18 @@
 #include "ivstconfiguration.h"
 #include "io/ifilesystem.h"
 
+#include <set>
+
 namespace muse::vst {
 class VstPluginsScanner : public audioplugins::IAudioPluginsScanner
 {
-    INJECT(IVstConfiguration, configuration)
-    INJECT(io::IFileSystem, fileSystem)
+    GlobalInject<IVstConfiguration> configuration;
+    GlobalInject<io::IFileSystem> fileSystem;
 
 public:
     io::paths_t scanPlugins() const override;
 
 private:
-    io::paths_t pluginPathsFromCustomLocations(const io::paths_t& customPaths) const;
+    std::set<io::path_t> pluginPathsFromCustomLocations(const io::paths_t& customPaths) const;
 };
 }
-
-#endif // MUSE_VST_VSTPLUGINSSCANNER_H

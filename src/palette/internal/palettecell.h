@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -63,14 +63,14 @@ private:
     PaletteCell* m_cell = nullptr;
 };
 
-class PaletteCell : public QObject
+class PaletteCell : public QObject, public muse::Contextable
 {
     Q_OBJECT
-    INJECT_STATIC(muse::ui::IUiActionsRegister, actionsRegister)
+    muse::ContextInject<muse::ui::IUiActionsRegister> actionsRegister = { this };
 
 public:
-    explicit PaletteCell(QObject* parent = nullptr);
-    PaletteCell(mu::engraving::ElementPtr e, const QString& _name, qreal _mag = 1.0,
+    explicit PaletteCell(const muse::modularity::ContextPtr& iocCtx, QObject* parent = nullptr);
+    PaletteCell(const muse::modularity::ContextPtr& iocCtx, mu::engraving::ElementPtr e, const QString& _name, qreal _mag = 1.0,
                 const QPointF& offset = QPointF(), const QString& tag = "", QObject* parent = nullptr);
 
     static QAccessibleInterface* accessibleInterface(QObject* object);
@@ -87,8 +87,8 @@ public:
     bool read(mu::engraving::XmlReader&, bool pasteMode);
     QByteArray toMimeData() const;
 
-    static PaletteCellPtr fromMimeData(const QByteArray& data);
-    static PaletteCellPtr fromElementMimeData(const QByteArray& data);
+    static PaletteCellPtr fromMimeData(const QByteArray& data, const muse::modularity::ContextPtr& iocCtx);
+    static PaletteCellPtr fromElementMimeData(const QByteArray& data, const muse::modularity::ContextPtr& iocCtx);
 
     mu::engraving::ElementPtr element;
     mu::engraving::ElementPtr untranslatedElement;

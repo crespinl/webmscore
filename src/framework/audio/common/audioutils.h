@@ -5,7 +5,7 @@
  * MuseScore
  * Music Composition & Notation
  *
- * Copyright (C) 2023 MuseScore BVBA and others
+ * Copyright (C) 2023 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -20,8 +20,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef MUSE_AUDIO_AUDIOUTILS_H
-#define MUSE_AUDIO_AUDIOUTILS_H
+#pragma once
 
 #include "audiotypes.h"
 #include "soundfonttypes.h"
@@ -92,6 +91,22 @@ inline String audioSourceCategoryName(const AudioInputParams& params)
     return String::fromStdString(params.resourceMeta.id);
 }
 
+inline AudioFxCategories audioFxCategoriesFromString(const String& str)
+{
+    if (str.empty()) {
+        return {};
+    }
+
+    StringList list = str.split('|');
+
+    AudioFxCategories result;
+    for (const String& name : list) {
+        result.insert(muse::key(AUDIO_FX_CATEGORY_TO_STRING_MAP, name, AudioFxCategory::FxOther));
+    }
+
+    return result;
+}
+
 inline bool isOnlineAudioResource(const AudioResourceMeta& meta)
 {
     const String& attr = meta.attributeVal(u"isOnline");
@@ -107,6 +122,15 @@ inline bool isOnlineAudioResource(const AudioResourceMeta& meta)
 
     return val == 1;
 }
-}
 
-#endif // MUSE_AUDIO_AUDIOUTILS_H
+inline samples_t minSamplesToReserve(RenderMode mode)
+{
+    // Idle: render as little as possible for lower latency
+    if (mode == RenderMode::IdleMode) {
+        return 128;
+    }
+
+    // Active: render more for better quality (rendering is usually much heavier in this scenario)
+    return 1024;
+}
+}

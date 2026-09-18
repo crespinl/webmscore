@@ -5,7 +5,7 @@
  * MuseScore
  * Music Composition & Notation
  *
- * Copyright (C) 2024 MuseScore BVBA and others
+ * Copyright (C) 2024 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -19,12 +19,12 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-import QtQuick 2.15
-import QtQuick.Controls 2.15
+import QtQuick
+import QtQuick.Controls
 import QtQuick.Window
 
-import Muse.Ui 1.0
-import Muse.UiComponents 1.0
+import Muse.Ui
+import Muse.UiComponents
 
 FocusScope {
     id: root
@@ -45,6 +45,8 @@ FocusScope {
     readonly property alias mouseArea: clickableArea
     property bool containsMouse: clickableArea.containsMouse
 
+    property alias scrollableContentHeight: contentView.contentHeight
+
     readonly property alias navigation: navCtrl
     readonly property alias accessible: navCtrl.accessible
 
@@ -58,8 +60,8 @@ FocusScope {
     }
 
     function ensureActiveFocus() {
-        if (Window.window && Window.window.objectName.includes("PopupWindow_QQuickView")) {
-            // See also PopupWindow_QQuickView::eventFilter
+        if (Window.window && Window.window.objectName.includes("_WindowView_QQuickView")) {
+            // See also WindowView::eventFilter
             Window.window.flags &= ~Qt.WindowDoesNotAcceptFocus
             Window.window.requestActivate()
         }
@@ -120,6 +122,8 @@ FocusScope {
     }
 
     ScrollView {
+        id: contentView
+
         anchors.fill: parent
 
         ScrollBar.vertical: StyledScrollBar {
@@ -147,7 +151,12 @@ FocusScope {
 
                 objectName: "TextArea"
 
-                padding: root.textSidePadding
+                width: root.width
+
+                leftPadding: root.textSidePadding
+                rightPadding: root.textSidePadding
+                topPadding: root.textSidePadding
+                bottomPadding: root.textSidePadding
 
                 color: ui.theme.fontPrimaryColor
                 font: ui.theme.bodyFont
@@ -163,13 +172,16 @@ FocusScope {
                 visible: true
 
                 text: root.currentText === undefined ? "" : root.currentText
+                wrapMode: TextInput.Wrap
 
-                TextInputModel {
-                    id: textInputModel
+                ShortcutOverrideModel {
+                    id: shortcutOverrideModel
+                    // Direction keys should not trigger navigation, override them...
+                    directionKeysForOverride: ShortcutOverrideModel.All
                 }
 
                 Component.onCompleted: {
-                    textInputModel.init()
+                    shortcutOverrideModel.init()
                 }
 
                 Keys.onShortcutOverride: function(event) {
@@ -189,7 +201,7 @@ FocusScope {
                         break
                     }
 
-                    if (textInputModel.isShortcutAllowedOverride(event.key, event.modifiers)) {
+                    if (shortcutOverrideModel.isShortcutOverrideAllowed(event.key, event.modifiers)) {
                         event.accepted = true
                     } else {
                         event.accepted = false
@@ -219,6 +231,42 @@ FocusScope {
 
                 onTextChanged: {
                     root.textChanged(text)
+                }
+
+                onCursorRectangleChanged: {
+                    ensureCursorVisible()
+                }
+
+                function ensureCursorVisible() {
+                    if (!activeFocus) {
+                        return
+                    }
+
+                    let flickable = contentView.contentItem
+                    if (!flickable) {
+                        return
+                    }
+
+                    let cursorY = valueInput.cursorRectangle.y
+                    let cursorHeight = valueInput.cursorRectangle.height
+
+                    let visibleTop = flickable.contentY
+                    let visibleBottom = visibleTop + contentView.height
+
+                    let topMargin = root.textSidePadding
+                    let bottomMargin = root.textSidePadding
+
+                    let eps = 2
+
+                    if (cursorY + cursorHeight + bottomMargin > visibleBottom + eps) {
+                        let newContentY = cursorY + cursorHeight + bottomMargin - contentView.height
+                        flickable.contentY = Math.max(0, newContentY)
+                    }
+
+                    else if (cursorY - topMargin < visibleTop - eps) {
+                        let newContentY = cursorY - topMargin
+                        flickable.contentY = Math.max(0, newContentY)
+                    }
                 }
             }
         }

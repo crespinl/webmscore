@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2023 MuseScore Limited
+ * Copyright (C) 2023 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -23,6 +23,7 @@
 #include "measurenumberlayout.h"
 #include "measurelayout.h"
 #include "tlayout.h"
+#include "textlayout.h"
 
 #include "dom/measure.h"
 #include "dom/score.h"
@@ -119,7 +120,7 @@ void MeasureNumberLayout::layoutMeasureNumberBase(MeasureNumberBase* item, Measu
 {
     ldata->setPos(PointF());
 
-    TLayout::layoutBaseTextBase1(item, ldata);
+    TextLayout::layoutBaseTextBase1(item, ldata);
 
     staff_idx_t effectiveStaffIdx = item->effectiveStaffIdx();
     Staff* staff = item->score()->staff(effectiveStaffIdx);
@@ -198,11 +199,11 @@ void MeasureNumberLayout::checkBarlineCollisions(const MeasureNumber* item, cons
     }
 
     const double minBarLineDistance = 0.25 * item->spatium();
-    if (!barlineSeg || (barlineSeg->segmentType() != SegmentType::BeginBarLine && item->score()->staff(barlineStaff)->barLineSpan() < 1)) {
+    if (!barlineSeg || (barlineSeg->segmentType() != SegmentType::BeginBarLine && !item->score()->staff(barlineStaff)->barLineSpan())) {
         return;
     }
 
-    BarLine* barline = toBarLine(barlineSeg->elementAt(staff2track(barlineStaff)));
+    BarLine* barline = toBarLine(barlineSeg->element(staff2track(barlineStaff)));
     if (!barline) {
         return;
     }

@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2024 MuseScore Limited
+ * Copyright (C) 2024 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -19,13 +19,18 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-#ifndef MU_NOTATION_INOTATIONSOLOMUTESTATE_H
-#define MU_NOTATION_INOTATIONSOLOMUTESTATE_H
+#pragma once
 
-#include "engraving/infrastructure/mscreader.h"
+#include "async/channel.h"
 #include "io/iodevice.h"
+#include "io/path.h"
+#include "types/ret.h"
 
-#include "notationtypes.h"
+#include "engraving/types/types.h"
+
+namespace mu::engraving {
+class MscReader;
+}
 
 namespace mu::notation {
 class INotationSoloMuteState
@@ -48,7 +53,7 @@ public:
     virtual muse::Ret write(muse::io::IODevice* out) = 0;
 
     virtual bool trackSoloMuteStateExists(const engraving::InstrumentTrackId& trackId) const = 0;
-    virtual SoloMuteState trackSoloMuteState(const engraving::InstrumentTrackId& trackId) const = 0;
+    virtual const SoloMuteState& trackSoloMuteState(const engraving::InstrumentTrackId& trackId) const = 0;
     virtual void setTrackSoloMuteState(const engraving::InstrumentTrackId& trackId, const SoloMuteState& state) = 0;
     virtual void removeTrackSoloMuteState(const engraving::InstrumentTrackId& trackId) = 0;
     virtual muse::async::Channel<engraving::InstrumentTrackId, SoloMuteState> trackSoloMuteStateChanged() const = 0;
@@ -56,5 +61,3 @@ public:
 
 using INotationSoloMuteStatePtr = std::shared_ptr<INotationSoloMuteState>;
 }
-
-#endif // MU_NOTATION_INOTATIONSOLOMUTESTATE_H

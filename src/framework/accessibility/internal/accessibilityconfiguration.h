@@ -5,7 +5,7 @@
  * MuseScore
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore BVBA and others
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -28,13 +28,13 @@
 #include "ui/inavigationcontroller.h"
 
 namespace muse::accessibility {
-class AccessibilityConfiguration : public IAccessibilityConfiguration, public Injectable
+class AccessibilityConfiguration : public IAccessibilityConfiguration, public Contextable
 {
-    Inject<ui::INavigationController> navigationController { this };
+    ContextInject<ui::INavigationController> navigationController { this };
 
 public:
     AccessibilityConfiguration(const modularity::ContextPtr& ctx)
-        : Injectable(ctx) {}
+        : Contextable(ctx) {}
 
     ~AccessibilityConfiguration() override;
 

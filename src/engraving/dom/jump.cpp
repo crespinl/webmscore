@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -70,7 +70,6 @@ Jump::Jump(Measure* parent)
     : TextBase(ElementType::JUMP, parent, TextStyleType::REPEAT_RIGHT, ElementFlag::MOVABLE | ElementFlag::SYSTEM | ElementFlag::ON_STAFF)
 {
     initElementStyle(&jumpStyle);
-    setLayoutToParentWidth(true);
     m_playRepeats = false;
 }
 
@@ -112,33 +111,6 @@ String Jump::jumpTypeUserName() const
 }
 
 //---------------------------------------------------------
-//   undoSetJumpTo
-//---------------------------------------------------------
-
-void Jump::undoSetJumpTo(const String& s)
-{
-    undoChangeProperty(Pid::JUMP_TO, s);
-}
-
-//---------------------------------------------------------
-//   undoSetPlayUntil
-//---------------------------------------------------------
-
-void Jump::undoSetPlayUntil(const String& s)
-{
-    undoChangeProperty(Pid::PLAY_UNTIL, s);
-}
-
-//---------------------------------------------------------
-//   undoSetContinueAt
-//---------------------------------------------------------
-
-void Jump::undoSetContinueAt(const String& s)
-{
-    undoChangeProperty(Pid::CONTINUE_AT, s);
-}
-
-//---------------------------------------------------------
 //   getProperty
 //---------------------------------------------------------
 
@@ -176,7 +148,7 @@ bool Jump::setProperty(Pid propertyId, const PropertyValue& v)
         setContinueAt(v.value<String>());
         break;
     case Pid::PLAY_REPEATS:
-        setPlayRepeats(v.toInt());
+        setPlayRepeats(v.toBool());
         break;
     default:
         if (!TextBase::setProperty(propertyId, v)) {

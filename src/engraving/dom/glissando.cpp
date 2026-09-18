@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -80,7 +80,7 @@ GlissandoSegment::GlissandoSegment(Glissando* sp, System* parent)
 //   propertyDelegate
 //---------------------------------------------------------
 
-EngravingItem* GlissandoSegment::propertyDelegate(Pid pid)
+EngravingObject* GlissandoSegment::propertyDelegate(Pid pid) const
 {
     switch (pid) {
     case Pid::GLISS_TYPE:
@@ -352,7 +352,7 @@ PropertyValue Glissando::getProperty(Pid propertyId) const
 {
     switch (propertyId) {
     case Pid::GLISS_TYPE:
-        return int(glissandoType());
+        return glissandoType();
     case Pid::GLISS_TEXT:
         return text();
     case Pid::GLISS_SHOW_TEXT:
@@ -385,7 +385,7 @@ bool Glissando::setProperty(Pid propertyId, const PropertyValue& v)
 {
     switch (propertyId) {
     case Pid::GLISS_TYPE:
-        setGlissandoType(GlissandoType(v.toInt()));
+        setGlissandoType(v.value<GlissandoType>());
         break;
     case Pid::GLISS_TEXT:
         setText(v.value<String>());

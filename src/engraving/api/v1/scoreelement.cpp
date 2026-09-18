@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -34,6 +34,8 @@
 #include "part.h"
 #include "elements.h"
 
+#include "log.h"
+
 using namespace mu::engraving::apiv1;
 
 ScoreElement::~ScoreElement()
@@ -43,14 +45,35 @@ ScoreElement::~ScoreElement()
     }
 }
 
+int ScoreElement::apiversion() const
+{
+    if (m_apiversion == -1) {
+        QJSEngine* engine = qjsEngine(this);
+        IF_ASSERT_FAILED(engine) {
+            return -1;
+        }
+
+        m_apiversion = engine->property("apiversion").toInt();
+        IF_ASSERT_FAILED(m_apiversion > 0) {
+            m_apiversion = -1;
+        }
+    }
+    return m_apiversion;
+}
+
 QString ScoreElement::name() const
 {
     return QString(e->typeName());
 }
 
-int ScoreElement::type() const
+QJSValue ScoreElement::type() const
 {
-    return int(e->type());
+    if (apiversion() == 1) {
+        return QJSValue(int(e->type()));
+    } else {
+        static const QMetaEnum meta = QMetaEnum::fromType<enums::ElementType>();
+        return QJSValue(QString(meta.valueToKey(int(e->type()))));
+    }
 }
 
 //---------------------------------------------------------
@@ -86,7 +109,7 @@ QVariant ScoreElement::get(mu::engraving::Pid pid) const
     const PropertyValue val = e->getProperty(pid);
     switch (val.type()) {
     case P_TYPE::FRACTION: {
-        const Fraction f(val.value<Fraction>());
+        const mu::engraving::Fraction f(val.value<mu::engraving::Fraction>());
         return QVariant::fromValue(wrap(f));
     }
     case P_TYPE::ORNAMENT_INTERVAL: {
@@ -146,7 +169,7 @@ void ScoreElement::set(mu::engraving::Pid pid, const QVariant& val)
 
     switch (propertyType(pid)) {
     case P_TYPE::FRACTION: {
-        FractionWrapper* f = val.value<FractionWrapper*>();
+        Fraction* f = val.value<Fraction*>();
         if (!f) {
             LOGW() << "trying to assign value of wrong type to fractional property";
             return;

@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -32,8 +32,8 @@
 namespace mu::iex::imagesexport {
 class SvgWriter : public AbstractImageWriter
 {
-    muse::Inject<IImagesExportConfiguration> configuration = { this };
-    muse::Inject<engraving::rendering::IScoreRenderer> scoreRenderer = { this };
+    muse::GlobalInject<IImagesExportConfiguration> configuration;
+    muse::ContextInject<engraving::rendering::IScoreRenderer> scoreRenderer = { this };
 
 public:
     SvgWriter(const muse::modularity::ContextPtr& iocCtx)

@@ -5,7 +5,7 @@
  * MuseScore
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore BVBA and others
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -27,11 +27,11 @@
 #include "iinteractive.h"
 
 namespace muse::ui {
-class QmlLauncher : public QObject, public Injectable
+class QmlLauncher : public QObject, public Contextable
 {
     Q_OBJECT
 
-    Inject<IInteractive> interactive = { this };
+    ContextInject<IInteractive> interactive = { this };
 
 public:
     QmlLauncher(QObject* parent, const modularity::ContextPtr& iocCtx);

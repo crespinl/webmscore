@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -20,13 +20,14 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef MU_ENGRAVING_PAGE_H
-#define MU_ENGRAVING_PAGE_H
+#pragma once
 
+#include <array>
 #include <vector>
 
-#include "engravingitem.h"
 #include "bsp.h"
+#include "engravingitem.h"
+#include "mscore.h"
 #include "text.h"
 
 namespace mu::engraving {
@@ -50,11 +51,8 @@ class Page final : public EngravingItem
     DECLARE_CLASSOF(ElementType::PAGE)
 
 public:
-    // Score Tree functions
-    EngravingObject* scanParent() const override;
-    EngravingObjectList scanChildren() const override;
-
     Page* clone() const override { return new Page(*this); }
+
     const std::vector<System*>& systems() const { return m_systems; }
     std::vector<System*>& systems() { return m_systems; }
     System* system(size_t idx) { return m_systems[idx]; }
@@ -62,17 +60,15 @@ public:
 
     void appendSystem(System* s);
 
-    page_idx_t no() const { return m_no; }
-    void setNo(page_idx_t n) { m_no = n; }
+    page_idx_t pageNumber() const { return m_pageNumber; }
+    void setPageNumber(page_idx_t n) { m_pageNumber = n; }
     bool isOdd() const;
     double tm() const;              // margins in pixel
     double bm() const;
     double lm() const;
     double rm() const;
-    double headerExtension() const;
-    double footerExtension() const;
 
-    void scanElements(void* data, void (* func)(void*, EngravingItem*), bool all=true) override;
+    void scanElements(std::function<void(EngravingItem*)> func) override;
 
     std::vector<EngravingItem*> items(const RectF& r);
     std::vector<EngravingItem*> items(const PointF& p);
@@ -81,27 +77,30 @@ public:
     std::vector<EngravingItem*> elements() const;              ///< list of visible elements
     RectF tbbox() const;                             // tight bounding box, excluding white space
     Fraction endTick() const;
+    Measure* firstMeasure() const;
+
+    Text* headerText(int index) const { return m_headerTexts.at(index); }
+    Text* footerText(int index) const { return m_footerTexts.at(index); }
+    void setHeaderText(int index, Text* t) { m_headerTexts.at(index) = t; }
+    void setFooterText(int index, Text* t) { m_footerTexts.at(index) = t; }
 
 #ifndef ENGRAVING_NO_ACCESSIBILITY
     AccessibleItemPtr createAccessible() override;
 #endif
 
-    Text* layoutHeaderFooter(int area, const String& s) const;
-
 private:
-
     friend class Factory;
     Page(RootItem* parent);
 
     void doRebuildBspTree();
-    TextBlock replaceTextMacros(const TextBlock&) const;
-    const CharFormat formatForMacro(const String&) const;
 
     std::vector<System*> m_systems;
-    page_idx_t m_no = 0;                        // page number
+    page_idx_t m_pageNumber = 0;
+
+    std::array<Text*, MAX_HEADERS> m_headerTexts {};
+    std::array<Text*, MAX_FOOTERS> m_footerTexts {};
 
     BspTree bspTree;
     bool m_bspTreeValid = false;
 };
-} // namespace mu::engraving
-#endif
+}

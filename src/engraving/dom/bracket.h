@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -20,8 +20,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef MU_ENGRAVING_BRACKET_H
-#define MU_ENGRAVING_BRACKET_H
+#pragma once
 
 #include "engravingitem.h"
 #include "bracketItem.h"
@@ -69,8 +68,6 @@ public:
     Measure* measure() const { return m_measure; }
     void setMeasure(Measure* measure) { m_measure = measure; }
 
-    Fraction playTick() const override;
-
     const BracketItem* bi() const { return m_bi; }
 
     bool isEditable() const override;
@@ -79,8 +76,8 @@ public:
     bool isEditAllowed(EditData&) const override;
     bool edit(EditData&) override;
     void endEdit(EditData&) override;
-    void editDrag(EditData&) override;
-    void endEditDrag(EditData&) override;
+    void dragGrip(EditData&) override;
+    void endDragGrip(EditData&) override;
 
     Color color() const override { return m_bi->color(); }
 
@@ -93,6 +90,8 @@ public:
 
     void undoChangeProperty(Pid id, const PropertyValue& v, PropertyFlags ps) override;
     using EngravingObject::undoChangeProperty;
+
+    Fraction tick() const override;
 
     int gripsCount() const override { return 1; }
     Grip initialEditModeGrip() const override { return Grip::START; }
@@ -130,5 +129,4 @@ private:
     double m_magx = 0.0;
     Measure* m_measure = nullptr;
 };
-} // namespace mu::engraving
-#endif
+}

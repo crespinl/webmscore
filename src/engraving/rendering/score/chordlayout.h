@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2023 MuseScore Limited
+ * Copyright (C) 2023 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -137,6 +137,8 @@ private:
     static void layoutLvArticulation(Chord* item, LayoutContext& ctx);
 
     static void layoutNote2(Note* note, LayoutContext& ctx);
+
+    static void createParenGroups(Chord* chord);
 
     static void placeDots(const std::vector<Chord*>& chords, const std::vector<Note*>& notes);
 

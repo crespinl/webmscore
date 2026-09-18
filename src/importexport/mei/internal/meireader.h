@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -30,12 +30,16 @@
 #include "engraving/engravingerrors.h"
 
 namespace mu::iex::mei {
-class MeiReader : public project::INotationReader
+class MeiReader : public project::INotationReader, public muse::Contextable
 {
-    INJECT(muse::IInteractive, interactive)
-    INJECT(muse::io::IFileSystem, fileSystem)
+    muse::ContextInject<muse::IInteractive> interactive = { this };
+    muse::GlobalInject<muse::io::IFileSystem> fileSystem;
 
 public:
+
+    MeiReader(const muse::modularity::ContextPtr& iocCtx)
+        : muse::Contextable(iocCtx) {}
+
     muse::Ret read(mu::engraving::MasterScore* score, const muse::io::path_t& path, const Options& options = Options()) override;
     mu::engraving::Err import(mu::engraving::MasterScore* score, const muse::io::path_t& path, const Options& options = Options());
 

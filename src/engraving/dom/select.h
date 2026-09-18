@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -66,7 +66,7 @@ struct ElementPattern {
 //---------------------------------------------------------
 
 struct NotePattern : ElementPattern {
-    std::list<Note*> el;
+    std::vector<Note*> el;
     int pitch = -1;
     int string = INVALID_STRING_INDEX;
     int tpc = Tpc::TPC_INVALID;
@@ -115,7 +115,7 @@ public:
     std::vector<Note*> noteList(track_idx_t track = muse::nidx) const;
 
     const std::list<EngravingItem*> uniqueElements() const;
-    std::list<Note*> uniqueNotes(track_idx_t track = muse::nidx) const;
+    std::list<Note*> uniqueNotes(track_idx_t track = muse::nidx, bool tied = true) const;
 
     bool isSingle() const { return (m_state == SelState::LIST) && (m_el.size() == 1); }
     bool elementsSelected(const ElementTypeSet& types) const;

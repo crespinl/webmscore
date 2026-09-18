@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -60,6 +60,8 @@ public:
     void save() override;
     void restore() override;
 
+    double deviceLogicalDpi() const override;
+
     void setTransform(const muse::draw::Transform& transform) override;
     const muse::draw::Transform& transform() const override;
 
@@ -68,7 +70,6 @@ public:
 
     void drawText(const muse::PointF& point, const muse::String& text) override;
     void drawText(const muse::RectF& rect, int flags, const muse::String& text) override;
-    void drawTextWorkaround(const muse::draw::Font& f, const muse::PointF& pos, const muse::String& text) override;
 
     void drawSymbol(const muse::PointF& point, char32_t ucs4Code) override;
 

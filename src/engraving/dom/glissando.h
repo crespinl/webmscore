@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -48,7 +48,7 @@ public:
 
     GlissandoSegment* clone() const override { return new GlissandoSegment(*this); }
 
-    EngravingItem* propertyDelegate(Pid) override;
+    EngravingObject* propertyDelegate(Pid) const override;
 };
 
 //---------------------------------------------------------

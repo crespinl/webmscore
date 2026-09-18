@@ -5,7 +5,7 @@
  * MuseScore
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore BVBA and others
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -26,16 +26,29 @@
 
 #include "global/types/ret.h"
 #include "global/io/path.h"
+#include "audio/common/audiotypes.h"
 
 namespace muse::audioplugins {
-class IRegisterAudioPluginsScenario : MODULE_EXPORT_INTERFACE
+struct PluginScanResult {
+    io::paths_t newPluginPaths;
+    audio::AudioResourceIdList missingPluginIds;
+};
+
+class IRegisterAudioPluginsScenario : MODULE_CONTEXT_INTERFACE
 {
     INTERFACE_ID(IRegisterAudioPluginsScenario)
 
 public:
     virtual ~IRegisterAudioPluginsScenario() = default;
 
-    virtual Ret registerNewPlugins() = 0;
+    virtual PluginScanResult scanPlugins() const = 0;
+
+    virtual void updatePluginsRegistry() = 0;
+    virtual void rescanAllPlugins() = 0;
+
+    virtual Ret registerNewPlugins(const io::paths_t& pluginPaths) = 0;
+    virtual Ret unregisterRemovedPlugins(const audio::AudioResourceIdList& pluginIds) = 0;
+
     virtual Ret registerPlugin(const io::path_t& pluginPath) = 0;
     virtual Ret registerFailedPlugin(const io::path_t& pluginPath, int failCode) = 0;
 };

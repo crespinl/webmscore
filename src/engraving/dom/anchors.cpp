@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -23,6 +23,7 @@
 #include <climits>
 
 #include "anchors.h"
+#include "dom/timesig.h"
 #include "dom/utils.h"
 #include "factory.h"
 #include "figuredbass.h"
@@ -86,8 +87,12 @@ void EditTimeTickAnchors::updateAnchors(Measure* measure, staff_idx_t staffIdx, 
     Fraction startTick = Fraction(0, 1);
     Fraction endTick = measure->ticks();
 
-    Fraction timeSig = measure->timesig();
-    Fraction halfDivision = Fraction(1, 2 * timeSig.denominator());
+    TimeSig* timeSig = measure->score()->staff(staffIdx)->timeSig(measure->tick());
+    Fraction timeSigFrac = timeSig ? timeSig->sig() : measure->timesig();
+    Fraction halfDivision = Fraction(1, 2 * timeSigFrac.denominator());
+    if (timeSig) {
+        halfDivision /= timeSig->stretch();
+    }
 
     std::set<Fraction> anchorTicks { additionalAnchorRelTicks };
     for (Fraction tick = startTick; tick <= endTick; tick += halfDivision) {
@@ -127,7 +132,7 @@ TimeTickAnchor* EditTimeTickAnchors::createTimeTickAnchor(Measure* measure, Frac
 
         Segment* segment = linkedMeasure->getSegmentR(SegmentType::TimeTick, relTick);
         track_idx_t track = staff2track(linkedStaff->idx());
-        EngravingItem* element = segment->elementAt(track);
+        EngravingItem* element = segment->element(track);
         TimeTickAnchor* anchor = element ? toTimeTickAnchor(element) : nullptr;
         if (!anchor) {
             anchor = Factory::createTimeTickAnchor(segment);
@@ -299,22 +304,43 @@ Segment* MoveElementAnchors::findNewAnchorSegmentForLine(LineSegment* lineSegmen
         }
     }
 
-    if (ed.modifiers & ControlModifier) {
-        if (ed.key == Key_Left) {
-            Measure* measure = curSeg->rtick().isZero() ? curSeg->measure()->prevMeasure() : curSeg->measure();
-            return measure ? measure->findFirstR(SegmentType::ChordRest, Fraction(0, 1)) : nullptr;
+    switch (ed.key) {
+    case Key_Left: {
+        if (ed.modifiers & ControlModifier) {
+            Measure* m = curSeg->rtick().isZero() ? curSeg->measure()->prevMeasure() : curSeg->measure();
+            return m ? m->findFirstR(SegmentType::ChordRest, Fraction(0, 1)) : nullptr;
         }
-        if (ed.key == Key_Right) {
-            Measure* measure = curSeg->measure()->nextMeasure();
-            return measure ? measure->findFirstR(SegmentType::ChordRest, Fraction(0, 1)) : nullptr;
-        }
-    }
-
-    if (ed.key == Key_Left) {
         return findNewAnchorableSegment(curSeg, /*forward*/ false);
     }
-    if (ed.key == Key_Right) {
+    case Key_Right: {
+        if (ed.modifiers & ControlModifier) {
+            if (Measure* measure = curSeg->measure()->nextMeasure()) {
+                return measure->findFirstR(SegmentType::ChordRest, Fraction(0, 1));
+            } else {
+                Measure* m = score->lastMeasure();
+                EditTimeTickAnchors::updateAnchors(m, lineSegment->staffIdx());
+                return m->getChordRestOrTimeTickSegment(m->endTick());
+            }
+        }
         return findNewAnchorableSegment(curSeg, /*forward*/ true);
+    }
+    case Key_Home: {
+        Measure* m = curSeg->measure()->system()->firstMeasure();
+        if (curSeg->rtick() == Fraction(0, 1) && m == curSeg->measure() && m->prevMeasure()) {
+            m = m->prevMeasure()->system()->firstMeasure();
+        }
+        return m->findFirstR(SegmentType::ChordRest, Fraction(0, 1));
+    }
+    case Key_End: {
+        Measure* measure = curSeg->measure()->system()->lastMeasure()->nextMeasure();
+        if (measure) {
+            return measure->findFirstR(SegmentType::ChordRest, Fraction(0, 1));
+        } else {
+            Measure* m = score->lastMeasure();
+            EditTimeTickAnchors::updateAnchors(m, lineSegment->staffIdx());
+            return m->getChordRestOrTimeTickSegment(m->endTick());
+        }
+    }
     }
 
     return nullptr;

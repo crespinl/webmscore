@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -56,7 +56,7 @@ static constexpr double PLAYBACK_TAIL_SECS = 3;
 NotationPlayback::NotationPlayback(IGetScore* getScore,
                                    muse::async::Notification notationChanged,
                                    const modularity::ContextPtr& iocCtx)
-    : m_getScore(getScore), m_notationChanged(notationChanged), m_playbackModel(iocCtx)
+    : muse::Contextable(iocCtx), m_getScore(getScore), m_notationChanged(notationChanged), m_playbackModel(iocCtx)
 {
     m_notationChanged.onNotify(this, [this]() {
         updateLoopBoundaries();
@@ -222,8 +222,8 @@ muse::async::Channel<InstrumentTrackId> NotationPlayback::trackRemoved() const
 void NotationPlayback::updateLoopBoundaries()
 {
     LoopBoundaries newBoundaries;
-    newBoundaries.loopInTick = score()->loopInTick().ticks();
-    newBoundaries.loopOutTick = score()->loopOutTick().ticks();
+    newBoundaries.loopInTick = score()->loopInTick();
+    newBoundaries.loopOutTick = score()->loopOutTick();
     newBoundaries.enabled = m_loopBoundaries.enabled;
 
     if (m_loopBoundaries != newBoundaries) {

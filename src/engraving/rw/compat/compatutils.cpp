@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -27,6 +27,7 @@
 #include "dom/dynamic.h"
 #include "dom/expression.h"
 #include "dom/harmony.h"
+#include "dom/image.h"
 #include "dom/laissezvib.h"
 #include "dom/masterscore.h"
 #include "dom/note.h"
@@ -46,6 +47,11 @@
 #include "dom/noteline.h"
 #include "dom/textline.h"
 #include "style/styledef.h"
+#include "style/defaultstyle.h"
+#include "dom/tempotext.h"
+
+#include "editing/editchord.h"
+#include "editing/transpose.h"
 
 #include "engraving/style/textstyle.h"
 
@@ -583,9 +589,10 @@ double CompatUtils::convertChordExtModUnits(double val)
     // After 4.6 this is in % of root cap height
     // The best we can do for conversion of old files is to assume a default spatium of 1.75mm and a default font size of 10pt
     // The height value is calculated from Edwin at 10pt using FontMetrics::capHeight
-    constexpr double DEFAULT_STAVE_SPACE_MM = 1.75;
-    constexpr double DEFAULT_SPATIUM = DEFAULT_STAVE_SPACE_MM * DPMM;
-    constexpr double DEFAULT_FONT_CAP_HEIGHT = 35.3795;
+    const double DEFAULT_SPATIUM = StyleDef::styleValues[static_cast<size_t>(Sid::spatium)].defaultValue.toDouble();
+    muse::draw::Font f(u"Edwin", muse::draw::Font::Type::Text);
+    f.setPointSizeF(10);
+    const double DEFAULT_FONT_CAP_HEIGHT = muse::draw::FontMetrics::capHeight(f);   // 121
 
     return ((val / 5) * DEFAULT_SPATIUM) / DEFAULT_FONT_CAP_HEIGHT;
 }
@@ -655,7 +662,7 @@ void CompatUtils::resetStemLengthsForTwoNoteTrems(MasterScore* masterScore)
                     Stem* stem = chord->stem();
                     if (stem && trem) {
                         if (!stem->userLength().isZero()) {
-                            stem->setUserLength(Spatium(0));
+                            stem->setUserLength(0_sp);
                         }
                     }
                 }
@@ -741,7 +748,7 @@ void CompatUtils::addMissingInitKeyForTransposingInstrument(MasterScore* score)
                     Key key = Key::C;
                     Key cKey = key;
                     if (!score->style().styleB(Sid::concertPitch)) {
-                        cKey = transposeKey(key, v);
+                        cKey = Transpose::transposeKey(key, v);
                     }
                     kse.setConcertKey(cKey);
                     kse.setKey(key);
@@ -857,7 +864,7 @@ void CompatUtils::convertTextLineToNoteAnchoredLine(MasterScore* masterScore)
                 continue;
             }
             for (track_idx_t track = 0; track <= masterScore->ntracks(); track++) {
-                EngravingItem* el = segment.elementAt(track);
+                EngravingItem* el = segment.element(track);
                 if (!el || !el->isChord()) {
                     continue;
                 }
@@ -958,4 +965,127 @@ void CompatUtils::setHarmonyRootTpcFromFunction(HarmonyInfo* info, const Harmony
 Sid CompatUtils::positionStyleFromAlign(Sid align)
 {
     return muse::value(ALIGN_VALS_TO_CONVERT, align, Sid::NOSTYLE);
+}
+
+void CompatUtils::setPositionStylesFromAlign(MStyle* style, std::vector<Sid> ignoreSids)
+{
+    // Make sure new position styles are initially the same as align values
+    for (const StyleDef::StyleValue& st : StyleDef::styleValues) {
+        if (muse::contains(ignoreSids, st.sid)) {
+            continue;
+        }
+        Sid positionSid = compat::CompatUtils::positionStyleFromAlign(st.sid);
+        if (positionSid == Sid::NOSTYLE) {
+            continue;
+        }
+        AlignH val = style->value(st.sid).value<Align>().horizontal;
+        style->set(positionSid, val);
+    }
+}
+
+void CompatUtils::setTextLineTextPositionFromAlign(TextLineBase* tl)
+{
+    tl->setBeginTextPosition(tl->beginTextAlign().horizontal);
+    if (tl->beginTextPosition() != tl->propertyDefault(Pid::BEGIN_TEXT_POSITION).value<AlignH>()) {
+        tl->setPropertyFlags(Pid::BEGIN_TEXT_POSITION, PropertyFlags::UNSTYLED);
+    }
+    tl->setContinueTextPosition(tl->continueTextAlign().horizontal);
+    if (tl->continueTextPosition() != tl->propertyDefault(Pid::CONTINUE_TEXT_POSITION).value<AlignH>()) {
+        tl->setPropertyFlags(Pid::CONTINUE_TEXT_POSITION, PropertyFlags::UNSTYLED);
+    }
+    tl->setEndTextPosition(tl->endTextAlign().horizontal);
+    if (tl->endTextPosition() != tl->propertyDefault(Pid::END_TEXT_POSITION).value<AlignH>()) {
+        tl->setPropertyFlags(Pid::END_TEXT_POSITION, PropertyFlags::UNSTYLED);
+    }
+}
+
+void CompatUtils::resetHookHeightSign(TextLineBase* tl)
+{
+    if (!tl->placeBelow()) {
+        return;
+    }
+
+    if (!tl->isStyled(Pid::BEGIN_HOOK_HEIGHT)) {
+        Spatium beginHookHeight = tl->getProperty(Pid::BEGIN_HOOK_HEIGHT).value<Spatium>();
+        tl->setProperty(Pid::BEGIN_HOOK_HEIGHT, -beginHookHeight);
+    }
+    if (!tl->isStyled(Pid::END_HOOK_HEIGHT)) {
+        Spatium endHookHeight = tl->getProperty(Pid::END_HOOK_HEIGHT).value<Spatium>();
+        tl->setProperty(Pid::END_HOOK_HEIGHT, -endHookHeight);
+    }
+}
+
+void compat::CompatUtils::setMusicSymbolSize470(MStyle* style)
+{
+    // Music symbols have their own point size in 4.7
+    // Initialize this to the text type's default font size
+    for (TextStyleType textStyleType : allTextStyles()) {
+        if (textStyleType == TextStyleType::REPEAT_LEFT || textStyleType == TextStyleType::REPEAT_RIGHT) {
+            continue;
+        }
+
+        const TextStyle* ts = textStyle(textStyleType);
+        Sid musicSymbolSizeSid = Sid::NOSTYLE;
+        Sid fontSizeSid = Sid::NOSTYLE;
+
+        for (size_t i = 0; i < TEXT_STYLE_SIZE; ++i) {
+            if (ts->at(i).pid == Pid::MUSIC_SYMBOL_SIZE) {
+                musicSymbolSizeSid = ts->at(i).sid;
+            }
+
+            if (ts->at(i).pid == Pid::FONT_SIZE) {
+                fontSizeSid = ts->at(i).sid;
+            }
+        }
+
+        if (musicSymbolSizeSid == Sid::NOSTYLE || fontSizeSid == Sid::NOSTYLE) {
+            continue;
+        }
+
+        double size = style->value(fontSizeSid).toDouble();
+        if (textStyleType == TextStyleType::TEMPO) {
+            size *= TempoText::DEFAULT_SYM_SIZE_RATIO;
+        }
+
+        style->set(musicSymbolSizeSid, size);
+    }
+}
+
+void mu::engraving::compat::CompatUtils::doMigrateNoteParens(EngravingItem* item)
+{
+    if (!item->isNote()) {
+        return;
+    }
+    Note* note = toNote(item);
+    if (!note->leftParen() && !note->rightParen()) {
+        return;
+    }
+
+    if (note->leftParen()) {
+        note->remove(note->leftParen());
+    }
+
+    if (note->rightParen()) {
+        note->remove(note->rightParen());
+    }
+
+    Chord* chord = note->chord();
+
+    EditChord::addChordParentheses(chord, { note });
+}
+
+static constexpr double PRE_470_DPI = 360;
+
+Spatium mu::engraving::compat::CompatUtils::convertPre470FrameRadius(double frameRadius)
+{
+    // The frame radius used to be expressed in raster units and divided by 2 at drawing. Since 4.7 it is expressed in spatium.
+    return Spatium(frameRadius * (DPI / PRE_470_DPI) / DefaultStyle::baseStyle().value(Sid::spatium).toDouble()) / 2;
+}
+
+void CompatUtils::convertPre470ImageSize(Image* image)
+{
+    if (image->size().isNull() && image->score()->mscVersion() < 470) {
+        image->init();
+        image->setSize(image->size() * (DPI / PRE_470_DPI));
+    }
 }

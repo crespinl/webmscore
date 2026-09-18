@@ -5,7 +5,7 @@
  * MuseScore
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore BVBA and others
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -21,8 +21,6 @@
  */
 #include "accessibilitymodule.h"
 
-#include <QQmlEngine>
-
 #include "modularity/ioc.h"
 
 #include "internal/accessibilitycontroller.h"
@@ -31,8 +29,6 @@
 
 #include "global/api/iapiregister.h"
 #include "api/accessibilityapi.h"
-
-#include "log.h"
 
 using namespace muse::accessibility;
 using namespace muse::modularity;
@@ -56,7 +52,7 @@ void AccessibilityModule::resolveImports()
 {
     auto accr = ioc()->resolve<IQAccessibleInterfaceRegister>(moduleName());
     if (accr) {
-#ifdef Q_OS_MAC
+#ifndef Q_OS_LINUX // https://github.com/musescore/MuseScore/pull/32258#issuecomment-3972545361
         accr->registerInterfaceGetter("QQuickWindow", AccessibilityController::accessibleInterface);
 #endif
         accr->registerInterfaceGetter("muse::accessibility::AccessibleObject", AccessibleObject::accessibleInterface);
@@ -69,24 +65,16 @@ void AccessibilityModule::registerApi()
 
     auto api = ioc()->resolve<IApiRegister>(moduleName());
     if (api) {
-        api->regApiCreator(moduleName(), "api.accessibility", new ApiCreator<api::AccessibilityApi>());
+        api->regApiCreator(moduleName(), "MuseInternal.Accessibility", new ApiCreator<api::AccessibilityApi>());
     }
 }
 
-void AccessibilityModule::onPreInit(const IApplication::RunMode& mode)
+void AccessibilityModule::onPreInit(const IApplication::RunMode&)
 {
-    if (mode != IApplication::RunMode::GuiApp) {
-        return;
-    }
-
     m_controller->setAccesibilityEnabled(true);
 }
 
-void AccessibilityModule::onInit(const IApplication::RunMode& mode)
+void AccessibilityModule::onInit(const IApplication::RunMode&)
 {
-    if (mode != IApplication::RunMode::GuiApp) {
-        return;
-    }
-
     m_configuration->init();
 }

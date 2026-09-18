@@ -5,7 +5,7 @@
  * MuseScore
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore BVBA and others
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -33,16 +33,16 @@
 
 namespace muse::extensions {
 class ExtensionsUiActions;
-class ExtensionsActionController : public Injectable, public actions::Actionable, public async::Asyncable
+class ExtensionsActionController : public Contextable, public actions::Actionable, public async::Asyncable
 {
-    Inject<IInteractive> interactive = { this };
-    Inject<muse::actions::IActionsDispatcher> dispatcher = { this };
-    Inject<extensions::IExtensionsProvider> provider = { this };
-    Inject<ui::IUiActionsRegister> uiActionsRegister = { this };
+    ContextInject<IInteractive> interactive = { this };
+    ContextInject<muse::actions::IActionsDispatcher> dispatcher = { this };
+    ContextInject<extensions::IExtensionsProvider> provider = { this };
+    ContextInject<ui::IUiActionsRegister> uiActionsRegister = { this };
 
 public:
     ExtensionsActionController(const modularity::ContextPtr& iocCtx)
-        : Injectable(iocCtx) {}
+        : Contextable(iocCtx) {}
 
     void init();
 

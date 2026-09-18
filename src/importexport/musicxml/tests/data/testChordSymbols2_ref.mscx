@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<museScore version="4.60">
+<museScore version="4.70">
   <Score>
     <eid>B_B</eid>
     <Division>480</Division>
@@ -21,6 +21,7 @@
       <staffLineWidth>0.09375</staffLineWidth>
       <ledgerLineWidth>0.15625</ledgerLineWidth>
       <romanNumeralFontFace>Edwin</romanNumeralFontFace>
+      <fretFrets>5</fretFrets>
       <smallNoteMag>0.75</smallNoteMag>
       <graceNoteMag>0.6</graceNoteMag>
       <concertPitch>1</concertPitch>
@@ -53,6 +54,7 @@
         </Staff>
       <trackName>[Unnamed (treble staff)]</trackName>
       <Instrument id="grand-piano">
+        <longName>[Unnamed (treble staff)]</longName>
         <trackName></trackName>
         <minPitchP>21</minPitchP>
         <maxPitchP>108</maxPitchP>
@@ -141,8 +143,15 @@
             <sigD>4</sigD>
             </TimeSig>
           <FretDiagram>
-            <frets>5</frets>
             <eid>K_K</eid>
+            <Harmony>
+              <harmonyInfo>
+                <name>add9</name>
+                <root>13</root>
+                <bass>17</bass>
+                </harmonyInfo>
+              <eid>L_L</eid>
+              </Harmony>
             <fretDiagram>
               <string no="0">
                 <marker>cross</marker>
@@ -163,33 +172,7 @@
                 <dot fret="3">normal</dot>
                 </string>
               </fretDiagram>
-            <string no="0">
-              <marker>88</marker>
-              </string>
-            <string no="1">
-              <marker>79</marker>
-              </string>
-            <string no="2">
-              <dot>3</dot>
-              </string>
-            <string no="3">
-              <dot>2</dot>
-              </string>
-            <string no="4">
-              <dot>1</dot>
-              </string>
-            <string no="5">
-              <dot>3</dot>
-              </string>
             </FretDiagram>
-          <Harmony>
-            <harmonyInfo>
-              <name>add9</name>
-              <root>13</root>
-              <bass>17</bass>
-              </harmonyInfo>
-            <eid>L_L</eid>
-            </Harmony>
           <Chord>
             <eid>M_M</eid>
             <durationType>whole</durationType>
@@ -205,8 +188,13 @@
         <eid>O_O</eid>
         <voice>
           <FretDiagram>
-            <frets>5</frets>
             <eid>P_P</eid>
+            <Harmony>
+              <harmonyInfo>
+                <root>12</root>
+                </harmonyInfo>
+              <eid>Q_Q</eid>
+              </Harmony>
             <fretDiagram>
               <string no="0">
                 <marker>cross</marker>
@@ -222,25 +210,7 @@
                 </string>
               <barre start="1" end="5">1</barre>
               </fretDiagram>
-            <string no="0">
-              <marker>88</marker>
-              </string>
-            <string no="2">
-              <dot>3</dot>
-              </string>
-            <string no="3">
-              <dot>3</dot>
-              </string>
-            <string no="4">
-              <dot>3</dot>
-              </string>
             </FretDiagram>
-          <Harmony>
-            <harmonyInfo>
-              <root>12</root>
-              </harmonyInfo>
-            <eid>Q_Q</eid>
-            </Harmony>
           <Chord>
             <eid>R_R</eid>
             <durationType>whole</durationType>

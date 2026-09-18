@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2025 MuseScore Limited
+ * Copyright (C) 2025 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -28,20 +28,20 @@
 #include "../infrastructure/mscwriter.h"
 
 namespace mu::engraving::write {
-struct WriteRange;
+class WriteContext;
 }
 
 namespace mu::engraving {
 class MasterScore;
 class Score;
-class MscSaver : public muse::Injectable
+class MscSaver : public muse::Contextable
 {
-    muse::Inject<muse::draw::IImageProvider> imageProvider = { this };
+    muse::GlobalInject<muse::draw::IImageProvider> imageProvider;
 public:
     MscSaver(const muse::modularity::ContextPtr& iocCtx)
-        : muse::Injectable(iocCtx) {}
+        : muse::Contextable(iocCtx) {}
 
-    bool writeMscz(MasterScore* score, MscWriter& mscWriter, bool createThumbnail, const write::WriteRange* range = nullptr);
+    bool writeMscz(MasterScore* score, MscWriter& mscWriter, bool createThumbnail, const write::WriteContext* ctx = nullptr);
 
     bool exportPart(Score* partScore, MscWriter& mscWriter);
 };

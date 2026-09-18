@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -25,7 +25,7 @@
 #include "soundflag.h"
 #include "segment.h"
 #include "score.h"
-#include "undo.h"
+#include "../editing/addremoveelement.h"
 
 using namespace mu::engraving;
 
@@ -82,25 +82,13 @@ PropertyValue StaffText::propertyDefault(Pid id) const
     }
 }
 
-void StaffText::scanElements(void* data, void (* func)(void*, EngravingItem*), bool all)
+void StaffText::scanElements(std::function<void(EngravingItem*)> func)
 {
-    for (EngravingObject* child: scanChildren()) {
-        child->scanElements(data, func, all);
-    }
-    if (all || visible() || score()->isShowInvisible()) {
-        func(data, this);
-    }
-}
-
-EngravingObjectList StaffText::scanChildren() const
-{
-    EngravingObjectList children;
-
     if (m_soundFlag) {
-        children.push_back(m_soundFlag);
+        m_soundFlag->scanElements(func);
     }
 
-    return children;
+    StaffTextBase::scanElements(func);
 }
 
 void StaffText::add(EngravingItem* e)

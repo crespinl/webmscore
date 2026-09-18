@@ -5,7 +5,7 @@
  * MuseScore
  * Music Composition & Notation
  *
- * Copyright (C) 2025 MuseScore BVBA and others
+ * Copyright (C) 2025 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -21,19 +21,19 @@
  */
 #pragma once
 
-#include <queue>
-#include <mutex>
-#include <thread>
-
 #include "../../irpcchannel.h"
+#include "global/concurrency/rpcqueue.h"
 
 namespace muse::audio::rpc {
 class GeneralRpcChannel : public IRpcChannel
 {
 public:
     GeneralRpcChannel() = default;
+    ~GeneralRpcChannel() override;
 
-    void initOnWorker();
+    void setupOnMain() override;
+    void setupOnEngine() override;
+
     void process() override;
 
     // IRpcChannel
@@ -50,13 +50,8 @@ public:
 
 private:
 
-    using MsgQueue = std::queue<Msg>;
-
     struct RpcData {
-        std::mutex mutex;
-
         // msgs
-        MsgQueue queue;
         Handler listenerAll;
         std::map<Method, Handler> onMethods;
         std::map<CallId, Handler> onResponses;
@@ -66,11 +61,17 @@ private:
         std::map<StreamId, StreamHandler> onStreams;
     };
 
-    bool isWorkerThread() const;
-    void receive(RpcData& from, RpcData& to) const;
+    void receive(RpcData& to, const Msg& m) const;
+    void receive(RpcData& to, const StreamMsg& m) const;
 
-    std::thread::id m_workerThreadID;
-    RpcData m_workerRpcData;
+    RpcData m_engineRpcData;
     RpcData m_mainRpcData;
+
+    // true when the engine runs on the main thread (web inline worker)
+    bool m_isSingleThread = false;
+
+    // port1 - main thread
+    // port2 - engine rpc thread;
+    RpcQueue<Msg> m_msgQueue;
 };
 }

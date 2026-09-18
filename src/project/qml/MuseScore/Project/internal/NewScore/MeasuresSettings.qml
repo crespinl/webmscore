@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -19,13 +19,16 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-import QtQuick 2.15
-import QtQuick.Controls 2.15
-import QtQuick.Layouts 1.15
 
-import Muse.Ui 1.0
-import Muse.UiComponents 1.0
-import MuseScore.Project 1.0
+pragma ComponentBehavior: Bound
+
+import QtQuick
+import QtQuick.Controls
+import QtQuick.Layouts
+
+import Muse.Ui
+import Muse.UiComponents
+import MuseScore.Project
 
 FlatButton {
     id: root
@@ -47,14 +50,14 @@ FlatButton {
         property string pickupMessage: {
             if (withPickupMeasure.checked) {
                 return qsTrc("project/newscore", "pickup:") + " " +
-                        model.pickupTimeSignature.numerator + "/" + model.pickupTimeSignature.denominator
+                        root.model.pickupTimeSignature.numerator + "/" + root.model.pickupTimeSignature.denominator
             }
 
             return qsTrc("project/newscore", "no pickup")
         }
 
         font: ui.theme.largeBodyFont
-        text: qsTrc("project/newscore", "%n measure(s),", "", model.measureCount) + "\n" + pickupMessage
+        text: qsTrc("project/newscore", "%Ln measure(s),", "", root.model.measureCount) + "\n" + pickupMessage
     }
 
     onClicked: {
@@ -187,6 +190,8 @@ FlatButton {
                 text: qsTrc("project/newscore", "Hint: You can also add & delete measures after you have created your score")
                 wrapMode: Text.WordWrap
                 maximumLineCount: 2
+
+                displayTruncatedTextOnHover: true
             }
         }
     }

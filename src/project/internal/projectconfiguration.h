@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -35,16 +35,18 @@
 #include "../iprojectconfiguration.h"
 
 namespace mu::project {
-class ProjectConfiguration : public IProjectConfiguration
+class ProjectConfiguration : public IProjectConfiguration, public muse::Contextable
 {
-    INJECT(muse::IGlobalConfiguration, globalConfiguration)
-    INJECT(notation::INotationConfiguration, notationConfiguration)
-    INJECT(muse::cloud::ICloudConfiguration, cloudConfiguration)
-    INJECT(muse::accessibility::IAccessibilityConfiguration, accessibilityConfiguration)
-    INJECT(muse::io::IFileSystem, fileSystem)
-    INJECT(muse::languages::ILanguagesService, languagesService)
+    muse::GlobalInject<muse::IGlobalConfiguration> globalConfiguration;
+    muse::GlobalInject<notation::INotationConfiguration> notationConfiguration;
+    muse::GlobalInject<muse::cloud::ICloudConfiguration> cloudConfiguration;
+    muse::GlobalInject<muse::io::IFileSystem> fileSystem;
+    muse::GlobalInject<muse::accessibility::IAccessibilityConfiguration> accessibilityConfiguration;
+    muse::GlobalInject<muse::languages::ILanguagesService> languagesService;
 
 public:
+    ProjectConfiguration(const muse::modularity::ContextPtr& iocCtx);
+
     void init();
 
     muse::io::path_t recentFilesJsonPath() const override;
@@ -69,6 +71,7 @@ public:
     void setUserProjectsPath(const muse::io::path_t& path) override;
     muse::async::Channel<muse::io::path_t> userProjectsPathChanged() const override;
     muse::io::path_t defaultUserProjectsPath() const override;
+    muse::io::path_t defaultOpenProjectsPath() const override;
 
     bool shouldAskSaveLocationType() const override;
     void setShouldAskSaveLocationType(bool shouldAsk) override;
@@ -134,6 +137,10 @@ public:
 
     QUrl supportForumUrl() const override;
 
+    QUrl dotComBugReportUrl() const override;
+
+    QUrl scoreUploadingGuidelinesUrl() const override;
+
     bool openDetailedProjectUploadedDialog() const override;
     void setOpenDetailedProjectUploadedDialog(bool show) override;
 
@@ -160,6 +167,15 @@ public:
 
     bool createBackupBeforeSaving() const override;
     void setCreateBackupBeforeSaving(bool create) override;
+
+    bool showConvertFileProcessingDialog() const override;
+    void setShowConvertFileProcessingDialog(bool show) override;
+
+    muse::io::path_t convertedScoresPath() const override;
+    muse::io::path_t pendingConvertsJsonPath() const override;
+
+    std::string uniqueFileNameAddition(const muse::io::path_t& filename, const muse::io::path_t& folderPath,
+                                       const std::string& suffix = std::string()) const override;
 
 private:
     muse::io::path_t appTemplatesPath() const;

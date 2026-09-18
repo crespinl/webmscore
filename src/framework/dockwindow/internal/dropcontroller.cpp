@@ -5,7 +5,7 @@
  * MuseScore
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore BVBA and others
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -23,11 +23,12 @@
 #include "dropcontroller.h"
 
 #include "../idockwindow.h"
-#include "../view/dockcentralview.h"
-#include "../view/dockingholderview.h"
-#include "../view/dockpageview.h"
-#include "../view/dockpanelview.h"
-#include "../view/docktoolbarview.h"
+
+#include "qml/Muse/Dock/dockcentralview.h"
+#include "qml/Muse/Dock/dockingholderview.h"
+#include "qml/Muse/Dock/dockpageview.h"
+#include "qml/Muse/Dock/dockpanelview.h"
+#include "qml/Muse/Dock/docktoolbarview.h"
 
 #include "globaltypes.h"
 
@@ -89,7 +90,7 @@ static bool isPointAllowedForDrop(const QPoint& point, const DropDestination& dr
 using namespace muse::dock;
 
 DropController::DropController(KDDockWidgets::DropArea* dropArea, const modularity::ContextPtr& iocCtx)
-    : KDDockWidgets::DropIndicatorOverlayInterface(dropArea), Injectable(iocCtx)
+    : KDDockWidgets::DropIndicatorOverlayInterface(dropArea), Contextable(iocCtx)
 {
     KDDockWidgets::DragController::instance()->setResolveDropAreaFunc([](const QPoint& globalPos) -> KDDockWidgets::DropArea* {
         for (auto mainWindow : KDDockWidgets::DockRegistry::self()->mainwindows()) {

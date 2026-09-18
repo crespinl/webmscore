@@ -5,7 +5,7 @@
  * MuseScore
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore BVBA and others
+ * Copyright (C) 2025 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -27,22 +27,27 @@ using namespace muse::vst;
 using namespace muse::audio;
 using namespace muse::audioplugins;
 
-VstFxProcessor::VstFxProcessor(IVstPluginInstancePtr&& instance, const AudioFxParams& params)
+VstFxProcessor::VstFxProcessor(IVstPluginInstancePtr instance, const AudioFxParams& params,
+                               const modularity::ContextPtr& iocCtx)
     : m_pluginPtr(instance),
-    m_vstAudioClient(std::make_unique<VstAudioClient>()),
+    m_vstAudioClient(std::make_unique<VstAudioClient>(iocCtx)),
     m_params(params)
 {
 }
 
-void VstFxProcessor::init()
+void VstFxProcessor::init(const audio::OutputSpec& spec)
 {
+    IF_ASSERT_FAILED(spec.isValid()) {
+        return;
+    }
+
+    m_outputSpec = spec;
+
     m_vstAudioClient->init(AudioPluginType::Fx, m_pluginPtr);
 
-    const samples_t blockSize = config()->samplesToPreallocate();
-
-    auto onPluginLoaded = [this, blockSize]() {
+    auto onPluginLoaded = [this]() {
         m_pluginPtr->updatePluginConfig(m_params.configuration);
-        m_vstAudioClient->setMaxSamplesPerBlock(blockSize);
+        m_vstAudioClient->setOutputSpec(m_outputSpec);
         m_inited = true;
     };
 
@@ -77,9 +82,13 @@ async::Channel<AudioFxParams> VstFxProcessor::paramsChanged() const
     return m_paramsChanges;
 }
 
-void VstFxProcessor::setSampleRate(unsigned int sampleRate)
+void VstFxProcessor::setOutputSpec(const audio::OutputSpec& spec)
 {
-    m_vstAudioClient->setSampleRate(sampleRate);
+    m_outputSpec = spec;
+
+    if (m_inited) {
+        m_vstAudioClient->setOutputSpec(spec);
+    }
 }
 
 bool VstFxProcessor::active() const
@@ -92,11 +101,21 @@ void VstFxProcessor::setActive(bool active)
     m_params.active = active;
 }
 
-void VstFxProcessor::process(float* buffer, unsigned int sampleCount, msecs_t playbackPosition)
+void VstFxProcessor::setPlaying(bool playing)
+{
+    m_vstAudioClient->setIsPlaying(playing);
+}
+
+bool VstFxProcessor::shouldProcessDuringSilence() const
+{
+    return m_params.active && muse::contains(m_params.categories, AudioFxCategory::FxGenerator);
+}
+
+void VstFxProcessor::process(float* buffer, samples_t sampleCount, samples_t playbackPositionSamples)
 {
     if (!buffer || !m_inited) {
         return;
     }
 
-    m_vstAudioClient->process(buffer, sampleCount, playbackPosition);
+    m_vstAudioClient->process(buffer, sampleCount, playbackPositionSamples);
 }

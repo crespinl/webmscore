@@ -1,22 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<museScore version="4.60">
+<museScore version="4.70">
   <Score>
     <eid>B_B</eid>
     <Division>480</Division>
     <Style>
-      <maskBarlinesForText>0</maskBarlinesForText>
       <lastSystemFillLimit>0</lastSystemFillLimit>
-      <scaleRythmicSpacingForSmallNotes>0</scaleRythmicSpacingForSmallNotes>
-      <verticallyAlignChordSymbols>0</verticallyAlignChordSymbols>
-      <pageNumberFontSize>9</pageNumberFontSize>
-      <pageNumberFontStyle>0</pageNumberFontStyle>
-      <changesBeforeBarlineRepeats>0</changesBeforeBarlineRepeats>
-      <changesBeforeBarlineOtherJumps>0</changesBeforeBarlineOtherJumps>
-      <showCourtesiesRepeats>0</showCourtesiesRepeats>
-      <showCourtesiesOtherJumps>0</showCourtesiesOtherJumps>
-      <showCourtesiesAfterCancellingRepeats>0</showCourtesiesAfterCancellingRepeats>
-      <showCourtesiesAfterCancellingOtherJumps>0</showCourtesiesAfterCancellingOtherJumps>
-      <repeatPlayCountShow>0</repeatPlayCountShow>
+      <defaultsVersion>301</defaultsVersion>
       <spatium>1.76389</spatium>
       </Style>
     <showInvisible>1</showInvisible>
@@ -87,6 +76,7 @@
     <Staff id="1">
       <VBox>
         <height>10</height>
+        <boxAutoSize>0</boxAutoSize>
         <sizeIsSpatiumDependent>1</sizeIsSpatiumDependent>
         <eid>D_D</eid>
         <Text>
@@ -544,7 +534,7 @@
             </Rest>
           <Beam>
             <eid>eB_eB</eid>
-            <l1>38</l1>
+            <l1>42</l1>
             <l2>44</l2>
             </Beam>
           <Chord>
@@ -566,24 +556,16 @@
       <initialPartId>1</initialPartId>
       <Division>480</Division>
       <Style>
-        <maskBarlinesForText>0</maskBarlinesForText>
         <lastSystemFillLimit>0</lastSystemFillLimit>
-        <scaleRythmicSpacingForSmallNotes>0</scaleRythmicSpacingForSmallNotes>
-        <verticallyAlignChordSymbols>0</verticallyAlignChordSymbols>
         <createMultiMeasureRests>1</createMultiMeasureRests>
-        <changesBeforeBarlineRepeats>0</changesBeforeBarlineRepeats>
-        <changesBeforeBarlineOtherJumps>0</changesBeforeBarlineOtherJumps>
-        <showCourtesiesRepeats>0</showCourtesiesRepeats>
-        <showCourtesiesOtherJumps>0</showCourtesiesOtherJumps>
-        <showCourtesiesAfterCancellingRepeats>0</showCourtesiesAfterCancellingRepeats>
-        <showCourtesiesAfterCancellingOtherJumps>0</showCourtesiesAfterCancellingOtherJumps>
-        <repeatPlayCountShow>0</repeatPlayCountShow>
+        <defaultsVersion>301</defaultsVersion>
         <spatium>1.76389</spatium>
         </Style>
       <showInvisible>1</showInvisible>
       <showUnprintable>1</showUnprintable>
       <showFrames>1</showFrames>
       <showMargins>0</showMargins>
+      <open>1</open>
       <metaTag name="partName">Piano</metaTag>
       <Part id="1">
         <Staff>
@@ -640,6 +622,7 @@
       <Staff id="1">
         <VBox>
           <height>10</height>
+          <boxAutoSize>0</boxAutoSize>
           <sizeIsSpatiumDependent>1</sizeIsSpatiumDependent>
           <eid>mB_mB</eid>
           <linkedTo>D_D</linkedTo>
@@ -1185,7 +1168,7 @@
               </Rest>
             <Beam>
               <eid>CD_CD</eid>
-              <l1>38</l1>
+              <l1>42</l1>
               <l2>44</l2>
               </Beam>
             <Chord>

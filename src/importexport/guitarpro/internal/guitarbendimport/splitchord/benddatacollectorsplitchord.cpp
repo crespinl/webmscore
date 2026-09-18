@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2025 MuseScore Limited
+ * Copyright (C) 2025 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -179,7 +179,7 @@ void BendDataCollectorSplitChord::fillBendsDurations(BendDataContextSplitChord& 
         for (const auto& [mainTick, chords] : trackInfo) {
             const auto& importedInfoForTick = importedInfoForTrack.at(mainTick);
             const Chord* lastChord = chords.back();
-            Fraction totalDuration = lastChord->tick() - mainTick + lastChord->actualTicks();
+            Fraction totalDuration = lastChord->endTick() - mainTick;
             if (Tuplet* tuplet = lastChord->tuplet()) {
                 totalDuration *= tuplet->ratio();
             }

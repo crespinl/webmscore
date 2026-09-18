@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2023 MuseScore Limited
+ * Copyright (C) 2023 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -68,6 +68,7 @@ class Staff;
 class Measure;
 class ChordRest;
 class Segment;
+struct PaddingTable;
 
 class UndoCommand;
 class EditData;
@@ -123,15 +124,14 @@ public:
     int styleI(Sid idx) const { return style().styleI(idx); }
 
     double spatium() const { return styleD(Sid::spatium); }
+    double defaultSpatium() const { return style().defaultSpatium(); }
     double point(const Spatium sp) const { return sp.val() * spatium(); }
-    double magS(double mag) const { return mag * (spatium() / SPATIUM20); }
+    double magS(double mag) const { return mag * (spatium() / defaultSpatium()); }
 
     double loWidth() const { return styleD(Sid::pageWidth) * DPI; }
     double loHeight() const { return styleD(Sid::pageHeight) * DPI; }
 
     bool firstSystemIndent() const { return styleB(Sid::enableIndentationOnFirstSystem); }
-
-    VerticalAlignRange verticalAlignRange() const { return style().value(Sid::autoplaceVerticalAlignRange).value<VerticalAlignRange>(); }
 
 private:
     const Score* score() const;
@@ -158,6 +158,7 @@ public:
     size_t nstaves() const;
     const std::vector<Staff*>& staves() const;
     const Staff* staff(staff_idx_t idx) const;
+    bool allStavesInvisible() const;
 
     size_t ntracks() const;
 
@@ -176,6 +177,8 @@ public:
     const ChordRest* findCR(Fraction tick, track_idx_t track) const;
 
     const SystemLocks* systemLocks() const;
+
+    const PaddingTable& paddingTable() const;
 
     // Mutable access
     std::vector<Page*>& pages();
@@ -242,6 +245,8 @@ public:
 
     bool rangeDone() const { return m_rangeDone; }
 
+    bool mustRecomputeHeadersFooters() const { return m_mustRecomputeHeadersFooters; }
+
     double totalBracketsWidth() const { return m_totalBracketsWidth; }
 
     // Mutable
@@ -279,6 +284,8 @@ public:
 
     void setRangeDone(bool val) { m_rangeDone = val; }
 
+    void setMustRecomputeHeadersFooters(bool val) { m_mustRecomputeHeadersFooters = val; }
+
     void setTotalBracketsWidth(double val) { m_totalBracketsWidth = val; }
 
 private:
@@ -309,6 +316,8 @@ private:
     std::set<Spanner*> m_processedSpanners;
 
     bool m_rangeDone = false;
+
+    bool m_mustRecomputeHeadersFooters = false; // we may need to re-compute headers/footers after laying out all pages if they contained a page count
 
     // cache
     double m_totalBracketsWidth = -1.0;
@@ -394,10 +403,6 @@ public:
     // State
     const LayoutState& state() const;
     LayoutState& mutState();
-
-    // Mark
-    void setLayout(const Fraction& tick1, const Fraction& tick2, staff_idx_t staff1, staff_idx_t staff2, const EngravingItem* e);
-    void addRefresh(const RectF& r);
 
     // Other
     const Selection& selection() const;

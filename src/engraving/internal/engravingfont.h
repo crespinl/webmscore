@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -48,10 +48,10 @@ class Painter;
 namespace mu::engraving {
 class Shape;
 
-class EngravingFont : public IEngravingFont, public muse::Injectable
+class EngravingFont : public IEngravingFont, public muse::Contextable
 {
-    muse::Inject<muse::draw::IFontProvider> fontProvider = { this };
-    muse::Inject<IEngravingFontsProvider> engravingFonts = { this };
+    muse::GlobalInject<muse::draw::IFontProvider> fontProvider;
+    muse::GlobalInject<IEngravingFontsProvider> engravingFonts;
 public:
     EngravingFont(const std::string& name, const std::string& family, const muse::io::path_t& filePath,
                   const muse::io::path_t& metadataPath, const muse::modularity::ContextPtr& iocCtx);

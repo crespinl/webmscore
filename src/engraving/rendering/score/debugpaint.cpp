@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -316,37 +316,6 @@ void DebugPaint::paintPageDebug(Painter& painter, const Page* page, const std::v
             }
         }
     }
-
-    painter.restore();
-}
-
-void DebugPaint::paintTreeElement(Painter& painter, const EngravingItem* item)
-{
-//    if (item->ldata()->isSkipDraw()) {
-//        return;
-//    }
-    item->itemDiscovered = false;
-    PointF itemPosition(item->pagePos());
-
-    painter.translate(itemPosition);
-    TDraw::drawItem(item, &painter);
-    painter.translate(-itemPosition);
-}
-
-static void paintRecursive(Painter& painter, const EngravingItem* item)
-{
-    DebugPaint::paintTreeElement(painter, item);
-
-    for (const EngravingItem* eItem : item->childrenItems()) {
-        paintRecursive(painter, eItem);
-    }
-}
-
-void DebugPaint::paintPageTree(Painter& painter, const Page* page)
-{
-    painter.save();
-
-    paintRecursive(painter, page);
 
     painter.restore();
 }

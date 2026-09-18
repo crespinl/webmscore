@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -39,7 +39,6 @@ public:
     LaissezVib* laissezVib() const { return (LaissezVib*)spanner(); }
 
     int gripsCount() const override { return 0; }
-    void editDrag(EditData&) override;
 
     struct LayoutData : public TieSegment::LayoutData {
         SymId symbol = SymId::noSym;
@@ -81,6 +80,6 @@ public:
     LaissezVibSegment* segmentAt(int n) { return toLaissezVibSegment(Spanner::segmentAt(n)); }
     const LaissezVibSegment* segmentAt(int n) const { return toLaissezVibSegment(Spanner::segmentAt(n)); }
 private:
-    Spatium m_minLength = Spatium(2.0);
+    Spatium m_minLength = 2.0_sp;
 };
 }

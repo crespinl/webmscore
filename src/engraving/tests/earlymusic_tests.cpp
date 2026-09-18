@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -24,15 +24,14 @@
 
 #include "engraving/style/style.h"
 
-#include "dom/chord.h"
-#include "dom/masterscore.h"
-#include "dom/measure.h"
-#include "dom/undo.h"
+#include "engraving/dom/chord.h"
+#include "engraving/dom/masterscore.h"
+#include "engraving/dom/measure.h"
+#include "engraving/editing/editstyle.h"
 
 #include "utils/scorerw.h"
 #include "utils/scorecomp.h"
 
-using namespace mu;
 using namespace mu::engraving;
 
 static const String EARLYMUSIC_DATA_DIR("earlymusic_data/");

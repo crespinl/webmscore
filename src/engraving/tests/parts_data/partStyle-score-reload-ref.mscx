@@ -1,27 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<museScore version="4.60">
+<museScore version="4.70">
   <Score>
     <eid>B_B</eid>
     <Division>480</Division>
     <Style>
       <frameSystemDistance>21</frameSystemDistance>
-      <maskBarlinesForText>0</maskBarlinesForText>
-      <scaleRythmicSpacingForSmallNotes>0</scaleRythmicSpacingForSmallNotes>
-      <verticallyAlignChordSymbols>0</verticallyAlignChordSymbols>
       <defaultFramePadding>0</defaultFramePadding>
       <defaultFrameWidth>0</defaultFrameWidth>
       <titleFontFace>Arial</titleFontFace>
       <titleFontSize>48</titleFontSize>
       <titleFontSpatiumDependent>1</titleFontSpatiumDependent>
-      <pageNumberFontSize>9</pageNumberFontSize>
-      <pageNumberFontStyle>0</pageNumberFontStyle>
-      <changesBeforeBarlineRepeats>0</changesBeforeBarlineRepeats>
-      <changesBeforeBarlineOtherJumps>0</changesBeforeBarlineOtherJumps>
-      <showCourtesiesRepeats>0</showCourtesiesRepeats>
-      <showCourtesiesOtherJumps>0</showCourtesiesOtherJumps>
-      <showCourtesiesAfterCancellingRepeats>0</showCourtesiesAfterCancellingRepeats>
-      <showCourtesiesAfterCancellingOtherJumps>0</showCourtesiesAfterCancellingOtherJumps>
-      <repeatPlayCountShow>0</repeatPlayCountShow>
+      <titleMusicalSymbolSize>48</titleMusicalSymbolSize>
+      <defaultsVersion>301</defaultsVersion>
       <spatium>1.364</spatium>
       </Style>
     <showInvisible>1</showInvisible>
@@ -114,6 +104,7 @@
     <Staff id="1">
       <VBox>
         <height>10</height>
+        <boxAutoSize>0</boxAutoSize>
         <sizeIsSpatiumDependent>1</sizeIsSpatiumDependent>
         <eid>E_E</eid>
         <Text>
@@ -125,16 +116,17 @@
       <Measure>
         <eid>G_G</eid>
         <voice>
-          <TimeSig>
-            <eid>H_H</eid>
-            <sigN>4</sigN>
-            <sigD>4</sigD>
-            </TimeSig>
           <Clef>
             <concertClefType>G</concertClefType>
             <transposingClefType>G</transposingClefType>
-            <eid>I_I</eid>
+            <isHeader>1</isHeader>
+            <eid>H_H</eid>
             </Clef>
+          <TimeSig>
+            <eid>I_I</eid>
+            <sigN>4</sigN>
+            <sigD>4</sigD>
+            </TimeSig>
           <Chord>
             <eid>J_J</eid>
             <durationType>whole</durationType>
@@ -248,16 +240,17 @@
     <Staff id="2">
       <Measure>
         <voice>
-          <TimeSig>
-            <eid>g_g</eid>
-            <sigN>4</sigN>
-            <sigD>4</sigD>
-            </TimeSig>
           <Clef>
             <concertClefType>G</concertClefType>
             <transposingClefType>G</transposingClefType>
-            <eid>h_h</eid>
+            <isHeader>1</isHeader>
+            <eid>g_g</eid>
             </Clef>
+          <TimeSig>
+            <eid>h_h</eid>
+            <sigN>4</sigN>
+            <sigD>4</sigD>
+            </TimeSig>
           <Rest>
             <eid>i_i</eid>
             <durationType>measure</durationType>
@@ -336,28 +329,21 @@
       <Division>480</Division>
       <Style>
         <frameSystemDistance>21</frameSystemDistance>
-        <maskBarlinesForText>0</maskBarlinesForText>
-        <scaleRythmicSpacingForSmallNotes>0</scaleRythmicSpacingForSmallNotes>
-        <verticallyAlignChordSymbols>0</verticallyAlignChordSymbols>
         <createMultiMeasureRests>1</createMultiMeasureRests>
         <defaultFramePadding>0</defaultFramePadding>
         <defaultFrameWidth>0</defaultFrameWidth>
         <titleFontFace>Arial</titleFontFace>
         <titleFontSize>48</titleFontSize>
         <titleFontSpatiumDependent>1</titleFontSpatiumDependent>
-        <changesBeforeBarlineRepeats>0</changesBeforeBarlineRepeats>
-        <changesBeforeBarlineOtherJumps>0</changesBeforeBarlineOtherJumps>
-        <showCourtesiesRepeats>0</showCourtesiesRepeats>
-        <showCourtesiesOtherJumps>0</showCourtesiesOtherJumps>
-        <showCourtesiesAfterCancellingRepeats>0</showCourtesiesAfterCancellingRepeats>
-        <showCourtesiesAfterCancellingOtherJumps>0</showCourtesiesAfterCancellingOtherJumps>
-        <repeatPlayCountShow>0</repeatPlayCountShow>
+        <titleMusicalSymbolSize>48</titleMusicalSymbolSize>
+        <defaultsVersion>301</defaultsVersion>
         <spatium>1.76389</spatium>
         </Style>
       <showInvisible>1</showInvisible>
       <showUnprintable>1</showUnprintable>
       <showFrames>1</showFrames>
       <showMargins>0</showMargins>
+      <open>1</open>
       <Part id="1">
         <Staff>
           <eid>r_r</eid>
@@ -398,6 +384,7 @@
       <Staff id="1">
         <VBox>
           <height>10</height>
+          <boxAutoSize>0</boxAutoSize>
           <sizeIsSpatiumDependent>1</sizeIsSpatiumDependent>
           <eid>s_s</eid>
           <Text>
@@ -409,17 +396,18 @@
         <Measure>
           <eid>u_u</eid>
           <voice>
-            <TimeSig>
-              <eid>v_v</eid>
-              <linkedTo>H_H</linkedTo>
-              <sigN>4</sigN>
-              <sigD>4</sigD>
-              </TimeSig>
             <Clef>
               <concertClefType>G</concertClefType>
               <transposingClefType>G</transposingClefType>
-              <eid>w_w</eid>
+              <isHeader>1</isHeader>
+              <eid>v_v</eid>
               </Clef>
+            <TimeSig>
+              <eid>w_w</eid>
+              <linkedTo>I_I</linkedTo>
+              <sigN>4</sigN>
+              <sigD>4</sigD>
+              </TimeSig>
             <Chord>
               <eid>x_x</eid>
               <linkedTo>J_J</linkedTo>
@@ -554,28 +542,21 @@
       <Division>480</Division>
       <Style>
         <frameSystemDistance>21</frameSystemDistance>
-        <maskBarlinesForText>0</maskBarlinesForText>
-        <scaleRythmicSpacingForSmallNotes>0</scaleRythmicSpacingForSmallNotes>
-        <verticallyAlignChordSymbols>0</verticallyAlignChordSymbols>
         <createMultiMeasureRests>1</createMultiMeasureRests>
         <defaultFramePadding>0</defaultFramePadding>
         <defaultFrameWidth>0</defaultFrameWidth>
         <titleFontFace>Arial</titleFontFace>
         <titleFontSize>48</titleFontSize>
         <titleFontSpatiumDependent>1</titleFontSpatiumDependent>
-        <changesBeforeBarlineRepeats>0</changesBeforeBarlineRepeats>
-        <changesBeforeBarlineOtherJumps>0</changesBeforeBarlineOtherJumps>
-        <showCourtesiesRepeats>0</showCourtesiesRepeats>
-        <showCourtesiesOtherJumps>0</showCourtesiesOtherJumps>
-        <showCourtesiesAfterCancellingRepeats>0</showCourtesiesAfterCancellingRepeats>
-        <showCourtesiesAfterCancellingOtherJumps>0</showCourtesiesAfterCancellingOtherJumps>
-        <repeatPlayCountShow>0</repeatPlayCountShow>
+        <titleMusicalSymbolSize>48</titleMusicalSymbolSize>
+        <defaultsVersion>301</defaultsVersion>
         <spatium>1.76389</spatium>
         </Style>
       <showInvisible>1</showInvisible>
       <showUnprintable>1</showUnprintable>
       <showFrames>1</showFrames>
       <showMargins>0</showMargins>
+      <open>1</open>
       <Part id="2">
         <Staff>
           <eid>JB_JB</eid>
@@ -617,6 +598,7 @@
       <Staff id="1">
         <VBox>
           <height>10</height>
+          <boxAutoSize>0</boxAutoSize>
           <sizeIsSpatiumDependent>1</sizeIsSpatiumDependent>
           <eid>KB_KB</eid>
           <Text>
@@ -628,17 +610,18 @@
         <Measure>
           <eid>MB_MB</eid>
           <voice>
-            <TimeSig>
-              <eid>NB_NB</eid>
-              <linkedTo>g_g</linkedTo>
-              <sigN>4</sigN>
-              <sigD>4</sigD>
-              </TimeSig>
             <Clef>
               <concertClefType>G</concertClefType>
               <transposingClefType>G</transposingClefType>
-              <eid>OB_OB</eid>
+              <isHeader>1</isHeader>
+              <eid>NB_NB</eid>
               </Clef>
+            <TimeSig>
+              <eid>OB_OB</eid>
+              <linkedTo>h_h</linkedTo>
+              <sigN>4</sigN>
+              <sigD>4</sigD>
+              </TimeSig>
             <Rest>
               <eid>PB_PB</eid>
               <linkedTo>i_i</linkedTo>

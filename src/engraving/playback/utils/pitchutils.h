@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -20,12 +20,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef MU_ENGRAVING_PITCHUTILS_H
-#define MU_ENGRAVING_PITCHUTILS_H
+#pragma once
 
 #include "mpe/mpetypes.h"
 
-#include "dom/pitchspelling.h"
+#include "engraving/dom/pitchspelling.h"
 
 namespace mu::engraving {
 inline muse::mpe::PitchClass pitchClassFromTpc(const int tpc)
@@ -117,7 +116,7 @@ inline muse::mpe::octave_t actualOctave(const int nominalOctave, const muse::mpe
     int shift = static_cast<int>(nominalPitchClass) - static_cast<int>(accidental);
 
     constexpr int lowerBound = 0;
-    constexpr int upperBound = static_cast<int>(muse::mpe::PitchClass::Last) - 1;
+    constexpr int upperBound = muse::mpe::STEPS_PER_OCTAVE - 1;
 
     if (shift < lowerBound) {
         return static_cast<muse::mpe::octave_t>(nominalOctave + 1);
@@ -142,5 +141,3 @@ inline muse::mpe::pitch_level_t notePitchLevel(const int noteTpc, const int note
     return result;
 }
 }
-
-#endif // MU_ENGRAVING_PITCHUTILS_H

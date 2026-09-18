@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -22,6 +22,7 @@
 
 #include "tuplet.h"
 
+#include "../editing/elementeditdata.h"
 #include "style/textstyle.h"
 
 #include "beam.h"
@@ -53,6 +54,7 @@ static const ElementStyle tupletStyle {
     { Sid::tupletFontSize,                     Pid::FONT_SIZE },
     { Sid::tupletFontStyle,                    Pid::FONT_STYLE },
     { Sid::tupletAlign,                        Pid::ALIGN },
+    { Sid::tupletPosition,                     Pid::POSITION },
     { Sid::tupletMinDistance,                  Pid::MIN_DISTANCE },
     { Sid::tupletFontSpatiumDependent,         Pid::SIZE_SPATIUM_DEPENDENT },
 };
@@ -155,6 +157,21 @@ void Tuplet::setColor(const Color& col)
     }
 }
 
+EngravingObject* Tuplet::propertyDelegate(Pid id) const
+{
+    switch (id) {
+    case Pid::FONT_FACE:
+    case Pid::FONT_STYLE:
+    case Pid::FONT_SIZE:
+    case Pid::ALIGN:
+    case Pid::POSITION:
+    case Pid::SIZE_SPATIUM_DEPENDENT:
+        return m_number;
+    default:
+        return nullptr;
+    }
+}
+
 //---------------------------------------------------------
 //   rtick
 //---------------------------------------------------------
@@ -177,7 +194,7 @@ void Tuplet::resetNumberProperty()
 
 void Tuplet::resetNumberProperty(Text* number)
 {
-    for (auto p : { Pid::FONT_FACE, Pid::FONT_STYLE, Pid::FONT_SIZE, Pid::ALIGN, Pid::SIZE_SPATIUM_DEPENDENT }) {
+    for (auto p : { Pid::FONT_FACE, Pid::FONT_STYLE, Pid::FONT_SIZE, Pid::ALIGN, Pid::POSITION, Pid::SIZE_SPATIUM_DEPENDENT }) {
         number->resetProperty(p);
     }
 }
@@ -266,17 +283,13 @@ bool Tuplet::calcHasBracket(const DurationElement* cr1, const DurationElement* c
 //   scanElements
 //---------------------------------------------------------
 
-void Tuplet::scanElements(void* data, void (* func)(void*, EngravingItem*), bool all)
+void Tuplet::scanElements(std::function<void(EngravingItem*)> func)
 {
-    for (EngravingObject* child : scanChildren()) {
-        if (child == m_number && !all) {
-            continue; // don't scan number unless all is true
-        }
-        child->scanElements(data, func, all);
+    if (m_number) {
+        m_number->scanElements(func);
     }
-    if (all || visible() || score()->isShowInvisible()) {
-        func(data, this);
-    }
+
+    func(this);
 }
 
 //---------------------------------------------------------
@@ -381,12 +394,12 @@ bool Tuplet::isEditable() const
 }
 
 //---------------------------------------------------------
-//   startEditDrag
+//   startDragGrip
 //---------------------------------------------------------
 
-void Tuplet::startEditDrag(EditData& ed)
+void Tuplet::startDragGrip(EditData& ed)
 {
-    DurationElement::startEditDrag(ed);
+    DurationElement::startDragGrip(ed);
     ElementEditDataPtr eed = ed.getData(this);
 
     eed->pushProperty(Pid::P1);
@@ -394,21 +407,24 @@ void Tuplet::startEditDrag(EditData& ed)
 }
 
 //---------------------------------------------------------
-//   editDrag
+//   dragGrip
 //---------------------------------------------------------
 
-void Tuplet::editDrag(EditData& ed)
+void Tuplet::dragGrip(EditData& ed)
 {
-    if (ed.curGrip == Grip::START || ed.curGrip == Grip::MIDDLE) {
+    if (ed.curGrip == Grip::START) {
         m_userP1 += ed.delta;
-    }
-    if (ed.curGrip == Grip::END || ed.curGrip == Grip::MIDDLE) {
+    } else if (ed.curGrip == Grip::END) {
         m_userP2 += ed.delta;
+    } else if (ed.curGrip == Grip::MIDDLE) {
+        m_userP1 += ed.delta;
+        m_userP2 += ed.delta;
+    } else {
+        UNREACHABLE;
+        return;
     }
 
     setGenerated(false);
-    //layout();
-    //score()->setUpdateAll();
     triggerLayout();
 }
 
@@ -559,6 +575,9 @@ Fraction Tuplet::elementsDuration()
 
 PropertyValue Tuplet::getProperty(Pid propertyId) const
 {
+    if (EngravingObject* delegate = propertyDelegate(propertyId)) {
+        return delegate->getProperty(propertyId);
+    }
     switch (propertyId) {
     case Pid::DIRECTION:
         return PropertyValue::fromValue<DirectionV>(m_direction);
@@ -576,12 +595,6 @@ PropertyValue Tuplet::getProperty(Pid propertyId) const
         return m_userP1;
     case Pid::P2:
         return m_userP2;
-    case Pid::FONT_SIZE:
-    case Pid::FONT_FACE:
-    case Pid::FONT_STYLE:
-    case Pid::ALIGN:
-    case Pid::SIZE_SPATIUM_DEPENDENT:
-        return m_number ? m_number->getProperty(propertyId) : PropertyValue();
     default:
         break;
     }
@@ -594,6 +607,9 @@ PropertyValue Tuplet::getProperty(Pid propertyId) const
 
 bool Tuplet::setProperty(Pid propertyId, const PropertyValue& v)
 {
+    if (EngravingObject* delegate = propertyDelegate(propertyId)) {
+        return delegate->setProperty(propertyId, v);
+    }
     switch (propertyId) {
     case Pid::DIRECTION:
         setDirection(v.value<DirectionV>());
@@ -618,15 +634,6 @@ bool Tuplet::setProperty(Pid propertyId, const PropertyValue& v)
         break;
     case Pid::P2:
         m_userP2 = v.value<PointF>();
-        break;
-    case Pid::FONT_SIZE:
-    case Pid::FONT_FACE:
-    case Pid::FONT_STYLE:
-    case Pid::ALIGN:
-    case Pid::SIZE_SPATIUM_DEPENDENT:
-        if (m_number) {
-            m_number->setProperty(propertyId, v);
-        }
         break;
     default:
         return DurationElement::setProperty(propertyId, v);
@@ -657,6 +664,8 @@ PropertyValue Tuplet::propertyDefault(Pid id) const
     case Pid::P1:
     case Pid::P2:
         return PointF();
+    case Pid::POSITION:
+        return style().styleV(Sid::tupletPosition);
     case Pid::ALIGN:
         return style().styleV(Sid::tupletAlign);
     case Pid::FONT_FACE:
@@ -720,7 +729,7 @@ void Tuplet::sanitizeTuplet()
     }
     testDuration = testDuration / ratio();
     testDuration.reduce();
-    if (elements().back()->tick() + elements().back()->actualTicks() - elements().front()->tick() > testDuration) {
+    if (elements().back()->endTick() - elements().front()->tick() > testDuration) {
         return;         // this tuplet has missing elements; do not sanitize
     }
     if (!(testDuration == baseLenDuration && baseLenDuration == ticks())) {
@@ -814,7 +823,7 @@ void Tuplet::addMissingElements()
         Segment* segment = measure()->findSegment(SegmentType::ChordRest, elements().front()->tick());
         ChordRest* prevChordRest = segment && segment->prev() ? segment->prev()->nextChordRest(track(), true) : nullptr;
         if (prevChordRest && prevChordRest->measure() == measure()) {
-            firstAvailableTick = prevChordRest->tick() + prevChordRest->actualTicks();
+            firstAvailableTick = prevChordRest->endTick();
         }
         if (firstAvailableTick != elements().front()->tick()) {
             Fraction f = missingElementsDuration / ratio();
@@ -831,7 +840,7 @@ void Tuplet::addMissingElements()
         }
     }
     // now fill a hole at the end of the tuplet
-    Fraction startTick = elements().back()->tick() + elements().back()->actualTicks();
+    Fraction startTick = elements().back()->endTick();
     Fraction endTick = elements().front()->tick() + ticks();
     // just to be safe, find the next ChordRest in the track, and adjust endTick if necessary
     Segment* segment = measure()->findSegment(SegmentType::ChordRest, elements().back()->tick());
@@ -864,7 +873,7 @@ int Tuplet::computeTupletDenominator(int numerator, Fraction totalDuration)
 EngravingItem* Tuplet::nextElement()
 {
     ChordRest* firstElement = toChordRest(elements().front());
-    if (firstElement->type() == ElementType::CHORD) {
+    if (firstElement->isChord()) {
         Chord* chord = toChord(firstElement);
         return chord->firstGraceOrNote();
     }

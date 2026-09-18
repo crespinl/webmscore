@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -27,15 +27,19 @@
 
 #include "modularity/ioc.h"
 #include "musesampler/imusesamplerinfo.h"
-#include "audio/iaudioconfiguration.h"
+#include "audio/main/iaudioconfiguration.h"
 
 namespace mu::playback {
-class PlaybackConfiguration : public IPlaybackConfiguration, public muse::async::Asyncable
+class PlaybackConfiguration : public IPlaybackConfiguration, public muse::async::Asyncable, public muse::Contextable
 {
-    INJECT(muse::musesampler::IMuseSamplerInfo, musesamplerInfo)
-    INJECT(muse::audio::IAudioConfiguration, audioConfiguration)
+    muse::GlobalInject<muse::audio::IAudioConfiguration> audioConfiguration;
+    muse::ContextInject<muse::musesampler::IMuseSamplerInfo> musesamplerInfo = { this };
 
 public:
+
+    PlaybackConfiguration(const muse::modularity::ContextPtr& iocCtx)
+        : muse::Contextable(iocCtx) {}
+
     void init();
 
     bool playNotesWhenEditing() const override;

@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -22,18 +22,19 @@
 
 #include "testing/environment.h"
 
-#include "engraving/engravingmodule.h"
-#include "engraving/dom/engravingitem.h"
 #include "draw/drawmodule.h"
+#include "engraving/engravingmodule.h"
 
-#include "dom/instrtemplate.h"
-#include "dom/mscore.h"
+#include "engraving/dom/instrtemplate.h"
+#include "engraving/dom/mscore.h"
 
 #include "mocks/engravingconfigurationmock.h"
 
 #include "utils/scorerw.h"
 
 #include "log.h"
+
+static const mu::engraving::IEngravingConfiguration::DebuggingOptions debugOpt {};
 
 static muse::testing::SuiteEnvironment engraving_se(
 {
@@ -56,6 +57,7 @@ static muse::testing::SuiteEnvironment engraving_se(
     std::shared_ptr<ECMock> configurator(new ECMock(), [](ECMock*) {}); // no delete
     ON_CALL(*configurator, isAccessibleEnabled()).WillByDefault(::testing::Return(false));
     ON_CALL(*configurator, defaultColor()).WillByDefault(::testing::Return(muse::draw::Color::BLACK));
+    ON_CALL(*configurator, debuggingOptions()).WillByDefault(::testing::ReturnRef(debugOpt));
     ON_CALL(*configurator, allowReadingImagesFromOutsideMscz()).WillByDefault(::testing::Return(true));
 
     muse::modularity::globalIoc()->unregister<mu::engraving::IEngravingConfiguration>("utests");

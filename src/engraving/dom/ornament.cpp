@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -32,6 +32,9 @@
 #include "shape.h"
 #include "staff.h"
 #include "utils.h"
+
+#include "editing/editchord.h"
+#include "editing/transpose.h"
 
 using namespace mu::engraving;
 
@@ -114,16 +117,16 @@ void Ornament::setTrack(track_idx_t val)
     m_track = val;
 }
 
-void Ornament::scanElements(void* data, void (* func)(void*, EngravingItem*), bool all)
+void Ornament::scanElements(std::function<void(EngravingItem*)> func)
 {
-    func(data, this);
+    func(this);
     for (Accidental* accidental : m_accidentalsAboveAndBelow) {
         if (accidental) {
-            func(data, accidental);
+            func(accidental);
         }
     }
     if (m_cueNoteChord) {
-        m_cueNoteChord->scanElements(data, func, all);
+        m_cueNoteChord->scanElements(func);
     }
 }
 
@@ -304,14 +307,14 @@ void Ornament::computeNotesAboveAndBelow(AccidentalState* accState)
                 AccidentalVal accidentalVal = accState->accidentalVal(pitchLine);
                 AccidentalVal noteAccidentalVal = tpc2alter(note->tpc());
                 int accidentalDiff = static_cast<int>(accidentalVal) - static_cast<int>(noteAccidentalVal);
-                score()->transpose(note, Interval(0, accidentalDiff), true);
+                note->transpose(Interval(0, accidentalDiff), true);
             }
         } else {
             Interval interval = Interval::fromOrnamentInterval(above ? _intervalAbove : _intervalBelow);
             if (!above) {
                 interval.flip();
             }
-            score()->transpose(note, interval, true);
+            note->transpose(interval, true);
         }
 
         AccidentalState copyOfAccState = *accState;
@@ -411,10 +414,12 @@ void Ornament::updateCueNote()
     if (!m_cueNoteChord) {
         m_cueNoteChord = Factory::createChord(parentChord->segment());
         m_cueNoteChord->setSmall(true);
-        cueNote->setParenthesesMode(ParenthesesMode::BOTH);
         cueNote->setHeadType(NoteHeadType::HEAD_QUARTER);
         m_cueNoteChord->add(cueNote);
         cueNote->setParent(m_cueNoteChord);
+
+        std::list<Note*> notes = { cueNote };
+        score()->cmdAddParenthesesToNotes(notes);
     }
     m_cueNoteChord->setTrack(track());
     m_cueNoteChord->setParent(parentChord->segment());
@@ -445,7 +450,7 @@ void Ornament::mapOldTrillAccidental(Note* note, const Note* mainNote)
     AccidentalVal oldCompatValue = Accidental::subtype2value(m_trillOldCompatAccidental->accidentalType());
     AccidentalVal noteAccidentalVal = tpc2alter(note->tpc());
     int accidentalDiff = static_cast<int>(oldCompatValue) - static_cast<int>(noteAccidentalVal);
-    score()->transpose(note, Interval(0, accidentalDiff), true);
+    note->transpose(Interval(0, accidentalDiff), true);
     int semitones = note->pitch() - mainNote->pitch();
     switch (semitones) {
     case 0:

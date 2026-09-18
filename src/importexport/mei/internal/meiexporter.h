@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -39,6 +39,7 @@ namespace mu::engraving {
 class Articulation;
 class Beam;
 class Chord;
+class ChordLine;
 class ChordRest;
 class Clef;
 class EngravingItem;
@@ -51,6 +52,7 @@ class Rest;
 class Score;
 class Staff;
 class TremoloSingleChord;
+class TremoloTwoChord;
 class Trill;
 class Tuplet;
 class VBox;
@@ -76,7 +78,7 @@ enum layerElementCounter {
 class MeiExporter
 {
 public:
-    INJECT_STATIC(mu::iex::mei::IMeiConfiguration, configuration)
+    muse::GlobalInject<mu::iex::mei::IMeiConfiguration> configuration;
 
 public:
     MeiExporter(engraving::Score* s) { m_score = s; }
@@ -106,10 +108,12 @@ private:
      */
     bool writeArtics(const engraving::Chord* chord);
     bool writeArtic(const engraving::Articulation* articulation);
+    bool writeArtic(const engraving::ChordLine* chordline);
     bool writeBeamAndTuplet(const engraving::ChordRest* chordRest, bool& closingBeam, bool& closingTuplet, bool& closingBeamInTuplet);
     bool writeBeamAndTupletEnd(bool closingBeam, bool closingTuplet, bool closingBeamInTuplet);
     bool writeBeam(const engraving::Beam* beam, const engraving::ChordRest* chordRest, bool& closing);
     bool writeBTrem(const engraving::TremoloSingleChord* tremolo);
+    bool writeFTrem(const engraving::TremoloTwoChord* tremolo);
     bool writeClef(const engraving::Clef* clef);
     bool writeChord(const engraving::Chord* chord, const engraving::Staff* staff);
     bool writeGraceGrp(const engraving::Chord* chord, const engraving::Staff* staff, bool isAfter = false);
@@ -160,7 +164,7 @@ private:
      * Helper methods
      */
     bool isCurrentNode(const libmei::Element& element);
-    std::list<const engraving::Volta*> findVoltasInMeasure(const engraving::Measure* measure);
+    std::vector<const engraving::Volta*> findVoltasInMeasure(const engraving::Measure* measure);
     void fillControlEventMap(const std::string& xmlId, const engraving::ChordRest* chordRest);
     std::string findStartIdFor(const engraving::EngravingItem* item);
     void addToRepeatMarkList(const engraving::EngravingItem* repeatMark, pugi::xml_node node, const std::string& xmlId);
@@ -215,7 +219,7 @@ private:
     bool m_hasSections;
 
     /** A list of items (first) for which we know the @startid (second)  */
-    std::list<std::pair<const engraving::EngravingItem*, std::string> > m_startingControlEventList;
+    std::vector<std::pair<const engraving::EngravingItem*, std::string> > m_startingControlEventList;
     /** A map of items with the @endid they will need to have added */
     std::map<const engraving::EngravingItem*, std::string> m_endingControlEventMap;
     /** A map of items with the @plist value they will need to have added */
@@ -223,11 +227,11 @@ private:
     /** A map of chord that are a plist of the arpeggio */
     std::map<const engraving::Chord*, const engraving::Arpeggio*> m_arpegPlistMap;
     /** A map of elements (e.g., Fermata) to which a tstamp will need to be added  */
-    std::list<std::pair<const engraving::EngravingItem*, std::pair<libmei::xsdPositiveInteger_List, double> > > m_tstampControlEventMap;
+    std::vector<std::pair<const engraving::EngravingItem*, std::pair<libmei::xsdPositiveInteger_List, double> > > m_tstampControlEventMap;
     /** A map of items with the corresponding node (to which the endid from m_endingControlEventMap or plist from m_plistMap will be added) */
     std::map<const engraving::EngravingItem*, pugi::xml_node> m_openControlEventMap;
 
-    std::list<MeiExporter::RepeatMark> m_repeatMarks;
+    std::vector<MeiExporter::RepeatMark> m_repeatMarks;
 
     /** Counters for generating xml:ids */
     int m_xmlIDCounter;

@@ -5,7 +5,7 @@
  * MuseScore
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore BVBA and others
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -49,15 +49,10 @@ void LanguagesModule::registerExports()
     ioc()->registerExport<ILanguagesService>(moduleName(), m_languagesService);
 }
 
-void LanguagesModule::onPreInit(const IApplication::RunMode& mode)
+void LanguagesModule::onPreInit(const IApplication::RunMode&)
 {
     //! NOTE: configurator must be initialized before any service that uses it
     m_languagesConfiguration->init();
-
-    if (mode != IApplication::RunMode::GuiApp) {
-        return;
-    }
-
     m_languagesService->init();
 
 #ifdef MUSE_MODULE_DIAGNOSTICS

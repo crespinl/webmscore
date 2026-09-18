@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -42,18 +42,18 @@ namespace mu::engraving {
 class Score;
 class Selection;
 
-class NotationBraille : public mu::braille::INotationBraille, public muse::Injectable, public muse::async::Asyncable
+class NotationBraille : public mu::braille::INotationBraille, public muse::Contextable, public muse::async::Asyncable
 {
-    muse::Inject<muse::accessibility::IAccessibilityController> accessibilityController = { this };
-    muse::Inject<muse::IGlobalConfiguration> globalConfiguration = { this };
-    muse::Inject<context::IGlobalContext> globalContext = { this };
-    muse::Inject<braille::IBrailleConfiguration> brailleConfiguration = { this };
-    muse::Inject<playback::IPlaybackController> playbackController = { this };
-    muse::Inject<muse::actions::IActionsDispatcher> dispatcher = { this };
+    muse::GlobalInject<braille::IBrailleConfiguration> brailleConfiguration;
+    muse::GlobalInject<muse::IGlobalConfiguration> globalConfiguration;
+    muse::ContextInject<muse::accessibility::IAccessibilityController> accessibilityController = { this };
+    muse::ContextInject<context::IGlobalContext> globalContext = { this };
+    muse::ContextInject<playback::IPlaybackController> playbackController = { this };
+    muse::ContextInject<muse::actions::IActionsDispatcher> dispatcher = { this };
 
 public:
     NotationBraille(const muse::modularity::ContextPtr& iocCtx)
-        : muse::Injectable(iocCtx) {}
+        : muse::Contextable(iocCtx) {}
 
     void init();
     void doBraille(bool force = false);

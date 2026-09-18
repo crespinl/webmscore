@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -21,6 +21,8 @@
  */
 
 #include "hammeronpulloff.h"
+
+#include "mscore.h"
 #include "note.h"
 #include "score.h"
 #include "stafftype.h"
@@ -48,33 +50,22 @@ HammerOnPullOffSegment::HammerOnPullOffSegment(const HammerOnPullOffSegment& oth
 {
 }
 
-Color HammerOnPullOffSegment::curColor() const
+Color HammerOnPullOffSegment::curColor(const rendering::PaintOptions& opt) const
 {
-    if (score()->printing() || !MScore::warnGuitarBends || isValid()) {
-        return SlurSegment::curColor();
+    if (!opt.isPrinting && MScore::warnGuitarBends && !isValid()) {
+        return selected() ? configuration()->criticalSelectedColor() : configuration()->criticalColor();
     }
 
-    auto engravingConf = configuration();
-    return selected() ? engravingConf->criticalSelectedColor() : engravingConf->criticalColor();
+    return SlurSegment::curColor(opt);
 }
 
-void HammerOnPullOffSegment::scanElements(void* data, void (*func)(void*, EngravingItem*), bool all)
+void HammerOnPullOffSegment::scanElements(std::function<void(EngravingItem*)> func)
 {
-    for (EngravingObject* child : scanChildren()) {
-        child->scanElements(data, func, all);
-    }
-
-    func(data, this);
-}
-
-EngravingObjectList HammerOnPullOffSegment::scanChildren() const
-{
-    EngravingObjectList children;
     for (HammerOnPullOffText* hopo : m_hopoText) {
-        children.push_back(hopo);
+        hopo->scanElements(func);
     }
 
-    return children;
+    EngravingItem::scanElements(func);
 }
 
 void HammerOnPullOffSegment::setTrack(track_idx_t idx)
@@ -278,7 +269,7 @@ static ElementStyle hopoStyle;
 
 HammerOnPullOffText::HammerOnPullOffText(HammerOnPullOffSegment* parent)
     : TextBase(ElementType::HAMMER_ON_PULL_OFF_TEXT, parent, TextStyleType::HAMMER_ON_PULL_OFF,
-               ElementFlag::MOVABLE | ElementFlag::GENERATED)
+               ElementFlag::MOVABLE | ElementFlag::GENERATED | ElementFlag::ON_STAFF)
 {
     resetProperty(Pid::PLACEMENT);
     initElementStyle(&hopoStyle);
@@ -318,13 +309,13 @@ bool HammerOnPullOffText::isUserModified() const
     return TextBase::isUserModified();
 }
 
-Color HammerOnPullOffText::curColor() const
+Color HammerOnPullOffText::curColor(const rendering::PaintOptions& opt) const
 {
-    if (!isValid() && MScore::warnGuitarBends && !score()->printing()) {
+    if (!isValid() && MScore::warnGuitarBends && !opt.isPrinting) {
         return selected() ? configuration()->criticalSelectedColor() : configuration()->criticalColor();
     }
 
-    return TextBase::curColor();
+    return TextBase::curColor(opt);
 }
 
 PropertyValue HammerOnPullOffText::propertyDefault(Pid id) const

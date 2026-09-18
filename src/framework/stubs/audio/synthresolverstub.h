@@ -5,7 +5,7 @@
  * MuseScore
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore BVBA and others
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -22,24 +22,27 @@
 #ifndef MU_AUDIO_SYNTHRESOLVERSTUB_H
 #define MU_AUDIO_SYNTHRESOLVERSTUB_H
 
-#include "audio/worker/isynthresolver.h"
+#include "audio/engine/isynthresolver.h"
 
 namespace muse::audio::synth {
 class SynthResolverStub : public ISynthResolver
 {
 public:
-    void init(const AudioInputParams& defaultInputParams) override;
+    void init(const AudioInputParams& defaultInputParams, const audio::OutputSpec& defaultOutputSpec) override;
 
-    ISynthesizerPtr resolveSynth(const TrackId trackId, const AudioInputParams& params, const PlaybackSetupData& setupData) const override;
+    ISynthesizerPtr resolveSynth(const TrackId trackId, const AudioInputParams& params, const audio::OutputSpec& outputSpec,
+                                 const PlaybackSetupData& setupData) const override;
     ISynthesizerPtr resolveDefaultSynth(const TrackId trackId) const override;
     AudioInputParams resolveDefaultInputParams() const override;
     audio::AudioResourceMetaList resolveAvailableResources() const override;
     SoundPresetList resolveAvailableSoundPresets(const AudioResourceMeta& resourceMeta) const override;
     void registerResolver(const AudioSourceType type, IResolverPtr resolver) override;
+    void unregisterResolver(const AudioSourceType type) override;
     void clearSources() override;
 
 private:
     AudioInputParams m_defaultInputParams;
+    OutputSpec m_defaultOutputSpec;
 };
 }
 

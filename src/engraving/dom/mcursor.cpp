@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -65,7 +65,7 @@ void MCursor::createMeasures()
         Fraction tick = Fraction(0, 1);
         measure = m_score->lastMeasure();
         if (measure) {
-            tick = measure->tick() + measure->ticks();
+            tick = measure->endTick();
             if (tick > m_tick) {
                 break;
             }

@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -24,8 +24,8 @@
 
 #include "io/file.h"
 
+#include "../editing/undo.h"
 #include "rw/xmlreader.h"
-
 #include "style/textstyle.h"
 
 #include "chord.h"
@@ -36,7 +36,6 @@
 #include "rest.h"
 #include "score.h"
 #include "segment.h"
-#include "undo.h"
 
 #include "log.h"
 
@@ -541,7 +540,7 @@ PropertyValue FiguredBassItem::propertyDefault(Pid id) const
     case Pid::FBDIGIT:
         return FBIDigitNone;
     case Pid::FBCONTINUATIONLINE:
-        return false;
+        return static_cast<int>(ContLine::NONE);
     default:
         return EngravingItem::propertyDefault(id);
     }
@@ -818,7 +817,7 @@ FiguredBass* FiguredBass::nextFiguredBass() const
 
     // scan segment annotations for an existing FB element in the this' staff
     for (EngravingItem* e : nextSegm->annotations()) {
-        if (e->type() == ElementType::FIGURED_BASS && e->track() == track()) {
+        if (e->isFiguredBass() && e->track() == track()) {
             return toFiguredBass(e);
         }
     }
@@ -963,7 +962,7 @@ FiguredBass* FiguredBass::addFiguredBassToSegment(Segment* seg, track_idx_t trac
     // scan segment annotations for an existing FB element in the same staff
     FiguredBass* fb = 0;
     for (EngravingItem* e : seg->annotations()) {
-        if (e->type() == ElementType::FIGURED_BASS && (e->track() / VOICES) == staff) {
+        if (e->isFiguredBass() && (e->track() / VOICES) == staff) {
             // an FB already exists in segment: re-use it
             fb = toFiguredBass(e);
             *pNew = false;
@@ -987,14 +986,14 @@ FiguredBass* FiguredBass::addFiguredBassToSegment(Segment* seg, track_idx_t trac
         }
         if (endTick == Fraction::max()) {               // no next segment: set up to score end
             Measure* meas = seg->score()->lastMeasure();
-            endTick = meas->tick() + meas->ticks();
+            endTick = meas->endTick();
         }
         fb->setTicks(endTick - seg->tick());
 
         // set onNote status
         fb->setOnNote(false);                   // assume not onNote
         for (track_idx_t i = track; i < track + VOICES; i++) {           // if segment has chord in staff, set onNote
-            if (seg->element(i) && seg->element(i)->type() == ElementType::CHORD) {
+            if (seg->element(i) && seg->element(i)->isChord()) {
                 fb->setOnNote(true);
                 break;
             }
@@ -1010,7 +1009,7 @@ FiguredBass* FiguredBass::addFiguredBassToSegment(Segment* seg, track_idx_t trac
         for (prevSegm = seg->prev1(Segment::CHORD_REST_OR_TIME_TICK_TYPE); prevSegm;
              prevSegm = prevSegm->prev1(Segment::CHORD_REST_OR_TIME_TICK_TYPE)) {
             for (EngravingItem* e : prevSegm->annotations()) {
-                if (e->type() == ElementType::FIGURED_BASS && (e->track()) == track) {
+                if (e->isFiguredBass() && (e->track()) == track) {
                     prevFB = toFiguredBass(e);             // previous FB found
                     break;
                 }
@@ -1169,9 +1168,9 @@ bool FiguredBass::readConfigFile(const String& fileName)
 //    the index of a name in the list can be used to retrieve the font data with fontData()
 //---------------------------------------------------------
 
-std::list<String> FiguredBass::fontNames()
+std::vector<String> FiguredBass::fontNames()
 {
-    std::list<String> names;
+    std::vector<String> names;
     for (const FiguredBassFont& f : g_FBFonts) {
         names.push_back(f.displayName);
     }

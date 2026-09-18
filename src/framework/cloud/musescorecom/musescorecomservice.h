@@ -5,7 +5,7 @@
  * MuseScore
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore BVBA and others
+ * Copyright (C) 2025 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -19,10 +19,11 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-#ifndef MUSE_CLOUD_MUSESCORECOMSERVICE_H
-#define MUSE_CLOUD_MUSESCORECOMSERVICE_H
+
+#pragma once
 
 #include <memory>
+#include <optional>
 
 #include "modularity/ioc.h"
 #include "icloudconfiguration.h"
@@ -34,51 +35,69 @@
 #include "musescorecom/imusescorecomservice.h"
 
 namespace muse::cloud {
-class MuseScoreComService : public IMuseScoreComService, public AbstractCloudService,
+class MuseScoreComService : public IMuseScoreComService, public IMuseScoreComConvertService, public AbstractCloudService,
     public std::enable_shared_from_this<MuseScoreComService>
 {
-    Inject<ICloudConfiguration> configuration = { this };
-    Inject<network::INetworkManagerCreator> networkManagerCreator = { this };
-    Inject<IApplication> application = { this };
+    GlobalInject<ICloudConfiguration> configuration;
+    GlobalInject<network::INetworkManagerCreator> networkManagerCreator;
+    ContextInject<IApplication> application = { this };
 
 public:
     explicit MuseScoreComService(const modularity::ContextPtr& iocCtx, QObject* parent = nullptr);
 
     IAuthorizationServicePtr authorization() override;
 
+    IMuseScoreComConvertServicePtr convert() override;
+
     CloudInfo cloudInfo() const override;
 
     QUrl scoreManagerUrl() const override;
 
-    ProgressPtr uploadScore(QIODevice& scoreData, const QString& title, Visibility visibility = Visibility::Private,
+    ProgressPtr uploadScore(DevicePtr scoreData, const QString& title, Visibility visibility = Visibility::Private,
                             const QUrl& sourceUrl = QUrl(), int revisionId = 0) override;
-    ProgressPtr uploadAudio(QIODevice& audioData, const QString& audioFormat, const QUrl& sourceUrl) override;
+    ProgressPtr uploadAudio(DevicePtr audioData, const QString& audioFormat, const QUrl& sourceUrl) override;
 
     RetVal<ScoreInfo> downloadScoreInfo(const QUrl& sourceUrl) override;
     RetVal<ScoreInfo> downloadScoreInfo(int scoreId) override;
 
     async::Promise<ScoresList> downloadScoresList(int scoresPerBatch, int batchNumber) override;
 
-    ProgressPtr downloadScore(int scoreId, QIODevice& scoreData, const QString& hash = QString(),
+    ProgressPtr downloadScore(int scoreId, DevicePtr scoreData, const QString& hash = QString(),
                               const QString& secret = QString()) override;
+
+    // IMuseScoreComConvertService
+    async::Promise<RetVal<ConvertConfig> > fetchConfig() override;
+
+    ProgressPtr upload(const ConvertInput& input) override;
+    ProgressPtr downloadConvertedScore(const SignedMsczUrl& urlInfo, DevicePtr scoreData) override;
+
+    async::Promise<RetVal<ConvertQueueList> > fetchQueue() override;
+    async::Promise<RetVal<SignedMsczUrl> > fetchMsczUrl(ConvertType type, int id) override;
+
+    async::Promise<RetVal<ConvertResult> > submitReview(int id, ReviewRating review, const QString& reason = QString()) override;
 
 private:
     ServerConfig serverConfig() const override;
 
-    Ret downloadAccountInfo() override;
-
-    bool doUpdateTokens() override;
+    async::Promise<Ret> downloadAccountInfo() override;
+    async::Promise<Ret> updateTokens() override;
 
     network::RequestHeaders headers() const;
+    network::RequestHeaders convertHeaders() const;
 
-    Ret doDownloadScore(network::INetworkManagerPtr downloadManager, int scoreId, QIODevice& scoreData,
-                        const QString& hash = QString(), const QString& secret = QString());
+    void doDownloadScoreInfo(int scoreId, std::function<void(const RetVal<ScoreInfo>& res)> finished);
 
-    RetVal<ValMap> doUploadScore(network::INetworkManagerPtr uploadManager, QIODevice& scoreData, const QString& title,
-                                 Visibility visibility, const QUrl& sourceUrl = QUrl(), int revisionId = 0);
+    async::Promise<Ret> doDownloadScore(int scoreId, DevicePtr scoreData, const QString& hash, const QString& secret, ProgressPtr progress);
 
-    Ret doUploadAudio(network::INetworkManagerPtr uploadManager, QIODevice& audioData, const QString& audioFormat, const QUrl& sourceUrl);
+    async::Promise<RetVal<bool> > checkScoreAlreadyUploaded(const ID& scoreId);
+
+    async::Promise<Ret> doUploadScore(DevicePtr scoreData, const QString& title, Visibility visibility, const QUrl& sourceUrl,
+                                      int revisionId, ProgressPtr progress);
+
+    async::Promise<Ret> doUploadAudio(DevicePtr audioData, const QString& audioFormat, const QUrl& sourceUrl, ProgressPtr progress);
+
+    async::Promise<Ret> doUpload(const ConvertInput& input, ProgressPtr progress);
+
+    std::optional<ConvertConfig> m_cachedConfig;
 };
 }
-
-#endif // MUSE_CLOUD_MUSESCORECOMSERVICE_H

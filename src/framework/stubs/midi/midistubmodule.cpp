@@ -5,7 +5,7 @@
  * MuseScore
  * Music Composition & Notation
  *
- * Copyright (C) 2023 MuseScore BVBA and others
+ * Copyright (C) 2023 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -21,9 +21,12 @@
  */
 #include "midistubmodule.h"
 
+#include "midi/imidioutport.h"
 #include "modularity/ioc.h"
 
 #include "midiconfigurationstub.h"
+#include "midioutportstub.h"
+#include "midiinportstub.h"
 
 using namespace muse::midi;
 using namespace muse::modularity;
@@ -36,4 +39,6 @@ std::string MidiModule::moduleName() const
 void MidiModule::registerExports()
 {
     ioc()->registerExport<IMidiConfiguration>(moduleName(), new MidiConfigurationStub());
+    ioc()->registerExport<IMidiOutPort>(moduleName(), new MidiOutPortStub());
+    ioc()->registerExport<IMidiInPort>(moduleName(), new MidiInPortStub());
 }

@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -85,6 +85,11 @@ void MscReader::close()
 bool MscReader::isOpened() const
 {
     return m_reader ? m_reader->isOpened() : false;
+}
+
+bool MscReader::isContainer() const
+{
+    return m_reader ? m_reader->isContainer() : false;
 }
 
 MscReader::IReader* MscReader::reader() const
@@ -241,6 +246,15 @@ ByteArray MscReader::readAudioSettingsJsonFile(const muse::io::path_t& pathPrefi
 ByteArray MscReader::readViewSettingsJsonFile(const muse::io::path_t& pathPrefix) const
 {
     return fileData(pathPrefix.toString() + u"viewsettings.json");
+}
+
+muse::ByteArray MscReader::readAutomationJsonFile() const
+{
+    if (!fileExists(u"automation.json")) {
+        return ByteArray();
+    }
+
+    return fileData(u"automation.json");
 }
 
 // =======================================================================

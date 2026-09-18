@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -29,6 +29,7 @@
 #include <QFileOpenEvent>
 #include <QWindow>
 #include <QMimeData>
+#include <QTimer>
 
 #include "async/async.h"
 #include "audio/common/soundfonttypes.h"
@@ -51,7 +52,10 @@ void ApplicationActionController::init()
     dispatcher()->reg(this, "quit", [this](const ActionData& args) {
         bool isAllInstances = args.count() > 0 ? args.arg<bool>(0) : true;
         muse::io::path_t installatorPath = args.count() > 1 ? args.arg<muse::io::path_t>(1) : "";
-        quit(isAllInstances, installatorPath);
+
+        QTimer::singleShot(0, [this, isAllInstances, installatorPath]() {
+            quit(isAllInstances, installatorPath);
+        });
     });
 
     dispatcher()->reg(this, "restart", [this]() {
@@ -73,11 +77,20 @@ void ApplicationActionController::init()
     dispatcher()->reg(this, "manage-plugins", [this]() {
         interactive()->open("musescore://home?section=plugins");
     });
+
+    // Global actions
+    dispatcher()->reg(this, "action://copy", this, &ApplicationActionController::doGlobalCopy);
+    dispatcher()->reg(this, "action://cut", this, &ApplicationActionController::doGlobalCut);
+    dispatcher()->reg(this, "action://paste", this, &ApplicationActionController::doGlobalPaste);
+    dispatcher()->reg(this, "action://undo", this, &ApplicationActionController::doGlobalUndo);
+    dispatcher()->reg(this, "action://redo", this, &ApplicationActionController::doGlobalRedo);
+    dispatcher()->reg(this, "action://delete", this, &ApplicationActionController::doGlobalDelete);
+    dispatcher()->reg(this, "action://cancel", this, &ApplicationActionController::doGlobalCancel);
 }
 
 bool ApplicationActionController::eventFilter(QObject* watched, QEvent* event)
 {
-    if ((event->type() == QEvent::Close && watched == mainWindow()->qWindow())
+    if ((event->type() == QEvent::Close && watched == qWindow())
         || event->type() == QEvent::Quit) {
         bool accepted = quit(false);
         event->setAccepted(accepted);
@@ -102,7 +115,7 @@ bool ApplicationActionController::eventFilter(QObject* watched, QEvent* event)
         }
     }
 
-    if (watched == mainWindow()->qWindow()) {
+    if (watched == qWindow()) {
         if (event->type() == QEvent::DragEnter) {
             if (onDragEnterEvent(static_cast<QDragEnterEvent*>(event))) {
                 return true;
@@ -119,6 +132,11 @@ bool ApplicationActionController::eventFilter(QObject* watched, QEvent* event)
     }
 
     return QObject::eventFilter(watched, event);
+}
+
+QWindow* ApplicationActionController::qWindow() const
+{
+    return mainWindow() ? mainWindow()->qWindow() : nullptr;
 }
 
 ApplicationActionController::DragTarget ApplicationActionController::dragTarget(const QUrl& url) const
@@ -179,7 +197,7 @@ bool ApplicationActionController::onDropEvent(QDropEvent* event)
         case DragTarget::SoundFont: {
             muse::io::path_t filePath = url.toLocalFile();
             async::Async::call(this, [this, filePath]() {
-                    soundFontController()->addSoundFont(filePath);
+                    soundFontController()->addSoundFont(Uri::fromLocalFile(filePath));
                 });
         } break;
         case DragTarget::Extension: {
@@ -221,10 +239,10 @@ bool ApplicationActionController::quit(bool isAllInstances, const muse::io::path
     }
 
     if (isAllInstances) {
-        multiInstancesProvider()->quitForAll();
+        multiwindowsProvider()->quitForAll();
     }
 
-    if (multiInstancesProvider()->instances().size() == 1 && !installerPath.empty()) {
+    if (multiwindowsProvider()->windowCount() == 1 && !installerPath.empty()) {
 #if defined(Q_OS_LINUX)
         interactive()->revealInFileBrowser(installerPath);
 #else
@@ -232,8 +250,8 @@ bool ApplicationActionController::quit(bool isAllInstances, const muse::io::path
 #endif
     }
 
-    if (multiInstancesProvider()->instances().size() > 1) {
-        multiInstancesProvider()->notifyAboutInstanceWasQuited();
+    if (multiwindowsProvider()->windowCount() > 1) {
+        multiwindowsProvider()->notifyAboutWindowWasQuited();
     }
 
     QCoreApplication::exit();
@@ -243,10 +261,10 @@ bool ApplicationActionController::quit(bool isAllInstances, const muse::io::path
 void ApplicationActionController::restart()
 {
     if (projectFilesController()->closeOpenedProject(false)) {
-        if (multiInstancesProvider()->instances().size() == 1) {
+        if (multiwindowsProvider()->windowCount() == 1) {
             application()->restart();
         } else {
-            multiInstancesProvider()->quitAllAndRestartLast();
+            multiwindowsProvider()->quitAllAndRestartLast();
 
             QCoreApplication::exit();
         }
@@ -300,7 +318,7 @@ void ApplicationActionController::openPreferencesDialog()
         async::Channel<audio::PlaybackStatus> statusChanged = state->playbackStatusChanged();
         statusChanged.onReceive(this, [statusChanged, this](audio::PlaybackStatus) {
             auto statusChangedMut = statusChanged;
-            statusChangedMut.resetOnReceive(this);
+            statusChangedMut.disconnect(this);
             doOpenPreferencesDialog();
         });
 
@@ -312,8 +330,8 @@ void ApplicationActionController::openPreferencesDialog()
 
 void ApplicationActionController::doOpenPreferencesDialog()
 {
-    if (multiInstancesProvider()->isPreferencesAlreadyOpened()) {
-        multiInstancesProvider()->activateWindowWithOpenedPreferences();
+    if (multiwindowsProvider()->isPreferencesAlreadyOpened()) {
+        multiwindowsProvider()->activateWindowWithOpenedPreferences();
         return;
     }
 
@@ -362,4 +380,74 @@ void ApplicationActionController::revertToFactorySettings()
             }
         });
     });
+}
+
+bool ApplicationActionController::hasProjectAndIsFocused() const
+{
+    bool hasProject = globalContext()->currentProject() != nullptr;
+    bool isFocused = uiContextResolver()->currentUiContext() == context::UiCtxProjectFocused;
+    return hasProject && isFocused;
+}
+
+void ApplicationActionController::doGlobalCopy()
+{
+    if (hasProjectAndIsFocused()) {
+        dispatcher()->dispatch("action://notation/copy");
+    } else {
+        // resolve other actions
+    }
+}
+
+void ApplicationActionController::doGlobalCut()
+{
+    if (hasProjectAndIsFocused()) {
+        dispatcher()->dispatch("action://notation/cut");
+    } else {
+        // resolve other actions
+    }
+}
+
+void ApplicationActionController::doGlobalPaste()
+{
+    if (hasProjectAndIsFocused()) {
+        dispatcher()->dispatch("action://notation/paste");
+    } else {
+        // resolve other actions
+    }
+}
+
+void ApplicationActionController::doGlobalUndo()
+{
+    if (hasProjectAndIsFocused()) {
+        dispatcher()->dispatch("action://notation/undo");
+    } else {
+        // resolve other actions
+    }
+}
+
+void ApplicationActionController::doGlobalRedo()
+{
+    if (hasProjectAndIsFocused()) {
+        dispatcher()->dispatch("action://notation/redo");
+    } else {
+        // resolve other actions
+    }
+}
+
+void ApplicationActionController::doGlobalDelete()
+{
+    if (hasProjectAndIsFocused()) {
+        dispatcher()->dispatch("action://notation/delete");
+    } else {
+        // resolve other actions
+    }
+}
+
+void ApplicationActionController::doGlobalCancel()
+{
+    if (hasProjectAndIsFocused()) {
+        dispatcher()->dispatch("action://notation/cancel");
+    } else {
+        dispatcher()->dispatch("nav-escape");
+    }
 }

@@ -5,7 +5,7 @@
  * MuseScore
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore BVBA and others
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -19,12 +19,12 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-import QtQuick 2.15
-import QtQuick.Controls 2.15
-import QtQuick.Layouts 1.15
+import QtQuick
+import QtQuick.Controls
+import QtQuick.Layouts
 
-import Muse.UiComponents 1.0
-import Muse.Ui 1.0
+import Muse.UiComponents
+import Muse.Ui
 
 ListItemBlank {
     id: root
@@ -39,16 +39,42 @@ ListItemBlank {
     property string iconRoleName: "icon"
 
     property bool readOnly: false
+    //! NOTE: is keys column generally editable
+    property bool keysEditable: false
+    //! NOTE:  is this particular key editable
+    property bool keyReadOnly: false
+
+    property bool drawZebra: true
+    property int keyColumnWidth: 0
+    property bool startEditByDoubleClick: false
+    property int textInputSidePadding: 12
+    property int textInputHeight: 28
 
     property alias spacing: row.spacing
     property real sideMargin: 0
     property real valueItemWidth: 126
 
+    signal keyEdited(string newKey)
+    signal valueEdited(string newValue)
+    signal escapeEdit()
+
     height: 34
 
-    normalColor: (index % 2 == 0) ? ui.theme.backgroundSecondaryColor : ui.theme.backgroundPrimaryColor
+    normalColor: drawZebra ? ( (index % 2 == 0) ? ui.theme.backgroundSecondaryColor : ui.theme.backgroundPrimaryColor ) : ui.theme.backgroundPrimaryColor
 
-    navigation.accessible.name: titleLabel.text + ": " + (Boolean(loader.item) ? loader.item.accessibleName : "")
+    navigation.accessible.name: root.item[keyRoleName] + ": " + (Boolean(valueLoader.item) ? valueLoader.item.accessibleName : "")
+
+    navigation.onTriggered: {
+        if (keysEditable && startEditByDoubleClick) {
+            keyLoader.item.startEdit(keyLoader.item.val)
+        }
+    }
+
+    navigation.onActiveChanged: {
+        if (keysEditable && startEditByDoubleClick) {
+            keyLoader.item.escaped()
+        }
+    }
 
     QtObject {
         id: privateProperties
@@ -80,30 +106,87 @@ ListItemBlank {
 
         anchors.fill: parent
 
-        Row {
-            Layout.alignment: Qt.AlignLeft | Qt.AlignVCenter
-            Layout.fillWidth: true
-            Layout.leftMargin: root.sideMargin
+        RowLayout {
+            readonly property bool alignTextInputText: root.keysEditable && !root.keyReadOnly && !root.readOnly
 
-            spacing: 18
+            Layout.alignment: Qt.AlignLeft | Qt.AlignVCenter
+            Layout.fillWidth: root.keyColumnWidth != 0 ? false : true
+            Layout.preferredWidth: root.keyColumnWidth != 0 ? root.keyColumnWidth : -1
+            Layout.leftMargin:  root.sideMargin - (alignTextInputText ? root.textInputSidePadding : 0)
+            Layout.rightMargin: root.sideMargin + (alignTextInputText ? root.textInputSidePadding : 0)
+
+            spacing: icon.iconCode == IconCode.NONE ? 0 : 18
 
             StyledIconLabel {
+                id: icon
                 iconCode: Boolean(root.item[iconRoleName]) ? root.item[iconRoleName] : IconCode.NONE
             }
 
-            StyledTextLabel {
-                id: titleLabel
-                text: root.item[keyRoleName]
-                horizontalAlignment: Text.AlignLeft
+            Loader {
+                id: keyLoader
+
+                property var val: root.item[keyRoleName]
+
+                Layout.alignment: Qt.AlignVCenter | Qt.AlignLeft
+                Layout.fillHeight: !root.keyReadOnly ? false : true
+                Layout.preferredHeight: !root.keyReadOnly ? root.textInputHeight : -1
+                Layout.fillWidth: true
+
+                sourceComponent: root.keysEditable && !root.keyReadOnly ? textComp : titleLabelComp
+
+                onLoaded: {
+                    keyLoader.item.val = keyLoader.val
+                }
+
+                onValChanged: {
+                    if (keyLoader.item) {
+                        keyLoader.item.val = keyLoader.val
+                    }
+                }
+
+                Connections {
+                    target: (root.keysEditable && !root.keyReadOnly) ? keyLoader.item : null
+                    ignoreUnknownSignals: true
+                    function onChanged(newVal) {
+                        root.item[keyRoleName] = newVal
+                        listItem.keyEdited(newVal)
+                    }
+                }
+            }
+
+            Component {
+                id: titleLabelComp
+
+                StyledTextLabel {
+                    id: titleLabel
+
+                    property string val
+
+                    text: val
+
+                    horizontalAlignment: Text.AlignLeft
+                }
             }
         }
 
-        Loader {
-            id: loader
-            property var val: root.item[valueRoleName]
+        SeparatorLine {}
 
-            Layout.alignment: Qt.AlignRight | Qt.AlignVCenter
-            Layout.preferredWidth: root.valueItemWidth
+        Loader {
+            id: valueLoader
+            property var val: root.item[valueRoleName]
+            property NavigationPanel navPanel: root.navigation.panel
+            property int navRow: root.navigation.row
+            property int navColumn: 1
+
+            readonly property bool useTextIndent: privateProperties.componentByType(root.item[valueTypeRole]) === textComp
+                                                  || !root.keysEditable
+                                                  || root.keyReadOnly
+
+            Layout.alignment: root.keyColumnWidth != 0 ? (Qt.AlignLeft | Qt.AlignVCenter) : (Qt.AlignRight | Qt.AlignVCenter)
+            Layout.preferredHeight: privateProperties.componentByType(root.item[valueTypeRole]) === textComp ? root.textInputHeight : -1
+            Layout.preferredWidth: root.keyColumnWidth != 0 ? -1 : root.valueItemWidth
+            Layout.fillWidth: root.keyColumnWidth != 0 ? true : false
+            Layout.leftMargin: root.sideMargin - (useTextIndent ? root.textInputSidePadding : 0)
             Layout.rightMargin: root.sideMargin
 
             enabled: root.item[valueEnabledRoleName] !== undefined ? root.item[valueEnabledRoleName] : true
@@ -111,53 +194,245 @@ ListItemBlank {
             sourceComponent: !root.readOnly ? privateProperties.componentByType(root.item[valueTypeRole]) : readOnlyComponent
 
             onLoaded: {
-                loader.item.val = loader.val
+                valueLoader.item.val = valueLoader.val
 
                 if (privateProperties.isNumberComponent() && !root.readOnly) {
                     if (Boolean(root.item[minValueRoleName])) {
-                        loader.item.minValue = root.item[minValueRoleName]
+                        valueLoader.item.minValue = root.item[minValueRoleName]
                     }
 
                     if (Boolean(root.item[maxValueRoleName])) {
-                        loader.item.maxValue = root.item[maxValueRoleName]
+                        valueLoader.item.maxValue = root.item[maxValueRoleName]
                     }
                 }
             }
 
             onValChanged: {
-                if (loader.item) {
-                    loader.item.val = loader.val
+                if (valueLoader.item) {
+                    valueLoader.item.val = valueLoader.val
                 }
             }
 
             Connections {
-                target: loader.item
+                target: valueLoader.item
                 function onChanged(newVal) {
                     root.item[valueRoleName] = newVal
+                    listItem.valueEdited(newVal)
                 }
             }
         }
     }
 
+    SeparatorLine {
+        anchors.bottom: row.bottom
+
+        visible: !root.drawZebra
+    }
+
     Component {
         id: textComp
 
-        TextInputField {
-            id: textControl
+        Loader {
+            id: textLoader
+            property var val
+            signal changed(var newVal)
+            signal startEdit(var val)
+            signal escaped()
 
-            property string val
-            signal changed(string newVal)
+            property bool isKey: parent && parent === keyLoader
 
-            property string accessibleName: navigation.accessible.name
+            property NavigationPanel navPanel: (root.keysEditable && !root.keyReadOnly) || !isKey ? root.navigation.panel : null
+            property int navRow: !isKey ? root.navigation.row * 2 + 1 : root.navigation.row * 2
 
-            navigation.panel: root.navigation.panel
-            navigation.row: root.navigation.row
-            navigation.column: 1
+            sourceComponent: root.startEditByDoubleClick ? doubleClickTextComp : singleClickTextComp
 
-            currentText: val
+            onLoaded: {
+                textLoader.item.val = textLoader.val ?? ""
+            }
 
-            onTextChanged: function(newTextValue) {
-                textControl.changed(newTextValue)
+            onValChanged: {
+                if (textLoader.item) {
+                    textLoader.item.val = textLoader.val
+                }
+            }
+
+            onStartEdit: function(val) {
+                textLoader.item.startEdit(val)
+            }
+
+            onEscaped: {
+                textLoader.item.escaped()
+            }
+
+            Connections {
+                target: textLoader.item
+                function onChanged(newVal) { textLoader.changed(newVal) }
+            }
+
+            Component {
+                id: singleClickTextComp
+
+                TextInputField {
+                    id: textControl
+
+                    property string val
+                    signal changed(string newVal)
+
+                    property string accessibleName: navigation.accessible.name
+                    property NavigationPanel navPanel: textLoader.navPanel
+                    property int navRow: textLoader.navRow
+                    property int navColumn: 0
+
+                    navigation.panel: navPanel
+                    navigation.row: navRow
+                    navigation.column: navColumn
+
+                    currentText: val
+
+                    textSidePadding: root.textInputSidePadding
+
+                    onTextEdited: function(newTextValue) {
+                        changed(newTextValue)
+                    }
+                }
+            }
+
+            Component {
+                id: doubleClickTextComp
+
+                Item {
+                    id: doubleClickItem
+
+                    height: root.height
+                    width: 10
+
+                    property string val
+                    property string accessibleName: navigation.accessible.name
+                    property NavigationPanel navPanel: textLoader.navPanel
+                    property int navRow: textLoader.navRow
+                    property int navColumn
+
+                    signal changed(string newVal)
+                    signal startEdit(var val)
+                    signal escaped()
+
+                    onStartEdit: function(val) {
+                        valueEditLoader.edit(val)
+                    }
+
+                    onEscaped: {
+                        valueEditLoader.escaped()
+                    }
+
+                    NavigationFocusBorder {
+                        navigationCtrl: NavigationControl {
+                            id: valueNavCtrl
+                            enabled: doubleClickItem.enabled && doubleClickItem.visible
+                            panel: doubleClickItem.navPanel
+                            row: doubleClickItem.navRow
+                            column: doubleClickItem.navColumn
+
+                            onTriggered: {
+                                valueEditLoader.edit(doubleClickItem.val)
+                                root.clicked(mouseArea)
+                            }
+
+                            onActiveChanged: {
+                                if (!active) {
+                                    valueEditLoader.escaped()
+                                }
+                            }
+                        }
+
+                        anchors.topMargin: 1
+                        anchors.bottomMargin: 1
+                    }
+
+                    StyledTextLabel {
+                        id: valueLabel
+
+                        anchors.fill: parent
+                        horizontalAlignment: Text.AlignLeft
+
+                        visible: !valueEditLoader.isEditState
+
+                        text: doubleClickItem.val
+                    }
+
+                    MouseArea {
+                        anchors.fill: valueLabel
+
+                        acceptedButtons: Qt.LeftButton
+                        hoverEnabled: true
+                        propagateComposedEvents: true
+
+                        onDoubleClicked: (mouse) => {
+                            mouse.accepted = true
+                            valueEditLoader.edit(doubleClickItem.val)
+                        }
+                    }
+
+                    Loader {
+                        id: valueEditLoader
+
+                        anchors.fill: valueLabel
+
+                        property bool isEditState: false
+                        sourceComponent: valueEditLoader.isEditState ? valueEditComp : null
+
+                        function edit(text) {
+                            valueEditLoader.isEditState = true
+                            valueEditLoader.item.currentText = text
+                            valueEditLoader.item.newValue = text
+                            valueEditLoader.item.visible = true
+                            valueEditLoader.item.ensureActiveFocus()
+                        }
+
+                        function escaped() {
+                            valueEditLoader.item.escaped()
+                        }
+                    }
+
+                    Component {
+                        id: valueEditComp
+
+                        TextInputField {
+                            id: valueEdit
+
+                            anchors.fill: parent
+
+                            property string newValue: ""
+
+                            background.color: "transparent"
+                            background.border.width: 0
+                            inputField.color: valueLabel.color
+                            textSidePadding: 0
+                            visible: false
+
+                            onTextChanged: function (text) {
+                                valueEdit.newValue = text
+                            }
+
+                            onAccepted: {
+                                doubleClickItem.changed(valueEdit.newValue)
+                                valueEditLoader.isEditState = false
+                            }
+
+                            onEscaped: {
+                                valueEditLoader.isEditState = false
+                            }
+
+                            onFocusChanged: {
+                                if (!valueEdit.focus) {
+                                    valueEdit.visible = false
+                                    valueEditLoader.isEditState = false
+                                    valueEdit.accepted()
+                                    doubleClickItem.changed(valueEdit.newValue)
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
     }

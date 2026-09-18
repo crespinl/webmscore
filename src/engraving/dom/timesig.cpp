@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -58,7 +58,7 @@ TimeSig::TimeSig(Segment* parent)
     m_sig.set(0, 1);                 // initialize to invalid
     m_timeSigType      = TimeSigType::NORMAL;
     m_largeParentheses = false;
-    setMinDistance(Spatium(0.5)); // TODO: style
+    setMinDistance(0.5_sp); // TODO: style
 }
 
 void TimeSig::setParent(Segment* parent)
@@ -72,7 +72,7 @@ void TimeSig::setParent(Segment* parent)
 
 double TimeSig::mag() const
 {
-    return timeSigPlacement() == TimeSigPlacement::NORMAL && staff() ? staff()->staffMag(tick()) : 1.0;
+    return timeSigPlacement() == TimeSigPlacement::NORMAL && staff() ? staff()->staffMag(this) : 1.0;
 }
 
 //---------------------------------------------------------
@@ -200,7 +200,7 @@ PropertyValue TimeSig::getProperty(Pid propertyId) const
 {
     switch (propertyId) {
     case Pid::SHOW_COURTESY:
-        return int(showCourtesySig());
+        return showCourtesySig();
     case Pid::NUMERATOR_STRING:
         return numeratorString();
     case Pid::DENOMINATOR_STRING:
@@ -279,7 +279,7 @@ PropertyValue TimeSig::propertyDefault(Pid id) const
 {
     switch (id) {
     case Pid::SHOW_COURTESY:
-        return 1;
+        return true;
     case Pid::NUMERATOR_STRING:
         return String();
     case Pid::DENOMINATOR_STRING:

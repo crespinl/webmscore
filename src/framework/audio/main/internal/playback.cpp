@@ -5,7 +5,7 @@
  * MuseScore
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore BVBA and others
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -89,10 +89,11 @@ void Playback::init()
         m_masterOutputParamsChanged.send(params);
     });
 
-    m_saveSoundTrackProgressStream.onReceive(this, [this](TrackSequenceId seqId, int64_t current, int64_t total) {
+    m_saveSoundTrackProgressStream.onReceive(this, [this](TrackSequenceId seqId, int64_t current, int64_t total,
+                                                          SaveSoundTrackStage stage) {
         auto it = m_saveSoundTrackProgressChannels.find(seqId);
         if (it != m_saveSoundTrackProgressChannels.end()) {
-            it->second.send(current, total);
+            it->second.send(current, total, stage);
         }
     });
 }
@@ -108,21 +109,53 @@ void Playback::deinit()
     channel()->onMethod(Method::MasterOutputParamsChanged, nullptr);
 }
 
+bool Playback::isAudioStarted() const
+{
+    return startAudioController()->isAudioStarted();
+}
+
+async::Channel<bool> Playback::isAudioStartedChanged() const
+{
+    return startAudioController()->isAudioStartedChanged();
+}
+
 Promise<TrackSequenceId> Playback::addSequence()
 {
     ONLY_AUDIO_MAIN_THREAD;
     return async::make_promise<TrackSequenceId>([this](auto resolve, auto /*reject*/) {
         ONLY_AUDIO_MAIN_THREAD;
-        Msg msg = rpc::make_request(Method::AddSequence);
-        channel()->send(msg, [this, resolve](const Msg& res) {
-            ONLY_AUDIO_MAIN_THREAD;
-            TrackSequenceId seqId = 0;
-            IF_ASSERT_FAILED(RpcPacker::unpack(res.data, seqId)) {
-                return;
-            }
-            m_sequenceAdded.send(seqId);
-            (void)resolve(seqId);
-        });
+
+        auto sendAddSequence = [this, resolve]() {
+            Msg msg = rpc::make_request(Method::AddSequence);
+            channel()->send(msg, [this, resolve](const Msg& res) {
+                ONLY_AUDIO_MAIN_THREAD;
+                TrackSequenceId seqId = 0;
+                IF_ASSERT_FAILED(RpcPacker::unpack(res.data, seqId)) {
+                    return;
+                }
+                m_sequenceAdded.send(seqId);
+                (void)resolve(seqId);
+            });
+        };
+
+        LOGD() << "isAudioStarted: " << startAudioController()->isAudioStarted();
+        if (startAudioController()->isAudioStarted()) {
+            sendAddSequence();
+        } else {
+            m_pendingAddSequences.push_back(sendAddSequence);
+            startAudioController()->isAudioStartedChanged().onReceive(this, [this](bool arg) {
+                LOGD() << "isAudioStartedChanged: " << arg;
+                if (arg) {
+                    for (auto& f : m_pendingAddSequences) {
+                        f();
+                    }
+                    m_pendingAddSequences.clear();
+                } else {
+                    LOGE() << "audio not started";
+                }
+                startAudioController()->isAudioStartedChanged().disconnect(this);
+            });
+        }
 
         return Promise<TrackSequenceId>::dummy_result();
     }, PromiseType::AsyncByBody);
@@ -179,7 +212,7 @@ Channel<TrackSequenceId> Playback::sequenceRemoved() const
 
 IPlayerPtr Playback::player(const TrackSequenceId id) const
 {
-    std::shared_ptr<Player> p = std::make_shared<Player>(id);
+    std::shared_ptr<Player> p = std::make_shared<Player>(id, iocContext());
     p->init();
     return p;
 }
@@ -638,13 +671,13 @@ void Playback::abortSavingAllSoundTracks()
     channel()->send(msg);
 }
 
-async::Channel<int64_t, int64_t> Playback::saveSoundTrackProgressChanged(const TrackSequenceId sequenceId) const
+SaveSoundTrackProgress Playback::saveSoundTrackProgressChanged(const TrackSequenceId sequenceId) const
 {
     auto it = m_saveSoundTrackProgressChannels.find(sequenceId);
     if (it == m_saveSoundTrackProgressChannels.end()) {
-        it = m_saveSoundTrackProgressChannels.insert({ sequenceId, async::Channel<int64_t, int64_t>() }).first;
+        it = m_saveSoundTrackProgressChannels.insert({ sequenceId, SaveSoundTrackProgress() }).first;
 
-        async::Channel<int64_t, int64_t> ch;
+        SaveSoundTrackProgress ch;
 
         Msg msg = rpc::make_request(Method::GetSaveSoundTrackProgress, RpcPacker::pack(sequenceId));
         channel()->send(msg, [this, ch](const Msg& res) {

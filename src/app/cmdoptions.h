@@ -39,10 +39,13 @@ struct CmdOptions {
         ScoreTransposeOptions,
         ScoreElementsOptions,
         ForceMode,
+        UnrollRepeats,
         SoundProfile,
         TracksDiffPath,
         ExtensionUri,
         PageNumber,
+        ScoreRegion,
+        NoAudio,
     };
 
     muse::IApplication::RunMode runMode = muse::IApplication::RunMode::GuiApp;

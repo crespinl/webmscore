@@ -4,12 +4,11 @@ var self = this;
 ?>
 
 <?js if (data.kind === 'package') { ?>
-    <section class="package">
-        <h3><?js= data.name ?> <?js= data.version ?></h3>		
-    </section>
+    <h3><?js= data.name ?> <?js= data.version ?></h3>
 <?js } ?>
+
 <?js if (data.readme) { ?>
-    <section class="readme usertext">
+    <section>
         <article><?js= data.readme ?></article>
     </section>
 <?js } ?>

@@ -123,7 +123,6 @@
     <stemWidth>0.1</stemWidth>
     <shortenStem>1</shortenStem>
     <stemLength>3.5</stemLength>
-    <stemLengthSmall>2.25</stemLengthSmall>
     <shortStemStartLocation>1</shortStemStartLocation>
     <shortestStem>2.5</shortestStem>
     <beginRepeatLeftMargin>1</beginRepeatLeftMargin>
@@ -551,7 +550,6 @@
     <snapToDynamics>1</snapToDynamics>
     <centerOnNotehead>1</centerOnNotehead>
     <dynamicsMinDistance>0.5</dynamicsMinDistance>
-    <autoplaceVerticalAlignRange>2</autoplaceVerticalAlignRange>
     <textLinePlacement>0</textLinePlacement>
     <textLinePosAbove x="0" y="-1"/>
     <textLinePosBelow x="0" y="1"/>

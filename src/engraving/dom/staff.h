@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -32,7 +32,7 @@
 #include "cleflist.h"
 #include "groups.h"
 #include "keylist.h"
-#include "pitch.h"
+#include "mscore.h"
 #include "stafftypelist.h"
 
 #include "../types/types.h"
@@ -114,8 +114,6 @@ public:
     TimeSig* nextTimeSig(const Fraction&) const;
     Fraction currentTimeSigTick(const Fraction&) const;
 
-    bool isLocalTimeSignature(const Fraction& tick) { return timeStretch(tick) != Fraction(1, 1); }
-
     const Groups& group(const Fraction&) const;
 
     Interval transpose(const Fraction& tick) const;
@@ -145,10 +143,10 @@ public:
     void setMergeMatchingRests(AutoOnOff val) { m_mergeMatchingRests = val; }
     bool shouldMergeMatchingRests() const;
 
-    int barLineSpan() const { return m_barLineSpan; }
+    bool barLineSpan() const { return m_barLineSpan; }
     int barLineFrom() const { return m_barLineFrom; }
     int barLineTo() const { return m_barLineTo; }
-    void setBarLineSpan(int val) { m_barLineSpan = val; }
+    void setBarLineSpan(const bool val) { m_barLineSpan = val; }
     void setBarLineFrom(int val) { m_barLineFrom = val; }
     void setBarLineTo(int val) { m_barLineTo = val; }
     double staffHeight() const;
@@ -163,12 +161,12 @@ public:
     }
 
     SwingParameters swing(const Fraction&)  const;
-    void clearSwingList() { m_swingList.clear(); }
-    void insertIntoSwingList(const Fraction& tick, SwingParameters sp) { m_swingList.insert({ tick.ticks(), sp }); }
+    void clearSwingMap() { m_swingMap.clear(); }
+    void insertIntoSwingMap(const Fraction& tick, SwingParameters sp) { m_swingMap.insert({ tick.ticks(), sp }); }
 
     const CapoParams& capo(const Fraction&) const;
-    void insertCapoParams(const Fraction& tick, const CapoParams& params);
-    void clearCapoParams();
+    void insertCapoParams(const Fraction& tick, const CapoParams& params, bool ignoreNotationUpdate);
+    void removeCapoParams(const Fraction& tick);
 
     //==== staff type helper function
     const StaffType* staffType(const Fraction& = Fraction(0, 1)) const;
@@ -204,12 +202,10 @@ public:
     double spatium(const EngravingItem*) const;
     //===========
 
-    PitchList& pitchOffsets() { return m_pitchOffsets; }
-
-    int pitchOffset(const Fraction& tick) const { return m_pitchOffsets.pitchOffset(tick.ticks()); }
+    int pitchOffset(const Fraction& tick) const;
     void updateOttava();
 
-    std::list<Staff*> staffList() const;
+    std::vector<Staff*> staffList() const;
     Staff* primaryStaff() const;
     bool isPrimaryStaff() const;
 
@@ -224,7 +220,6 @@ public:
     using EngravingItem::setColor;
     Color color(const Fraction&) const;
     void setColor(const Fraction&, const Color& val);
-    void undoSetColor(const Color& val);
     void insertTime(const Fraction&, const Fraction& len);
 
     PropertyValue getProperty(Pid) const override;
@@ -293,7 +288,7 @@ private:
     std::map<int, TimeSig*> m_timesigs;
 
     std::vector<BracketItem*> m_brackets;
-    int m_barLineSpan = false;          // true - span barline to next staff
+    bool m_barLineSpan = false;          // true - span barline to next staff
     int m_barLineFrom = 0;              // line of start staff to draw the barline from (0 = staff top line, ...)
     int m_barLineTo = 0;                // line of end staff to draw the bar line to (0= staff bottom line, ...)
 
@@ -304,17 +299,16 @@ private:
     AutoOnOff m_hideWhenEmpty = AutoOnOff::AUTO;      // hide empty staves
 
     Color m_color;
-    Spatium m_userDist     { Spatium(0.0) };           ///< user edited extra distance
+    Spatium m_userDist { 0.0_sp };           ///< user edited extra distance
 
     StaffTypeList m_staffTypeList;
 
     std::map<int, int> m_channelList[VOICES];
-    std::map<int, SwingParameters> m_swingList;
+    std::map<int, SwingParameters> m_swingMap;
     std::map<int, CapoParams> m_capoMap;
+    std::map<int, int> m_pitchOffsetMap;
     bool m_playbackVoice[VOICES] { true, true, true, true };
     std::array<bool, VOICES> m_visibilityVoices { true, true, true, true };
-
-    PitchList m_pitchOffsets;               // cached value
 
     bool m_reflectTranspositionInLinkedTab = true;
 

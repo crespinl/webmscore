@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -23,8 +23,9 @@
 
 #include "draw/types/pen.h"
 
-#include "chord.h"
-#include "mscoreview.h"
+#include "../editing/elementeditdata.h"
+#include "../editing/mscoreview.h"
+
 #include "note.h"
 #include "page.h"
 #include "score.h"
@@ -78,7 +79,7 @@ bool SlurTieSegment::edit(EditData& ed)
 
     if (ed.key == Key_Home && !(ed.modifiers & ~KeyboardModifier::KeypadModifier)) {
         if (ed.hasCurrentGrip()) {
-            startEditDrag(ed);
+            startDragGrip(ed);
             if (ed.curGrip == Grip::SHOULDER) {
                 ups(Grip::BEZIER1).off = PointF();
                 ups(Grip::BEZIER2).off = PointF();
@@ -86,7 +87,7 @@ bool SlurTieSegment::edit(EditData& ed)
                 ups(ed.curGrip).off = PointF();
             }
             renderer()->layoutItem(spanner());
-            endEditDrag(ed);
+            endDragGrip(ed);
         }
         return true;
     }
@@ -192,27 +193,27 @@ bool SlurTieSegment::isUserModified() const
 }
 
 //---------------------------------------------------------
-//   startEditDrag
+//   startDragGrip
 //---------------------------------------------------------
 
-void SlurTieSegment::startEditDrag(EditData& ed)
+void SlurTieSegment::startDragGrip(EditData& ed)
 {
     ElementEditDataPtr eed = ed.getData(this);
     IF_ASSERT_FAILED(eed) {
         return;
     }
-    for (auto i : { Pid::SLUR_UOFF1, Pid::SLUR_UOFF2, Pid::SLUR_UOFF3, Pid::SLUR_UOFF4, Pid::OFFSET }) {
+    for (Pid i : { Pid::SLUR_UOFF1, Pid::SLUR_UOFF2, Pid::SLUR_UOFF3, Pid::SLUR_UOFF4, Pid::OFFSET }) {
         eed->pushProperty(i);
     }
 }
 
 //---------------------------------------------------------
-//   endEditDrag
+//   endDragGrip
 //---------------------------------------------------------
 
-void SlurTieSegment::endEditDrag(EditData& ed)
+void SlurTieSegment::endDragGrip(EditData& ed)
 {
-    EngravingItem::endEditDrag(ed);
+    EngravingItem::endDragGrip(ed);
     triggerLayout();
 }
 
@@ -365,7 +366,7 @@ PropertyValue SlurTie::getProperty(Pid propertyId) const
 {
     switch (propertyId) {
     case Pid::SLUR_STYLE_TYPE:
-        return PropertyValue::fromValue<SlurStyleType>(styleType());
+        return styleType();
     case Pid::SLUR_DIRECTION:
         return PropertyValue::fromValue<DirectionV>(slurDirection());
     default:
@@ -401,7 +402,7 @@ PropertyValue SlurTie::propertyDefault(Pid id) const
 {
     switch (id) {
     case Pid::SLUR_STYLE_TYPE:
-        return 0;
+        return SlurStyleType::Solid;
     case Pid::SLUR_DIRECTION:
         return PropertyValue::fromValue<DirectionV>(DirectionV::AUTO);
     default:

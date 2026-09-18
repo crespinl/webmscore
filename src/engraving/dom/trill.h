@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -46,9 +46,9 @@ public:
 
     TrillSegment* clone() const override { return new TrillSegment(*this); }
 
-    void scanElements(void* data, void (* func)(void*, EngravingItem*), bool all) override;
+    void scanElements(std::function<void(EngravingItem*)> func) override;
 
-    EngravingItem* propertyDelegate(Pid) override;
+    EngravingObject* propertyDelegate(Pid) const override;
 
     void remove(EngravingItem*) override;
 
@@ -57,6 +57,9 @@ public:
 
     void symbolLine(SymId start, SymId fill);
     void symbolLine(SymId start, SymId fill, SymId end);
+
+protected:
+    void rebaseAnchors(EditData& ed, Grip grip) override;
 
 private:
     Sid getPropertyStyle(Pid) const override;
@@ -77,10 +80,6 @@ class Trill final : public SLine
 public:
     Trill(EngravingItem* parent);
     Trill(const Trill& t);
-
-    // Score Tree functions
-    EngravingObject* scanParent() const override;
-    EngravingObjectList scanChildren() const override;
 
     Trill* clone() const override { return new Trill(*this); }
     EngravingItem* linkedClone() override;

@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -46,7 +46,9 @@ bool ScoreComp::saveCompareMimeData(muse::ByteArray mimeData, const muse::String
         return false;
     }
 
-    return compareFiles(ScoreRW::rootPath() + u"/" + compareWithLocalPath, saveName);
+    bool val = compareFiles(ScoreRW::rootPath() + u"/" + compareWithLocalPath, saveName);
+
+    return val;
 }
 
 bool ScoreComp::compareFiles(const String& fullPath1, const String& fullPath2)

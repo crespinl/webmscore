@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -51,8 +51,8 @@ using namespace muse;
 using namespace muse::io;
 using namespace muse::actions;
 
-Palette::Palette(Type t, QObject* parent)
-    : QObject(parent), m_type(t)
+Palette::Palette(const muse::modularity::ContextPtr& iocCtx, Type t, QObject* parent)
+    : QObject(parent), muse::Contextable(iocCtx), m_type(t)
 {
     static int id = 0;
     m_id = QString::number(++id);
@@ -110,7 +110,7 @@ PaletteCellPtr Palette::insertElement(size_t idx, ElementPtr element, const QStr
         engravingRender()->layoutItem(element.get());
     }
 
-    PaletteCellPtr cell = std::make_shared<PaletteCell>(element, name, mag, offset, tag, this);
+    PaletteCellPtr cell = std::make_shared<PaletteCell>(iocContext(), element, name, mag, offset, tag, this);
 
     auto cellHandler = cellHandlerByPaletteType(m_type);
     if (cellHandler) {
@@ -145,7 +145,7 @@ PaletteCellPtr Palette::appendElement(ElementPtr element, const QString& name, q
         engravingRender()->layoutItem(element.get());
     }
 
-    PaletteCellPtr cell = std::make_shared<PaletteCell>(element, name, mag, offset, tag, this);
+    PaletteCellPtr cell = std::make_shared<PaletteCell>(iocContext(), element, name, mag, offset, tag, this);
 
     auto cellHandler = cellHandlerByPaletteType(m_type);
     if (cellHandler) {
@@ -317,7 +317,7 @@ bool Palette::read(XmlReader& e, bool pasteMode)
         } else if (tag == "editable") {
             m_isEditable = e.readBool();
         } else if (tag == "Cell") {
-            PaletteCellPtr cell = std::make_shared<PaletteCell>(this);
+            PaletteCellPtr cell = std::make_shared<PaletteCell>(iocContext(), this);
             if (!cell->read(e, pasteMode)) {
                 continue;
             }
@@ -387,9 +387,9 @@ void Palette::write(XmlWriter& xml, bool pasteMode) const
     xml.endElement();
 }
 
-PalettePtr Palette::fromMimeData(const QByteArray& data)
+PalettePtr Palette::fromMimeData(const QByteArray& data, const muse::modularity::ContextPtr& iocCtx)
 {
-    return ::fromMimeData<Palette>(data, "Palette");
+    return ::fromMimeData<Palette>(data, "Palette", iocCtx);
 }
 
 bool Palette::readFromFile(const QString& p)
@@ -456,8 +456,8 @@ bool Palette::readFromFile(const QString& p)
         if (e.name() == "museScore") {
             QString version = e.attribute("version");
             QStringList sl = version.split('.');
-            int versionId = sl[0].toInt() * 100 + sl[1].toInt();
-            gpaletteScore->setMscVersion(versionId); // TODO: what is this?
+            int mscVersion = sl[0].toInt() * 100 + sl[1].toInt();
+            gpaletteScore->setMscVersion(mscVersion);
 
             while (e.readNextStartElement()) {
                 if (e.name() == "Palette") {
@@ -508,6 +508,7 @@ bool Palette::writeToFile(const QString& p) const
     }
     xml.endElement();
     xml.endElement();
+    xml.flush();
     cbuf.seek(0);
     //f.addDirectory("META-INF");
     //f.addDirectory("Pictures");
@@ -526,6 +527,7 @@ bool Palette::writeToFile(const QString& p) const
         xml1.startElement("museScore", { { "version", Constants::MSC_VERSION_STR } });
         write(xml1, false);
         xml1.endElement();
+        xml1.flush();
         cbuf1.close();
         f.addFile("palette.xml", cbuf1.data());
     }
@@ -588,6 +590,7 @@ Palette::Type Palette::guessType() const
     case ElementType::BAR_LINE:
         return Type::BarLine;
     case ElementType::ARPEGGIO:
+    case ElementType::CHORD_BRACKET:
     case ElementType::GLISSANDO:
         return Type::Arpeggio;
     case ElementType::TREMOLO_SINGLECHORD:

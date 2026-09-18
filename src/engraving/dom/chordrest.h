@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -65,11 +65,9 @@ public:
     ChordRest& operator=(const ChordRest&) = delete;
     ~ChordRest();
 
-    // Score Tree functions
-    virtual EngravingObject* scanParent() const override;
-    virtual EngravingObjectList scanChildren() const override;
-    virtual void scanElements(void* data, void (* func)(void*, EngravingItem*), bool all=true) override;
+    virtual void scanElements(std::function<void(EngravingItem*)> func) override;
 
+    bool acceptDrop(EditData&) const override;
     virtual EngravingItem* drop(EditData&) override;
     virtual void undoUnlink() override;
 
@@ -91,7 +89,6 @@ public:
 
     bool isSmall() const { return m_isSmall; }
     void setSmall(bool val) { m_isSmall = val; }
-    void undoSetSmall(bool val);
 
     int staffMove() const { return m_staffMove; }
     void setStaffMove(int val) { m_staffMove = val; }
@@ -121,8 +118,6 @@ public:
     {
         return m_crossMeasure == CrossMeasure::FIRST ? m_crossMeasureTDur.ticks() : m_durationType.ticks();
     }
-
-    Fraction endTick() const { return tick() + actualTicks(); }
 
     String durationUserName() const;
 

@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2023 MuseScore Limited
+ * Copyright (C) 2023 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -179,6 +179,7 @@ void TupletLayout::createNumber(Tuplet* item, LayoutContext& ctx)
     item->number()->setPropertyFlags(Pid::FONT_SIZE, item->propertyFlags(Pid::FONT_SIZE));
     item->number()->setPropertyFlags(Pid::FONT_STYLE, item->propertyFlags(Pid::FONT_STYLE));
     item->number()->setPropertyFlags(Pid::ALIGN, item->propertyFlags(Pid::ALIGN));
+    item->number()->setPropertyFlags(Pid::POSITION, item->propertyFlags(Pid::POSITION));
 
     const MStyle& style = ctx.conf().style();
 

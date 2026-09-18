@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -19,8 +19,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-#ifndef MU_ENGRAVING_ENGRAVINGCONFIGURATIONMOCK_H
-#define MU_ENGRAVING_ENGRAVINGCONFIGURATIONMOCK_H
+
+#pragma once
 
 #include <gmock/gmock.h>
 
@@ -42,6 +42,7 @@ public:
 
     MOCK_METHOD(SizeF, defaultPageSize, (), (const, override));
 
+    MOCK_METHOD(bool, canLayoutIcons, (), (const, override));
     MOCK_METHOD(String, iconsFontFamily, (), (const, override));
 
     MOCK_METHOD(Color, defaultColor, (), (const, override));
@@ -50,6 +51,7 @@ public:
     MOCK_METHOD(Color, warningColor, (), (const, override));
     MOCK_METHOD(Color, warningSelectedColor, (), (const, override));
     MOCK_METHOD(Color, criticalColor, (), (const, override));
+    MOCK_METHOD(Color, criticalBackgroundColor, (), (const, override));
     MOCK_METHOD(Color, criticalSelectedColor, (), (const, override));
     MOCK_METHOD(Color, thumbnailBackgroundColor, (), (const, override));
     MOCK_METHOD(Color, noteBackgroundColor, (), (const, override));
@@ -69,10 +71,6 @@ public:
     MOCK_METHOD(bool, autoUpdateFretboardDiagrams, (), (const, override));
     MOCK_METHOD(void, setAutoUpdateFretboardDiagrams, (bool), (override));
     MOCK_METHOD((muse::async::Channel<bool>), autoUpdateFretboardDiagramsChanged, (), (const, override));
-
-    MOCK_METHOD(bool, scoreInversionEnabled, (), (const, override));
-    MOCK_METHOD(void, setScoreInversionEnabled, (bool), (override));
-    MOCK_METHOD(muse::async::Notification, scoreInversionChanged, (), (const, override));
 
     MOCK_METHOD(Color, formattingColor, (), (const, override));
     MOCK_METHOD(muse::async::Channel<Color>, formattingColorChanged, (), (const, override));
@@ -102,14 +100,15 @@ public:
     MOCK_METHOD(bool, allowReadingImagesFromOutsideMscz, (), (const, override));
 
     MOCK_METHOD(bool, guitarProImportExperimental, (), (const, override));
-    MOCK_METHOD(bool, shouldAddParenthesisOnStandardStaff, (), (const, override));
     MOCK_METHOD(bool, negativeFretsAllowed, (), (const, override));
-    MOCK_METHOD(bool, crossNoteHeadAlwaysBlack, (), (const, override));
     MOCK_METHOD(void, setGuitarProMultivoiceEnabled, (bool), (override));
     MOCK_METHOD(bool, guitarProMultivoiceEnabled, (), (const, override));
     MOCK_METHOD(bool, minDistanceForPartialSkylineCalculated, (), (const, override));
     MOCK_METHOD(bool, specificSlursLayoutWorkaround, (), (const, override));
+    MOCK_METHOD(bool, preferSameStringForTranspose, (), (const, override));
+    MOCK_METHOD(void, setPreferSameStringForTranspose, (bool), (override));
+
+    MOCK_METHOD(int, maxScaledImageDim, (), (const, override));
+    MOCK_METHOD(void, setMaxScaledImageDim, (int), (override));
 };
 }
-
-#endif // MU_ENGRAVING_ENGRAVINGCONFIGURATIONMOCK_H

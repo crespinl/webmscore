@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -99,15 +99,7 @@ static void xmlSetPitch(mu::engraving::Note* n, char step, int alter, int octave
         LOGD("xmlSetPitch: illegal pitch %d, <%c>", istep, step);
         return;
     }
-    int pitch = table[istep] + alter + (octave + 1) * 12;
-
-    if (pitch < 0) {
-        pitch = 0;
-    }
-    if (pitch > 127) {
-        pitch = 127;
-    }
-
+    int pitch = clampPitch(table[istep] + alter + (octave + 1) * PITCH_DELTA_OCTAVE);
     n->setPitch(pitch);
 
     //                        a  b  c  d  e  f  g

@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -21,6 +21,8 @@
  */
 #include "read460.h"
 
+#include "../editing/mscoreview.h"
+#include "../editing/transpose.h"
 #include "../types/types.h"
 
 #include "dom/anchors.h"
@@ -37,7 +39,6 @@
 #include "dom/lyrics.h"
 #include "dom/masterscore.h"
 #include "dom/measurerepeat.h"
-#include "dom/mscoreview.h"
 #include "dom/note.h"
 #include "dom/part.h"
 #include "dom/score.h"
@@ -50,6 +51,7 @@
 
 #include "engravingerrors.h"
 
+#include "../compat/readstyle.h"
 #include "../compat/tremolocompat.h"
 #include "../inoutdata.h"
 #include "staffread.h"
@@ -60,7 +62,7 @@
 using namespace mu::engraving;
 using namespace mu::engraving::read460;
 
-muse::Ret Read460::readScore(Score* score, XmlReader& e, rw::ReadInOutData* data)
+muse::Ret Read460::readScoreFile(Score* score, XmlReader& e, rw::ReadInOutData* data)
 {
     ReadContext ctx(score);
     if (data) {
@@ -69,6 +71,7 @@ muse::Ret Read460::readScore(Score* score, XmlReader& e, rw::ReadInOutData* data
         }
 
         ctx.setPropertiesToSkip(data->propertiesToSkip);
+        ctx.setForcePageMode(data->forcePageMode);
     }
 
     while (e.readNextStartElement()) {
@@ -88,7 +91,7 @@ muse::Ret Read460::readScore(Score* score, XmlReader& e, rw::ReadInOutData* data
         } else if (tag == "LastEID") {
             e.skipCurrentElement();
         } else if (tag == "Score") {
-            if (!readScore410(score, e, ctx)) {
+            if (!readScoreTag(score, e, ctx)) {
                 if (e.error() == muse::XmlStreamReader::CustomError) {
                     return make_ret(Err::FileCriticallyCorrupted, e.errorString());
                 }
@@ -115,7 +118,7 @@ muse::Ret Read460::readScore(Score* score, XmlReader& e, rw::ReadInOutData* data
     return muse::make_ok();
 }
 
-bool Read460::readScore410(Score* score, XmlReader& e, ReadContext& ctx)
+bool Read460::readScoreTag(Score* score, XmlReader& e, ReadContext& ctx)
 {
     std::vector<int> sysStaves;
     while (e.readNextStartElement()) {
@@ -160,6 +163,11 @@ bool Read460::readScore410(Score* score, XmlReader& e, ReadContext& ctx)
             score->m_showSoundFlags = e.readInt();
         } else if (tag == "markIrregularMeasures") {
             score->m_markIrregularMeasures = e.readInt();
+        } else if (tag == "Style") {
+            // Since version 400, the Style is usually stored in a separate file,
+            // but we also support reading it from the mscx file.
+            compat::ReadStyleHook::readStyleTag(score, e);
+            score->m_engravingFont = score->engravingFonts()->fontByName(score->style().styleSt(Sid::musicalSymbolFont).toStdString());
         } else if (tag == "copyright" || tag == "rights") {
             score->setMetaTag(u"copyright", Text::readXmlText(e, score));
         } else if (tag == "movement-number") {
@@ -196,6 +204,8 @@ bool Read460::readScore410(Score* score, XmlReader& e, ReadContext& ctx)
             }
         } else if (tag == "SystemLocks") {
             TRead::readSystemLocks(score, e);
+        } else if (tag == "SystemDividers") {
+            TRead::readSystemDividers(score, e, ctx);
         } else if (tag == "Part") {
             Part* part = new Part(score);
             TRead::read(part, e, ctx);
@@ -223,12 +233,40 @@ bool Read460::readScore410(Score* score, XmlReader& e, ReadContext& ctx)
                 ctx.tracks().insert({ strack, dtrack });
             }
             e.skipCurrentElement();
+        } else if (tag == "Score") {
+            // Since version 400, Excerpts are usually stored in separate files,
+            // but we also support reading them from the main mscx file.
+
+            ctx.tracks().clear();             // ???
+            MasterScore* m = score->masterScore();
+            Score* s = m->createScore();
+
+            compat::ReadStyleHook::setupDefaultStyle(s);
+
+            Excerpt* ex = new Excerpt(m);
+            ex->setExcerptScore(s);
+            ctx.setLastMeasure(nullptr);
+
+            Score* curScore = ctx.score();
+            ctx.setScore(s);
+
+            readScoreTag(s, e, ctx);     // recursion
+
+            ctx.setScore(curScore);
+
+            s->linkMeasures(m);
+            ex->setTracksMapping(ctx.tracks());
+            m->addExcerpt(ex);
         } else if (tag == "name") {
             String n = e.readText();
             if (!score->isMaster()) {     //ignore the name if it's not a child score
                 score->excerpt()->setName(n, /*saveAndNotify=*/ false);
             }
         } else if (tag == "layoutMode") {
+            if (ctx.forcePageMode()) {
+                e.skipCurrentElement();
+                continue;
+            }
             String s = e.readText();
             if (s == "line") {
                 score->setLayoutMode(LayoutMode::LINE);
@@ -253,6 +291,18 @@ bool Read460::readScore410(Score* score, XmlReader& e, ReadContext& ctx)
     }
 
     score->connectTies();
+
+    for (Spanner* sp : score->unmanagedSpanners()) {
+        if (sp->isLyricsLine() && toLyricsLine(sp)->isDash()) {
+            LyricsLine* line = toLyricsLine(sp);
+            line->setNextLyrics(searchNextLyrics(line->lyrics()->segment(),
+                                                 line->staffIdx(),
+                                                 line->lyrics()->verse(),
+                                                 line->lyrics()->placement()
+                                                 ));
+            line->setTrack2(line->nextLyrics() ? line->nextLyrics()->track() : line->track());
+        }
+    }
 
     score->m_fileDivision = Constants::DIVISION;
 
@@ -319,12 +369,20 @@ bool Read460::pasteStaff(XmlReader& e, Segment* dst, staff_idx_t dstStaff, Fract
         }
         Fraction tickStart = Fraction::fromString(e.attribute("tick"));
         Fraction oTickLen = Fraction::fromString(e.attribute("len"));
+        Fraction timeStretch = e.hasAttribute("timeStretch") ? Fraction::fromString(e.attribute("timeStretch")) : Fraction(1, 1);
         tickLen = oTickLen * scale;
         int staffStart = e.intAttribute("staff", 0);
         staves = e.intAttribute("staves", 0);
 
         if (tickLen.isZero() || staves == 0) {
             break;
+        }
+        if (doScale) {
+            Fraction tickLenStretched = tickLen * timeStretch;
+            if (!TDuration(tickLenStretched).isValid()) {
+                LOGD("Can't paste: invalid duration %d/%d", tickLenStretched.numerator(), tickLenStretched.denominator());
+                return false;
+            }
         }
 
         Fraction oEndTick = dstTick + oTickLen;
@@ -358,6 +416,17 @@ bool Read460::pasteStaff(XmlReader& e, Segment* dst, staff_idx_t dstStaff, Fract
                 done = true;
                 break;
             }
+            // Check the time stretch for all measures overlapping the destination range.
+            for (Measure* m = dst->measure(); m && m->tick() < oEndTick; m = m->nextMeasure()) {
+                Fraction mTimeStretch = dst->score()->staff(dstStaffIdx)->timeStretch(m->tick());
+                if (mTimeStretch != timeStretch) {
+                    LOGD(
+                        "Can't paste due to different time stretch ratios (src time stretch: %d/%d, dst time stretch: %d/%d)",
+                        timeStretch.numerator(), timeStretch.denominator(), mTimeStretch.numerator(), mTimeStretch.denominator());
+                    MScore::setError(MsError::DEST_LOCAL_TIME_SIGNATURE);
+                    return false;
+                }
+            }
 
             while (e.readNextStartElement()) {
                 pasted = true;
@@ -368,17 +437,17 @@ bool Read460::pasteStaff(XmlReader& e, Segment* dst, staff_idx_t dstStaff, Fract
                 } else if (tag == "transposeDiatonic") {
                     ctx.setTransposeDiatonic(static_cast<int8_t>(e.readInt()));
                 } else if (tag == "voiceOffset") {
-                    int voiceOffset[VOICES];
-                    std::fill(voiceOffset, voiceOffset + VOICES, -1);
+                    Fraction voiceOffset[VOICES];
+                    std::fill(voiceOffset, voiceOffset + VOICES, Fraction(1, 0));
                     while (e.readNextStartElement()) {
                         if (e.name() != "voice") {
                             e.unknown();
                         }
                         voice_idx_t voiceId = static_cast<voice_idx_t>(e.intAttribute("id", -1));
                         assert(voiceId < VOICES);
-                        voiceOffset[voiceId] = e.readInt();
+                        voiceOffset[voiceId] = Fraction::fromTicks(e.readInt()) * timeStretch;
                     }
-                    if (!score->makeGap1(dstTick, dstStaffIdx, tickLen, voiceOffset)) {
+                    if (!score->makeGap1(dstTick, dstStaffIdx, tickLen * timeStretch, voiceOffset)) {
                         LOGD() << "cannot make gap in staff " << dstStaffIdx << " at tick " << dstTick.ticks();
                         done = true;             // break main loop, cannot make gap
                         break;
@@ -394,20 +463,17 @@ bool Read460::pasteStaff(XmlReader& e, Segment* dst, staff_idx_t dstStaff, Fract
                 } else if (tag == "Tuplet") {
                     Tuplet* oldTuplet = tuplet;
                     Fraction tick = doScale ? (ctx.tick() - dstTick) * scale + dstTick : ctx.tick();
-                    // no paste into local time signature
-                    if (score->staff(dstStaffIdx)->isLocalTimeSignature(tick)) {
-                        MScore::setError(MsError::DEST_LOCAL_TIME_SIGNATURE);
-                        if (oldTuplet && oldTuplet->elements().empty()) {
-                            delete oldTuplet;
-                        }
-                        return false;
-                    }
                     Measure* measure = score->tick2measure(tick);
                     tuplet = Factory::createTuplet(measure);
                     tuplet->setTrack(ctx.track());
                     TRead::read(tuplet, e, ctx);
                     if (doScale) {
-                        tuplet->setTicks(tuplet->ticks() * scale);
+                        Fraction ticksScaled = tuplet->ticks() * scale;
+                        if (!TDuration(ticksScaled).isValid()) {
+                            LOGD("Can't paste: invalid duration %d/%d", ticksScaled.numerator(), ticksScaled.denominator());
+                            return false;
+                        }
+                        tuplet->setTicks(ticksScaled);
                         tuplet->setBaseLen(tuplet->baseLen().fraction() * scale);
                     }
                     tuplet->setParent(measure);
@@ -448,11 +514,6 @@ bool Read460::pasteStaff(XmlReader& e, Segment* dst, staff_idx_t dstStaff, Fract
                     TRead::readItem(cr, e, ctx);
                     cr->setSelected(false);
                     Fraction tick = doScale ? (ctx.tick() - dstTick) * scale + dstTick : ctx.tick();
-                    // no paste into local time signature
-                    if (score->staff(dstStaffIdx)->isLocalTimeSignature(tick)) {
-                        MScore::setError(MsError::DEST_LOCAL_TIME_SIGNATURE);
-                        return false;
-                    }
                     if (score->tick2measure(tick)->isMeasureRepeatGroup(dstStaffIdx)) {
                         MeasureRepeat* mr = score->tick2measure(tick)->measureRepeatElement(dstStaffIdx);
                         score->deleteItem(mr);    // resets any measures related to mr
@@ -469,9 +530,13 @@ bool Read460::pasteStaff(XmlReader& e, Segment* dst, staff_idx_t dstStaff, Fract
                         }
                         ctx.incTick(cr->actualTicksAt(tick));
                         if (doScale) {
-                            Fraction d = cr->durationTypeTicks();
-                            cr->setTicks(cr->ticks() * scale);
-                            cr->setDurationType(d * scale);
+                            Fraction ticksScaled = cr->ticks() * scale;
+                            if (!TDuration(ticksScaled).isValid()) {
+                                LOGD("Can't paste: invalid duration %d/%d", ticksScaled.numerator(), ticksScaled.denominator());
+                                return false;
+                            }
+                            cr->setTicks(ticksScaled);
+                            cr->setDurationType(cr->durationTypeTicks() * scale);
                             for (Lyrics* l : cr->lyrics()) {
                                 l->setTicks(l->ticks() * scale);
                             }
@@ -495,10 +560,14 @@ bool Read460::pasteStaff(XmlReader& e, Segment* dst, staff_idx_t dstStaff, Fract
                             TremoloTwoChord* tremolo = chord->tremoloTwoChord();
                             if (tremolo && chord == tremolo->chord2()) {
                                 if (doScale) {
-                                    Fraction d = tremolo->durationType().ticks();
-                                    tremolo->setDurationType(d * scale);
+                                    Fraction ticksScaled = tremolo->durationType().ticks() * scale;
+                                    if (!TDuration(ticksScaled).isValid()) {
+                                        LOGD("Can't paste: invalid duration %d/%d", ticksScaled.numerator(), ticksScaled.denominator());
+                                        return false;
+                                    }
+                                    tremolo->setDurationType(ticksScaled);
                                 }
-                                Fraction tremoloEndTick = tick + chord->actualTicks();
+                                Fraction tremoloEndTick = tick + chord->actualTicksAt(tick);
                                 Fraction measureEndTick = score->tick2measure(tick)->endTick();
                                 if (tremoloEndTick > measureEndTick) {
                                     MScore::setError(MsError::DEST_TREMOLO);
@@ -508,13 +577,18 @@ bool Read460::pasteStaff(XmlReader& e, Segment* dst, staff_idx_t dstStaff, Fract
                             for (size_t i = 0; i < graceNotes.size(); ++i) {
                                 Chord* gc = graceNotes.at(i);
                                 gc->setGraceIndex(i);
-                                Score::transposeChord(gc, tick);
+                                if (gc->vStaffIdx() >= gc->score()->nstaves()) {
+                                    // check if staffMove moves a note to a
+                                    // nonexistent staff
+                                    gc->setStaffMove(0);
+                                }
+                                Transpose::transposeChord(gc, tick);
                                 chord->add(gc);
                             }
                             graceNotes.clear();
                         }
                         // delete pending ties, they are not selected when copy
-                        if ((tick - dstTick) + cr->actualTicks() >= tickLen) {
+                        if ((tick - dstTick) + cr->actualTicksAt(tick) >= tickLen) {
                             if (cr->isChord()) {
                                 Chord* c = toChord(cr);
                                 for (Note* note: c->notes()) {
@@ -527,12 +601,12 @@ bool Read460::pasteStaff(XmlReader& e, Segment* dst, staff_idx_t dstStaff, Fract
                             }
                         }
                         // shorten last cr to fit in the space made by makeGap
-                        if ((tick - dstTick) + cr->actualTicks() > tickLen) {
+                        if ((tick - dstTick) + cr->actualTicksAt(tick) > tickLen) {
                             Fraction newLength = tickLen - (tick - dstTick);
                             // check previous CR on same track, if it has tremolo, delete the tremolo
                             // we don't want a tremolo and two different chord durations
                             if (cr->isChord()) {
-                                Segment* s = score->tick2leftSegment(tick - Fraction::fromTicks(1));
+                                Segment* s = score->tick2leftSegment(tick - Fraction::eps());
                                 if (s) {
                                     ChordRest* crt = toChordRest(s->element(cr->track()));
                                     if (!crt) {
@@ -553,8 +627,8 @@ bool Read460::pasteStaff(XmlReader& e, Segment* dst, staff_idx_t dstStaff, Fract
                                 // shorten duration
                                 // exempt notes in tuplets, since we don't allow copy of partial tuplet anyhow
                                 // TODO: figure out a reasonable fudge factor to make sure shorten tuplets appropriately if we do ever copy a partial tuplet
-                                cr->setTicks(newLength);
-                                cr->setDurationType(newLength);
+                                cr->setTicks(newLength * timeStretch);
+                                cr->setDurationType(newLength * timeStretch);
                             }
                         }
                         score->pasteChordRest(cr, tick);
@@ -576,7 +650,7 @@ bool Read460::pasteStaff(XmlReader& e, Segment* dst, staff_idx_t dstStaff, Fract
                     Interval interval = staffDest->transpose(tick);
                     if (!ctx.style().styleB(Sid::concertPitch) && !interval.isZero()) {
                         interval.flip();
-                        score->undoTransposeHarmony(harmony, interval);
+                        Transpose::undoTransposeHarmony(score, harmony, interval);
                     }
 
                     // remove pre-existing chords on this track
@@ -718,6 +792,19 @@ bool Read460::pasteStaff(XmlReader& e, Segment* dst, staff_idx_t dstStaff, Fract
 
     for (Score* s : score->scoreList()) {     // for all parts
         s->connectTies();
+        s->undoRemoveStaleTieJumpPoints(false);
+
+        for (Spanner* sp : score->unmanagedSpanners()) {
+            if (sp->isLyricsLine() && toLyricsLine(sp)->isDash()) {
+                LyricsLine* line = toLyricsLine(sp);
+                line->setNextLyrics(searchNextLyrics(line->lyrics()->segment(),
+                                                     line->staffIdx(),
+                                                     line->lyrics()->verse(),
+                                                     line->lyrics()->placement()
+                                                     ));
+                line->setTrack2(line->nextLyrics() ? line->nextLyrics()->track() : line->track());
+            }
+        }
     }
 
     if (pasted) {                         //select only if we pasted something
@@ -961,7 +1048,7 @@ void Read460::pasteSymbols(XmlReader& e, ChordRest* dst)
                     Interval interval = staffDest->transpose(destTick);
                     if (!ctx.style().styleB(Sid::concertPitch) && !interval.isZero()) {
                         interval.flip();
-                        score->undoTransposeHarmony(el, interval);
+                        Transpose::undoTransposeHarmony(score, el, interval);
                     }
                     el->setParent(seg);
                     score->undoAddElement(el);

@@ -5,7 +5,7 @@
  * MuseScore
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore BVBA and others
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -19,21 +19,26 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-import QtQuick 2.12
-import QtQuick.Controls 2.12
+import QtQuick
+import QtQuick.Controls
 
-import Muse.Ui 1.0
+import Muse.Ui
+import Muse.UiComponents
 
 Slider {
     id: root
 
     property bool fillBackground: true
 
+    property alias navigation: navCtrl
+
     implicitWidth: vertical ? prv.handleSize : prv.defaultLength
     implicitHeight: vertical ? prv.defaultLength : prv.handleSize
 
     hoverEnabled: root.enabled
     wheelEnabled: true
+
+    stepSize: 1
 
     QtObject {
         id: prv
@@ -44,10 +49,43 @@ Slider {
         readonly property int defaultLength: 220
     }
 
+    NavigationControl {
+        id: navCtrl
+        name: root.objectName !== "" ? root.objectName : "StyledSlider"
+        enabled: root.enabled && root.visible
+
+        accessible.role: MUAccessible.Range
+        accessible.visualItem: root
+
+        accessible.value: root.value
+        accessible.minimumValue: root.from
+        accessible.maximumValue: root.to
+        accessible.stepSize: root.stepSize
+
+        onNavigationEvent: function (event) {
+            switch (event.type) {
+            case NavigationEvent.Down:
+                root.decrease()
+                root.moved()
+                event.accepted = true
+                break;
+            case NavigationEvent.Up:
+                root.increase()
+                root.moved()
+                event.accepted = true
+                break;
+            }
+        }
+    }
+
     background: Item {
         id: mainBackground
 
         anchors.fill: parent
+
+        NavigationFocusBorder {
+            navigationCtrl: navCtrl
+        }
 
         Rectangle {
             id: filledBackground
@@ -112,7 +150,6 @@ Slider {
                         opacity: 0.5
                     }
                 },
-
                 State {
                     name: "PRESSED"
                     when: root.pressed
@@ -162,4 +199,8 @@ Slider {
             }
         }
     ]
+
+    onMoved: {
+        navigation.requestActiveByInteraction()
+    }
 }

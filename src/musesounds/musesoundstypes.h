@@ -5,7 +5,7 @@
  * MuseScore
  * Music Composition & Notation
  *
- * Copyright (C) 2024 MuseScore BVBA and others
+ * Copyright (C) 2024 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -31,13 +31,23 @@ struct SoundLibraryInfo {
     muse::String subtitle;
     muse::UriQuery thumbnail;
     muse::UriQuery uri;
+
+    bool operator==(const SoundLibraryInfo& o) const
+    {
+        return code == o.code && title == o.title && subtitle == o.subtitle
+               && thumbnail == o.thumbnail && uri == o.uri;
+    }
 };
 using SoundLibraryInfoList = std::vector<SoundLibraryInfo>;
 
 struct SoundCatalogueInfo {
     muse::String title;
-
     SoundLibraryInfoList soundLibraries;
+
+    bool operator==(const SoundCatalogueInfo& o) const
+    {
+        return title == o.title && soundLibraries == o.soundLibraries;
+    }
 };
 using SoundCatalogueInfoList = std::vector<SoundCatalogueInfo>;
 }

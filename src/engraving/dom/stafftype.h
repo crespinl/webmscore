@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -20,13 +20,13 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef MU_ENGRAVING_STAFFTYPE_H
-#define MU_ENGRAVING_STAFFTYPE_H
+#pragma once
+
+#include <array>
 
 #include "draw/types/font.h"
 
 #include "engravingitem.h"
-#include "mscore.h"
 
 #include "../types/types.h"
 
@@ -38,35 +38,20 @@ class Chord;
 class ChordRest;
 class Staff;
 
-// HISTORIC TAB BASS STRING NOTATION
-// The following constants refer to the specifics of bass string notation in historic
-//    (Renaiss./Baroque French and Italian) tablatures.
-
-// how much to lower a bass string note with slashes with respect to line distance (in fraction of line distance)
-#define STAFFTYPE_TAB_BASSSLASH_YOFFSET   0.33
-// The following constants could ideally be customizable values;
-//    they are currently constants to simplify implementation;
-// Note that these constants do not constrain which strings of an instrument are
-//    physically frettable (which is defined in the instrument itself) but fix the
-//    number of bass strings for which the notation is able to express a fret number
-//    rather than simply a string ordinal.
-#define NUM_OF_BASSSTRINGS_WITH_LETTER    4     // the max number of bass strings frettable with letter notation (French)
-#define NUM_OF_BASSSTRINGS_WITH_NUMBER    2     // the max number of bass strings frettable with number notation (Italian)
-
 //---------------------------------------------------------
 //   TablatureFont
 //---------------------------------------------------------
 
-#define NUM_OF_DIGITFRETS                 100   // the max fret number which can be rendered with numbers
-#define NUM_OF_LETTERFRETS                17    // the max fret number which can be rendered with letters
-#define NUM_OF_BASSSTRING_SLASHES         5     // the max number of slashes supported for French bass strings notation
-                                                // (currently, only 3 slashes are used at most; another two are
-                                                // foreseen for future customizability)
+constexpr int NUM_OF_DIGITFRETS = 100; // the max fret number which can be rendered with numbers
+constexpr int NUM_OF_LETTERFRETS = 17; // the max fret number which can be rendered with letters
+constexpr int NUM_OF_BASSSTRING_SLASHES = 5; // the max number of slashes supported for French bass strings notation
+                                             // (currently, only 3 slashes are used at most; another two are
+                                             // foreseen for future customizability)
 
 // default values for 'grid'-like beaming to use with value symbols in stemless TAB
-static const double GRID_BEAM_DEF_WIDTH  = 0.25; // all values in sp
-static const double GRID_STEM_DEF_HEIGHT = 1.75;
-static const double GRID_STEM_DEF_WIDTH  = 0.125;
+constexpr double GRID_BEAM_DEF_WIDTH  = 0.25; // all values in sp
+constexpr double GRID_STEM_DEF_HEIGHT = 1.75;
+constexpr double GRID_STEM_DEF_WIDTH  = 0.125;
 
 struct TablatureFretFont {
     TablatureFretFont();
@@ -78,7 +63,7 @@ struct TablatureFretFont {
     Char xChar = u'X';                                        // the char to use for 'x'
     std::array<String, NUM_OF_BASSSTRING_SLASHES> slashChar;  // the char used to draw one or more '/' symbols
     std::array<String, NUM_OF_DIGITFRETS> displayDigit;       // the string to draw for digit frets
-    Char displayLetter[NUM_OF_LETTERFRETS];                   // the char to use for letter frets
+    std::array<Char, NUM_OF_LETTERFRETS> displayLetter;       // the char to use for letter frets
 
     bool read(XmlReader&, int mscVersion);
 };
@@ -116,8 +101,8 @@ enum class TablatureSymbolRepeat : char {
 struct TablatureDurationFont {
     String family;                   // the family of the physical font to use
     String displayName;              // the name to display to the user
-    double defSize;                  // the default size of the font
-    double defYOffset;               // the default Y displacement
+    double defSize = 0.0;            // the default size of the font
+    double defYOffset = 0.0;         // the default Y displacement
     double gridBeamWidth  = GRID_BEAM_DEF_WIDTH;       // the width of the 'grid'-style beam (in sp)
     double gridStemHeight = GRID_STEM_DEF_HEIGHT;      // the height of the 'grid'-style stem (in sp)
     double gridStemWidth  = GRID_STEM_DEF_WIDTH;       // the width of the 'grid'-style stem (in sp)
@@ -223,8 +208,6 @@ public:
     bool stemless() const { return m_stemless; }
     bool genTimesig() const { return m_genTimesig; }
     void setGenTimesig(bool val) { m_genTimesig = val; }
-    double doty1() const;
-    double doty2() const;
 
     // static function to deal with presets
     static const StaffType* getDefaultPreset(StaffGroup grp);
@@ -246,7 +229,6 @@ public:
     int     visualStringToPhys(int line) const;                   // return the string in physical order from visual string
     double   physStringToYOffset(int strg) const;                  // return the string Y offset (in sp, chord-relative)
     String tabBassStringPrefix(int strg, bool* hasFret) const;   // return a string with the prefix, if any, identifying a bass string
-    void    drawInputStringMarks(muse::draw::Painter* p, int string, const Color& selectionColor, const RectF& rect) const;
     int     numOfTabLedgerLines(int string) const;
 
     // properties getters (some getters require updated metrics)
@@ -258,22 +240,22 @@ public:
     const String& durationFontName() const { return m_durationFonts[m_durationFontIdx].displayName; }
     double durationFontSize() const { return m_durationFontSize; }
     double durationFontUserY() const { return m_durationFontUserY; }
-    double durationFontYOffset() const { return m_durationYOffset + m_durationFontUserY * SPATIUM20; }
+    double durationFontYOffset() const;
     double durationGridYOffset() const { return m_durationGridYOffset; }
     double fretBoxH() const { return m_fretBoxH; }
     double deadFretBoxH() const { return m_deadFretBoxH; }
-    double fretBoxY() const { return m_fretBoxY + m_fretFontUserY * SPATIUM20; }
-    double deadFretBoxY() const { return m_deadFretBoxY + m_fretFontUserY * SPATIUM20; }
+    double fretBoxY() const;
+    double deadFretBoxY() const;
 
     // 2 methods to return the size of a box masking lines under a fret mark
-    double fretMaskH() const { return m_lineDistance.val() * SPATIUM20; }
-    double fretMaskY() const { return (m_onLines ? -0.5 : -1.0) * m_lineDistance.val() * SPATIUM20; }
+    double fretMaskH() const;
+    double fretMaskY() const;
 
     const muse::draw::Font& fretFont() const { return m_fretFont; }
     const String fretFontName() const { return m_fretFontInfo.displayName; }
     double fretFontSize() const { return m_fretFontSize; }
     double fretFontUserY() const { return m_fretFontUserY; }
-    double fretFontYOffset() const { return m_fretYOffset + m_fretFontUserY * SPATIUM20; }
+    double fretFontYOffset() const;
     bool  genDurations() const { return m_genDurations; }
     bool  linesThrough() const { return m_linesThrough; }
     TablatureMinimStyle minimStyle() const { return m_minimStyle; }
@@ -336,6 +318,7 @@ private:
 
     Score* m_score = nullptr;
 
+    double defaultSpatium() const;
     void  setDurationMetrics();
     void  setFretMetrics();
 
@@ -354,7 +337,7 @@ private:
 
     int m_lines = 5;
     int m_stepOffset = 0;
-    Spatium m_lineDistance = Spatium(1);
+    Spatium m_lineDistance = 1_sp;
 
     bool m_showBarlines = true;
     bool m_showLedgerLines = true;
@@ -472,4 +455,3 @@ private:
     bool m_repeat = false;
 };
 } // namespace mu::engraving
-#endif

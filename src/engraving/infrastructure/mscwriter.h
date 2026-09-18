@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -67,6 +67,7 @@ public:
     void writeAudioFile(const muse::ByteArray& data);
     void writeAudioSettingsJsonFile(const muse::ByteArray& data, const muse::io::path_t& pathPrefix = "");
     void writeViewSettingsJsonFile(const muse::ByteArray& data, const muse::io::path_t& pathPrefix = "");
+    void writeAutomationJsonFile(const muse::ByteArray& data);
 
 private:
 
@@ -91,7 +92,6 @@ private:
 
     private:
         muse::io::IODevice* m_device = nullptr;
-        bool m_selfDeviceOwner = false;
         muse::ZipWriter* m_zip = nullptr;
     };
 
@@ -117,7 +117,6 @@ private:
         bool addFileData(const muse::String& fileName, const muse::ByteArray& data) override;
     private:
         muse::io::IODevice* m_device = nullptr;
-        bool m_selfDeviceOwner = false;
         muse::TextStream* m_stream = nullptr;
     };
 

@@ -5,7 +5,7 @@
  * MuseScore
  * Music Composition & Notation
  *
- * Copyright (C) 2024 MuseScore BVBA and others
+ * Copyright (C) 2024 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -26,34 +26,36 @@
 
 #ifndef NO_QT_SUPPORT
 #include <QQmlEngine>
+#include <QQmlContext>
 #include <QWidget>
 
-muse::Injectable::GetContext muse::iocCtxForQmlObject(const QObject* o)
+muse::Contextable::GetContext muse::iocCtxForQmlObject(const QObject* o)
 {
     return [o]() {
         const QObject* p = o;
-        QQmlEngine* engine = qmlEngine(p);
-        while (!engine && p->parent()) {
+        QQmlContext* ctx = qmlContext(p);
+        while (!ctx && p->parent()) {
             p = p->parent();
-            engine = qmlEngine(p);
+            ctx = qmlContext(p);
         }
 
-        IF_ASSERT_FAILED(engine) {
+        if (!ctx) {
+            LOGW() << "QQmlContext is not set for QML Object: " << o->metaObject()->className();
             return modularity::ContextPtr();
         }
 
-        return iocCtxForQmlEngine(engine);
+        return iocCtxForQmlContext(ctx);
     };
 }
 
-muse::modularity::ContextPtr muse::iocCtxForQmlEngine(const QQmlEngine* e)
+muse::modularity::ContextPtr muse::iocCtxForQmlContext(const QQmlContext* ctx)
 {
-    QmlIoCContext* qmlIoc = e->property("ioc_context").value<QmlIoCContext*>();
+    QmlIoCContext* qmlIoc = ctx->contextProperty("ioc_context").value<QmlIoCContext*>();
     // IF_ASSERT_FAILED(qmlIoc) {
     //     return modularity::ContextPtr();
     // }
 
-    //! NOTE At the monent, it can be null, need add ioc context to extension qml engine
+    //! NOTE At the moment, it can be null, need add ioc context to extension qml engine
     if (!qmlIoc) {
         return modularity::ContextPtr();
     }

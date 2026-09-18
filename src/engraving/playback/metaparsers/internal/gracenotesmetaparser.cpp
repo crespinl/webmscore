@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -29,7 +29,7 @@ using namespace muse;
 
 void GraceNotesMetaParser::doParse(const EngravingItem* item, const RenderingContext& ctx, mpe::ArticulationMap& result)
 {
-    IF_ASSERT_FAILED(item->type() == ElementType::CHORD) {
+    IF_ASSERT_FAILED(item->isChord()) {
         return;
     }
 

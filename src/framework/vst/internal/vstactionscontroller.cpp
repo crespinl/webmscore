@@ -5,7 +5,7 @@
  * MuseScore
  * Music Composition & Notation
  *
- * Copyright (C) 2025 MuseScore BVBA and others
+ * Copyright (C) 2025 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -22,7 +22,7 @@
 
 #include "vstactionscontroller.h"
 
-#include "../view/vstviewdialog_qwidget.h"
+#include "../widgets/vstviewdialog_qwidget.h"
 
 #include "log.h"
 
@@ -60,6 +60,7 @@ void VstActionsController::fxEditor(const actions::ActionQuery& actionQuery)
     int trackId = actionQuery.param("trackId", Val(-1)).toInt();
     int chainOrder = actionQuery.param("chainOrder", Val(0)).toInt();
     std::string operation = actionQuery.param("operation", Val("open")).toString();
+    bool sync = actionQuery.param("sync", Val(false)).toBool();
 
     auto instance = instancesRegister()->fxPlugin(resourceId, trackId, chainOrder);
 
@@ -73,7 +74,7 @@ void VstActionsController::fxEditor(const actions::ActionQuery& actionQuery)
         return;
     }
 
-    editorOperation(operation, instance->id());
+    editorOperation(operation, instance->id(), sync);
 }
 
 void VstActionsController::instEditor(const actions::ActionQuery& actionQuery)
@@ -98,6 +99,7 @@ void VstActionsController::instEditor(const actions::ActionQuery& actionQuery)
     auto instance = instancesRegister()->instrumentPlugin(resourceId, trackId);
 
     std::string operation = actionQuery.param("operation", Val("open")).toString();
+    bool sync = actionQuery.param("sync", Val(false)).toBool();
 
     if (operation == "close" && !instance) {
         return;
@@ -109,21 +111,28 @@ void VstActionsController::instEditor(const actions::ActionQuery& actionQuery)
         return;
     }
 
-    editorOperation(operation, instance->id());
+    editorOperation(operation, instance->id(), sync);
 }
 
-void VstActionsController::editorOperation(const std::string& operation, int instanceId)
+void VstActionsController::editorOperation(const std::string& operation, int instanceId, bool sync)
 {
     UriQuery editorUri = UriQuery(String(VST_EDITOR_URI).arg(instanceId));
 
     if (operation == "close") {
-        interactive()->close(editorUri);
-    } else {
-        if (interactive()->isOpened(editorUri).val) {
-            interactive()->raise(editorUri);
+        if (sync) {
+            interactive()->closeSync(editorUri);
         } else {
-            interactive()->open(editorUri);
+            interactive()->close(editorUri);
         }
+        return;
+    }
+
+    if (interactive()->isOpened(editorUri).val) {
+        interactive()->raise(editorUri);
+    } else if (sync) {
+        interactive()->openSync(editorUri);
+    } else {
+        interactive()->open(editorUri);
     }
 }
 
@@ -138,7 +147,7 @@ void VstActionsController::useView(bool isNew)
 
     if (isNew) {
         configuration()->setUsedVstView("newview");
-        interactiveUriRegister()->registerQmlUri(Uri("muse://vst/editor"), "Muse/Vst/VstEditorDialog.qml");
+        interactiveUriRegister()->registerQmlUri(Uri("muse://vst/editor"), "Muse.Vst", "VstEditorDialog");
     } else {
         configuration()->setUsedVstView("oldview");
         interactiveUriRegister()->registerWidgetUri<VstViewDialog>(Uri("muse://vst/editor"));

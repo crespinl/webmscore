@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -23,6 +23,8 @@
 #pragma once
 
 #include "types.h"
+
+#include "engraving/dom/tremolobar.h"
 
 namespace mu::engraving {
 class TConv
@@ -172,6 +174,9 @@ public:
     static AsciiStringView toXml(TremoloType v);
     static TremoloType fromXml(const AsciiStringView& str, TremoloType def);
 
+    static AsciiStringView toXml(TremoloBarType v);
+    static TremoloBarType fromXml(const AsciiStringView& str, TremoloBarType def);
+
     static const TranslatableString& userName(BracketType v);
     static String translatedUserName(BracketType v);
     static AsciiStringView toXml(BracketType v);
@@ -245,6 +250,9 @@ public:
 
     static AsciiStringView toXml(AutoOnOff autoOnOff);
     static AutoOnOff fromXml(const AsciiStringView& str, AutoOnOff def);
+
+    static AsciiStringView toXml(CapoParams::TransposeMode autoOnOff);
+    static CapoParams::TransposeMode fromXml(const AsciiStringView& str, CapoParams::TransposeMode def);
 
     static AsciiStringView toXml(PartialSpannerDirection v);
     static PartialSpannerDirection fromXml(const AsciiStringView& str, PartialSpannerDirection def);

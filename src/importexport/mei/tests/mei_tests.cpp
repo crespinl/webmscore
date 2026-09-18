@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -35,7 +35,6 @@
 #include "importexport/mei/internal/meireader.h"
 #include "importexport/mei/internal/meiwriter.h"
 
-using namespace mu;
 using namespace mu::engraving;
 
 static const String MEI_DIR(u"data/");
@@ -59,7 +58,7 @@ void Mei_Tests::meiReadTest(const char* file)
     String fileName = String::fromUtf8(file);
 
     auto importFunc = [](MasterScore* score, const muse::io::path_t& path) -> Err {
-        MeiReader meiReader;
+        MeiReader meiReader(nullptr);
         return meiReader.import(score, path);
     };
 
@@ -105,6 +104,10 @@ TEST_F(Mei_Tests, mei_arpeg_01) {
 
 TEST_F(Mei_Tests, mei_artic_01) {
     meiReadTest("artic-01");
+}
+
+TEST_F(Mei_Tests, mei_artic_02) {
+    meiReadTest("artic-02");
 }
 
 TEST_F(Mei_Tests, mei_beam_01) {
@@ -169,6 +172,10 @@ TEST_F(Mei_Tests, mei_fig_bass_01) {
 
 TEST_F(Mei_Tests, mei_fingering_01) {
     meiReadTest("fingering-01");
+}
+
+TEST_F(Mei_Tests, mei_ftrem_01) {
+    meiReadTest("ftrem-01");
 }
 
 TEST_F(Mei_Tests, mei_glisss_01) {

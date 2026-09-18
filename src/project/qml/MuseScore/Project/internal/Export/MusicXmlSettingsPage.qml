@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -19,10 +19,13 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-import QtQuick 2.15
 
-import Muse.UiComponents 1.0
-import MuseScore.Project 1.0
+pragma ComponentBehavior: Bound
+
+import QtQuick
+
+import Muse.UiComponents
+import MuseScore.Project 
 
 ExportSettingsPage {
     id: root
@@ -35,17 +38,19 @@ ExportSettingsPage {
         model: root.model.musicXmlLayoutTypes()
 
         delegate: RoundedRadioButton {
-            width: ListView.view.width
+            required text
+            required property int value
+            required property int index
 
-            text: modelData["text"]
+            width: ListView.view.width
 
             navigation.name: "MusicXmlLayoutTypeRadioButton " + text
             navigation.panel: root.navigationPanel
-            navigation.row: root.navigationOrder + model.index
+            navigation.row: root.navigationOrder + index
 
-            checked: root.model.musicXmlLayoutType === modelData["value"]
+            checked: root.model.musicXmlLayoutType === value
             onToggled: {
-                root.model.musicXmlLayoutType = modelData["value"]
+                root.model.musicXmlLayoutType = value
             }
         }
     }

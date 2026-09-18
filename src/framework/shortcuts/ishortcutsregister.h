@@ -5,7 +5,7 @@
  * MuseScore
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore BVBA and others
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -19,10 +19,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-#ifndef MUSE_SHORTCUTS_ISHORTCUTSREGISTER_H
-#define MUSE_SHORTCUTS_ISHORTCUTSREGISTER_H
-
-#include <list>
+#pragma once
 
 #include "modularity/imoduleinterface.h"
 #include "shortcutstypes.h"
@@ -31,7 +28,7 @@
 #include "io/path.h"
 
 namespace muse::shortcuts {
-class IShortcutsRegister : MODULE_EXPORT_INTERFACE
+class IShortcutsRegister : MODULE_CONTEXT_INTERFACE
 {
     INTERFACE_ID(IShortcutsRegister)
 public:
@@ -61,5 +58,3 @@ public:
     virtual void reload(bool onlyDef = false) = 0;
 };
 }
-
-#endif // MUSE_SHORTCUTS_ISHORTCUTSREGISTER_H

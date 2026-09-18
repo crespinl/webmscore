@@ -5,7 +5,7 @@
  * MuseScore
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore BVBA and others
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -25,18 +25,10 @@
 
 #include "shortcutsregisterstub.h"
 #include "shortcutscontrollerstub.h"
-#include "midiremotestub.h"
 #include "shortcutsconfigurationstub.h"
-
-#include "ui/iuiengine.h"
 
 using namespace muse::shortcuts;
 using namespace muse::modularity;
-
-static void shortcuts_init_qrc()
-{
-    Q_INIT_RESOURCE(shortcuts);
-}
 
 std::string ShortcutsModule::moduleName() const
 {
@@ -47,15 +39,5 @@ void ShortcutsModule::registerExports()
 {
     ioc()->registerExport<IShortcutsRegister>(moduleName(), new ShortcutsRegisterStub());
     ioc()->registerExport<IShortcutsController>(moduleName(), new ShortcutsControllerStub());
-    ioc()->registerExport<IMidiRemote>(moduleName(), new MidiRemoteStub());
     ioc()->registerExport<IShortcutsConfiguration>(moduleName(), new ShortcutsConfigurationStub());
-}
-
-void ShortcutsModule::registerResources()
-{
-    shortcuts_init_qrc();
-}
-
-void ShortcutsModule::registerUiTypes()
-{
 }

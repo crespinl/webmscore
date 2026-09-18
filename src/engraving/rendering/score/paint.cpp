@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -35,7 +35,7 @@ using namespace muse::draw;
 using namespace mu::engraving;
 using namespace mu::engraving::rendering::score;
 
-void Paint::paintScore(Painter* painter, Score* score, const IScoreRenderer::PaintOptions& opt)
+void Paint::paintScore(Painter* painter, Score* score, const IScoreRenderer::ScorePaintOptions& opt)
 {
     TRACEFUNC;
     if (!score) {
@@ -67,7 +67,6 @@ void Paint::paintScore(Painter* painter, Score* score, const IScoreRenderer::Pai
     }
 
     // Setup score draw system
-    mu::engraving::MScore::pixelRatio = mu::engraving::DPI / DEVICE_DPI;
     mu::engraving::MScore::pdfPrinting = opt.isPrinting;
 
     const bool wasPrinting = score->printing();
@@ -147,8 +146,7 @@ void Paint::paintScore(Painter* painter, Score* score, const IScoreRenderer::Pai
             }
 
             std::vector<EngravingItem*> elements = page->items(drawRect.translated(-pagePos));
-            paintItems(*painter, elements);
-            //DebugPaint::paintPageTree(*painter, page);
+            paintItems(*painter, elements, opt);
 
             if (disableClipping) {
                 painter->setClipping(false);
@@ -195,7 +193,7 @@ SizeF Paint::pageSizeInch(const Score* score)
     return SizeF(score->style().styleD(Sid::pageWidth), score->style().styleD(Sid::pageHeight));
 }
 
-SizeF Paint::pageSizeInch(const Score* score, const IScoreRenderer::PaintOptions& opt)
+SizeF Paint::pageSizeInch(const Score* score, const IScoreRenderer::ScorePaintOptions& opt)
 {
     if (!score) {
         return SizeF();
@@ -219,7 +217,7 @@ SizeF Paint::pageSizeInch(const Score* score, const IScoreRenderer::PaintOptions
     return pageRect.size() / mu::engraving::DPI;
 }
 
-void Paint::paintItem(Painter& painter, const EngravingItem* item)
+void Paint::paintItem(Painter& painter, const EngravingItem* item, const PaintOptions& opt)
 {
     TRACEFUNC;
     if (item->ldata()->isSkipDraw()) {
@@ -229,11 +227,11 @@ void Paint::paintItem(Painter& painter, const EngravingItem* item)
     PointF itemPosition(item->pagePos());
 
     painter.translate(itemPosition);
-    TDraw::drawItem(item, &painter);
+    TDraw::drawItem(item, &painter, opt);
     painter.translate(-itemPosition);
 }
 
-void Paint::paintItems(Painter& painter, const std::vector<EngravingItem*>& items)
+void Paint::paintItems(Painter& painter, const std::vector<EngravingItem*>& items, const PaintOptions& opt)
 {
     TRACEFUNC;
     std::vector<EngravingItem*> sortedItems(items.begin(), items.end());
@@ -245,6 +243,6 @@ void Paint::paintItems(Painter& painter, const std::vector<EngravingItem*>& item
             continue;
         }
 
-        paintItem(painter, item);
+        paintItem(painter, item, opt);
     }
 }

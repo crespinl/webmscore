@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -29,11 +29,12 @@
 #include "async/asyncable.h"
 
 namespace mu::palette {
-class PaletteUiActions : public muse::ui::IUiActionsModule, public muse::async::Asyncable
+class PaletteUiActions : public muse::ui::IUiActionsModule, public muse::async::Asyncable, public muse::Contextable
 {
-    INJECT(context::IUiContextResolver, uicontextResolver)
+    muse::ContextInject<context::IUiContextResolver> uicontextResolver = { this };
+
 public:
-    PaletteUiActions(std::shared_ptr<PaletteActionsController> controller);
+    PaletteUiActions(std::shared_ptr<PaletteActionsController> controller, const muse::modularity::ContextPtr& iocCtx);
 
     void init();
 

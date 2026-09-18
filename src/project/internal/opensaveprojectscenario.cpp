@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2022 MuseScore Limited
+ * Copyright (C) 2022 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -23,6 +23,7 @@
 #include "opensaveprojectscenario.h"
 
 #include "cloud/clouderrors.h"
+#include "cloud/qml/Muse/Cloud/enums.h"
 #include "engraving/infrastructure/mscio.h"
 #include "projecterrors.h"
 
@@ -205,7 +206,7 @@ RetVal<CloudAudioInfo> OpenSaveProjectScenario::askShareAudioLocation(INotationP
     }
 
     QVariantMap vals = rv.val.toQVariant().toMap();
-    using Response = cloud::QMLSaveToCloudResponse::SaveToCloudResponse;
+    using Response = cloud::SaveToCloudResponse::SaveToCloudResponse;
     auto response = static_cast<Response>(vals["response"].toInt());
     switch (response) {
     case Response::Cancel:
@@ -238,7 +239,7 @@ RetVal<CloudProjectInfo> OpenSaveProjectScenario::doAskCloudLocation(INotationPr
         return retVal.ret;
     }
 
-    using Response = cloud::QMLSaveToCloudResponse::SaveToCloudResponse;
+    using Response = cloud::SaveToCloudResponse::SaveToCloudResponse;
     if (static_cast<Response>(retVal.val.toInt()) == Response::SaveLocallyInstead) {
         RetVal<muse::io::path_t> rv = askLocalPath(project, mode);
         if (!rv.ret) {
@@ -262,8 +263,8 @@ RetVal<CloudProjectInfo> OpenSaveProjectScenario::doAskCloudLocation(INotationPr
         RetVal<cloud::ScoreInfo> scoreInfo = museScoreComService()->downloadScoreInfo(existingScoreUrl);
 
         if (scoreInfo.val.isValid()) {
-            ValCh<cloud::AccountInfo> accountInfo = museScoreComService()->authorization()->accountInfo();
-            if (accountInfo.val.id.toInt() != scoreInfo.val.owner.id) {
+            const cloud::AccountInfo& accountInfo = museScoreComService()->authorization()->accountInfo();
+            if (accountInfo.id.toInt() != scoreInfo.val.owner.id) {
                 existingScoreUrl = QUrl();
             }
         }
@@ -304,7 +305,7 @@ RetVal<CloudProjectInfo> OpenSaveProjectScenario::doAskCloudLocation(INotationPr
     }
 
     QVariantMap vals = rv.val.toQVariant().toMap();
-    using Response = cloud::QMLSaveToCloudResponse::SaveToCloudResponse;
+    using Response = cloud::SaveToCloudResponse::SaveToCloudResponse;
     auto response = static_cast<Response>(vals["response"].toInt());
     switch (response) {
     case Response::Cancel:
@@ -473,7 +474,7 @@ static std::string cloudStatusCodeErrorMessage(const Ret& ret, bool withHelp = f
     }
 
     if (withHelp) {
-        message += "\n\n" + muse::trc("project/cloud", "Please try again later, or get help for this problem on MuseScore.org.");
+        message += "\n\n" + muse::trc("project/cloud", "Please try again later, or get help for this problem on MuseScore.com.");
     }
 
     return message;
@@ -605,14 +606,14 @@ Ret OpenSaveProjectScenario::showCloudSaveError(const Ret& ret, const CloudProje
               .arg(u"https://musescore.com").toStdString();
         break;
     default:
-        msg = muse::trc("project/cloud", "Please try again later, or get help for this problem on MuseScore.org.");
+        msg = muse::trc("project/cloud", "Please try again later, or get help for this problem on MuseScore.com.");
         break;
     }
 
     IInteractive::Result result = interactive()->warningSync(title, msg, buttons, defaultButtonCode);
     switch (result.button()) {
     case helpBtnCode:
-        interactive()->openUrl(configuration()->supportForumUrl());
+        interactive()->openUrl(configuration()->dotComBugReportUrl());
         break;
     case saveLocallyBtnCode:
         return Ret(RET_CODE_CHANGE_SAVE_LOCATION_TYPE);

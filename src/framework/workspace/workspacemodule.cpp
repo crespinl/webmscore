@@ -5,7 +5,7 @@
  * MuseScore
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore BVBA and others
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -21,8 +21,6 @@
  */
 #include "workspacemodule.h"
 
-#include <QQmlEngine>
-
 #include "modularity/ioc.h"
 
 #include "framework/ui/iuiactionsregister.h"
@@ -34,9 +32,6 @@
 #include "internal/workspaceuiactions.h"
 #include "internal/workspacesdataprovider.h"
 
-#include "view/workspacelistmodel.h"
-#include "view/newworkspacemodel.h"
-
 #include "muse_framework_config.h"
 
 #ifdef MUSE_MODULE_DIAGNOSTICS
@@ -45,11 +40,6 @@
 
 using namespace muse::workspace;
 using namespace muse::modularity;
-
-static void workspace_init_qrc()
-{
-    Q_INIT_RESOURCE(workspace);
-}
 
 std::string WorkspaceModule::moduleName() const
 {
@@ -77,28 +67,13 @@ void WorkspaceModule::resolveImports()
 
     auto ir = ioc()->resolve<muse::ui::IInteractiveUriRegister>(moduleName());
     if (ir) {
-        ir->registerQmlUri(Uri("muse://workspace/select"), "Muse/Workspace/WorkspacesDialog.qml");
-        ir->registerQmlUri(Uri("muse://workspace/create"), "Muse/Workspace/NewWorkspaceDialog.qml");
+        ir->registerQmlUri(Uri("muse://workspace/select"), "Muse.Workspace", "WorkspacesDialog");
+        ir->registerQmlUri(Uri("muse://workspace/create"), "Muse.Workspace", "NewWorkspaceDialog");
     }
 }
 
-void WorkspaceModule::registerResources()
+void WorkspaceModule::onInit(const IApplication::RunMode&)
 {
-    workspace_init_qrc();
-}
-
-void WorkspaceModule::registerUiTypes()
-{
-    qmlRegisterType<WorkspaceListModel>("Muse.Workspace", 1, 0, "WorkspaceListModel");
-    qmlRegisterType<NewWorkspaceModel>("Muse.Workspace", 1, 0, "NewWorkspaceModel");
-}
-
-void WorkspaceModule::onInit(const IApplication::RunMode& mode)
-{
-    if (mode != IApplication::RunMode::GuiApp) {
-        return;
-    }
-
     m_configuration->init();
     m_manager->init();
     m_provider->init();

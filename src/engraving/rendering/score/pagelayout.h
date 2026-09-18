@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2023 MuseScore Limited
+ * Copyright (C) 2023 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -19,14 +19,15 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-#ifndef MU_ENGRAVING_PAGELAYOUT_DEV_H
-#define MU_ENGRAVING_PAGELAYOUT_DEV_H
+
+#pragma once
 
 #include "layoutcontext.h"
 
 namespace mu::engraving {
 class Page;
 class System;
+enum class SystemDividerType : unsigned char;
 }
 
 namespace mu::engraving::rendering::score {
@@ -39,13 +40,13 @@ public:
 
 private:
     static void layoutPage(LayoutContext& ctx, Page* page, double restHeight, double footerPadding);
-    static void checkDivider(LayoutContext& ctx, bool left, System* s, double yOffset, bool remove = false);
     static void distributeStaves(LayoutContext& ctx, Page* page, double footerPadding);
 
     static void layoutCrossStaffElements(LayoutContext& ctx, Page* page);
     static void layoutCrossStaffSlurs(LayoutContext& ctx, System* system);
     static void layoutArticAndFingeringOnCrossStaffBeams(LayoutContext& ctx, System* system);
+
+    static void layoutSystemDividers(LayoutContext& ctx, Page* page);
+    static void updateSystemDivider(LayoutContext& ctx, System* system, System* nextSystem, SystemDividerType type, bool needsDivider);
 };
 }
-
-#endif // MU_ENGRAVING_PAGELAYOUT_DEV_H

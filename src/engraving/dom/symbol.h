@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -57,7 +57,7 @@ public:
 
     Symbol* clone() const override { return new Symbol(*this); }
 
-    void setSym(SymId s, const std::shared_ptr<IEngravingFont>& sf = nullptr) { m_sym  = s; m_scoreFont = sf; }
+    void setSym(SymId s, const std::shared_ptr<IEngravingFont>& sf = nullptr);
     SymId sym() const { return m_sym; }
     const std::shared_ptr<IEngravingFont>& scoreFont() const { return m_scoreFont; }
     double symbolsSize() const { return m_symbolsSize; }
@@ -71,10 +71,12 @@ public:
 
     PropertyValue getProperty(Pid) const override;
     bool setProperty(Pid, const PropertyValue&) override;
-    PropertyValue propertyDefault(Pid) const override;
+    virtual PropertyValue propertyDefault(Pid) const override;
 
     double baseLine() const override { return 0.0; }
     virtual Segment* segment() const { return (Segment*)explicitParent(); }
+
+    void reset() override;
 
 protected:
     SymId m_sym = SymId::noSym;

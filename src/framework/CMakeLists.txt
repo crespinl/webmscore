@@ -4,7 +4,7 @@
 # MuseScore
 # Music Composition & Notation
 #
-# Copyright (C) 2021 MuseScore BVBA and others
+# Copyright (C) 2021 MuseScore Limited and others
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 3 as
@@ -18,9 +18,29 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+if (MUSE_COMPILE_USE_PCH)
+    add_subdirectory(${MUSE_FRAMEWORK_PATH}/buildscripts/pch pch)
+endif()
+
 # should be first to work pch
 if (MUSE_MODULE_GLOBAL)
     add_subdirectory(global)
+endif()
+
+# modules need to be listed in dependency order
+if (MUSE_MODULE_UI)
+    add_subdirectory(ui)
+    add_subdirectory(uicomponents)
+
+    if (MUSE_MODULE_UI_QML)
+        # This sub-part of the UI module depends on the `uicomponents` module,
+        # so needs to be declared after it.
+        add_subdirectory(ui/qml/Muse/Ui/Dialogs)
+    endif()
+endif()
+
+if (MUSE_MODULE_DOCKWINDOW)
+    add_subdirectory(dockwindow)
 endif()
 
 if (MUSE_MODULE_ACCESSIBILITY)
@@ -59,21 +79,16 @@ if (MUSE_MODULE_MIDI)
     add_subdirectory(midi)
 endif()
 
+if (MUSE_MODULE_MIDIREMOTE)
+    add_subdirectory(midiremote)
+endif()
+
 if (MUSE_MODULE_MPE)
     add_subdirectory(mpe)
 endif()
 
 if (MUSE_MODULE_MUSESAMPLER)
     add_subdirectory(musesampler)
-endif()
-
-if (MUSE_MODULE_UI)
-    add_subdirectory(ui)
-    add_subdirectory(uicomponents)
-endif()
-
-if (MUSE_MODULE_DOCKWINDOW)
-    add_subdirectory(dockwindow)
 endif()
 
 if (MUSE_MODULE_NETWORK)
@@ -88,8 +103,8 @@ if (MUSE_MODULE_TOURS)
     add_subdirectory(tours)
 endif()
 
-if (MUSE_MODULE_MULTIINSTANCES)
-    add_subdirectory(multiinstances)
+if (MUSE_MODULE_MULTIWINDOWS)
+    add_subdirectory(multiwindows)
 endif()
 
 if (MUSE_MODULE_LANGUAGES)
@@ -98,6 +113,10 @@ endif()
 
 if (MUSE_MODULE_LEARN)
     add_subdirectory(learn)
+endif()
+
+if (MUSE_MODULE_MEDIA)
+    add_subdirectory(media)
 endif()
 
 if (MUSE_MODULE_EXTENSIONS)
@@ -129,6 +148,3 @@ endif()
 
 # Stubs
 add_subdirectory(stubs)
-
-
-

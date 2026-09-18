@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -30,6 +30,7 @@
 
 namespace mu::context {
 // common shortcuts (re declared for convenience)
+static const std::string CTX_DISABLED = muse::shortcuts::CTX_DISABLED;
 static const std::string CTX_ANY = muse::shortcuts::CTX_ANY;
 static const std::string CTX_NOTATION_OPENED = muse::shortcuts::CTX_PROJECT_OPENED;
 static const std::string CTX_NOTATION_FOCUSED = muse::shortcuts::CTX_PROJECT_FOCUSED;

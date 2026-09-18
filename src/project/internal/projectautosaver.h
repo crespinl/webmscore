@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -34,14 +34,16 @@
 #include "../iprojectautosaver.h"
 
 namespace mu::project {
-class ProjectAutoSaver : public IProjectAutoSaver, public muse::async::Asyncable
+class ProjectAutoSaver : public IProjectAutoSaver, public muse::async::Asyncable, public muse::Contextable
 {
-    INJECT(context::IGlobalContext, globalContext)
-    INJECT(muse::io::IFileSystem, fileSystem)
-    INJECT(IProjectConfiguration, configuration)
+    muse::GlobalInject<muse::io::IFileSystem> fileSystem;
+    muse::GlobalInject<IProjectConfiguration> configuration;
+    muse::ContextInject<context::IGlobalContext> globalContext = { this };
 
 public:
-    ProjectAutoSaver() = default;
+    ProjectAutoSaver(const muse::modularity::ContextPtr& iocCtx)
+        : muse::Contextable(iocCtx)
+    {}
 
     void init();
 

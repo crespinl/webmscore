@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2025 MuseScore Limited
+ * Copyright (C) 2025 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -22,9 +22,10 @@
 
 #include "onlinesoundscontroller.h"
 
-#include "audio/audioerrors.h"
+#include "audio/common/audioerrors.h"
 
 #include "log.h"
+#include "modularity/ioc.h"
 #include "translation.h"
 
 using namespace muse;
@@ -41,8 +42,8 @@ static Ret retFromProcessingStatus(const InputProcessingProgress::StatusInfo& st
     return ret;
 }
 
-OnlineSoundsController::OnlineSoundsController()
-    : m_onlineSoundsProcessingRet(make_ok())
+OnlineSoundsController::OnlineSoundsController(const muse::modularity::ContextPtr& iocCtx)
+    : muse::Contextable(iocCtx), m_onlineSoundsProcessingRet(make_ok())
 {
 }
 

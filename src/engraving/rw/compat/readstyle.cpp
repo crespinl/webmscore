@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -121,7 +121,7 @@ void ReadStyleHook::readStyleTag(XmlReader& e)
 void ReadStyleHook::readStyleTag(Score* score, XmlReader& e)
 {
     ReadChordListHook clhook(score);
-    score->style().read(e, &clhook);
+    score->style().read(e, &clhook, score->mscVersion());
 }
 
 bool ReadStyleHook::readStyleProperties(MStyle* style, XmlReader& e)

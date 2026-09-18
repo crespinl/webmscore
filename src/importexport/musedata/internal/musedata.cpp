@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -43,6 +43,7 @@
 #include "engraving/dom/staff.h"
 #include "engraving/dom/timesig.h"
 #include "engraving/dom/tuplet.h"
+#include "engraving/editing/transpose.h"
 
 #include "log.h"
 
@@ -64,7 +65,7 @@ void MuseData::musicalAttribute(QStringView s, Part* part)
             ke.setConcertKey(key);
             if (!v.isZero() && !score->style().styleB(Sid::concertPitch)) {
                 v.flip();
-                ke.setKey(transposeKey(key, v));
+                ke.setKey(Transpose::transposeKey(key, v));
             }
             for (Staff* staff : part->staves()) {
                 staff->setKey(curTick, ke);
@@ -188,13 +189,7 @@ void MuseData::readChord(Part*, QStringView s)
             staffIdx = s.mid(23, 1).toInt() - 1;
         }
     }
-    int pitch = table[step] + alter + (octave + 1) * 12;
-    if (pitch < 0) {
-        pitch = 0;
-    }
-    if (pitch > 127) {
-        pitch = 127;
-    }
+    int pitch = clampPitch(table[step] + alter + (octave + 1) * 12);
 
     Chord* chord = (Chord*)chordRest;
     Note* note = Factory::createNote(chord);
@@ -444,7 +439,7 @@ void MuseData::readNote(Part* part, QStringView s)
         for (const QStringView w : sl) {
             Lyrics* l = Factory::createLyrics(chord);
             l->setPlainText(diacritical(w));
-            l->setNo(no++);
+            l->setVerse(no++);
             l->setTrack(gstaff * VOICES);
             chord->add(l);
         }
@@ -546,7 +541,7 @@ void MuseData::readBackup(QStringView s)
 Measure* MuseData::createMeasure()
 {
     for (MeasureBase* mb = score->first(); mb; mb = mb->next()) {
-        if (mb->type() != ElementType::MEASURE) {
+        if (!mb->isMeasure()) {
             continue;
         }
         Measure* m = (Measure*)mb;

@@ -5,7 +5,7 @@
  * MuseScore
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore BVBA and others
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -49,16 +49,16 @@ class DiagnosticAccessibleModel;
 }
 
 namespace muse::accessibility {
-class AccessibilityController : public IAccessibilityController, public IAccessible, public muse::Injectable, public async::Asyncable,
+class AccessibilityController : public IAccessibilityController, public IAccessible, public muse::Contextable, public async::Asyncable,
     public std::enable_shared_from_this<AccessibilityController>
 {
 public:
-    Inject<IApplication> application = { this };
-    Inject<ui::IMainWindow> mainWindow = { this };
-    Inject<ui::IInteractiveProvider> interactiveProvider = { this };
-    Inject<ui::IUiActionsRegister> actionsRegister = { this };
-    Inject<actions::IActionsDispatcher> actionsDispatcher = { this };
-    Inject<IAccessibilityConfiguration> configuration = { this };
+    GlobalInject<IAccessibilityConfiguration> configuration;
+    ContextInject<IApplication> application = { this };
+    ContextInject<ui::IMainWindow> mainWindow = { this };
+    ContextInject<ui::IInteractiveProvider> interactiveProvider = { this };
+    ContextInject<ui::IUiActionsRegister> actionsRegister = { this };
+    ContextInject<actions::IActionsDispatcher> actionsDispatcher = { this };
 
 public:
     AccessibilityController(const muse::modularity::ContextPtr& iocCtx);
@@ -71,6 +71,7 @@ public:
     // IAccessibilityController
     void reg(IAccessible* item) override;
     void unreg(IAccessible* item) override;
+    bool isReg(IAccessible* item) const override;
 
     void announce(const QString& announcement) override;
     QString announcement() const override;

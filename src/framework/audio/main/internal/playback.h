@@ -5,7 +5,7 @@
  * MuseScore
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore BVBA and others
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -27,20 +27,26 @@
 
 #include "modularity/ioc.h"
 #include "common/rpc/irpcchannel.h"
+#include "../istartaudiocontroller.h"
 
 #include "../iplayer.h"
 
 namespace muse::audio {
-class Playback : public IPlayback, public Injectable, public async::Asyncable
+class Playback : public IPlayback, public Contextable, public async::Asyncable
 {
-    Inject<rpc::IRpcChannel> channel;
+    ContextInject<rpc::IRpcChannel> channel = { this };
+    ContextInject<IStartAudioController> startAudioController = { this };
 
 public:
     Playback(const muse::modularity::ContextPtr& iocCtx)
-        : Injectable(iocCtx) {}
+        : Contextable(iocCtx) {}
 
     void init();
     void deinit();
+
+    // 0. Check is audio system started
+    bool isAudioStarted() const override;
+    async::Channel<bool> isAudioStartedChanged() const override;
 
     // 1. Add Sequence
     async::Promise<TrackSequenceId> addSequence() override;
@@ -102,11 +108,15 @@ public:
     async::Promise<bool> saveSoundTrack(const TrackSequenceId sequenceId, const io::path_t& destination,
                                         const SoundTrackFormat& format) override;
     void abortSavingAllSoundTracks() override;
-    async::Channel<int64_t, int64_t> saveSoundTrackProgressChanged(const TrackSequenceId sequenceId) const override;
+    SaveSoundTrackProgress saveSoundTrackProgressChanged(const TrackSequenceId sequenceId) const override;
 
     void clearAllFx() override;
 
 private:
+
+    using PendingAddSequence = std::function<void ()>;
+    std::vector<PendingAddSequence> m_pendingAddSequences;
+
     async::Channel<TrackSequenceId> m_sequenceAdded;
     async::Channel<TrackSequenceId> m_sequenceRemoved;
 
@@ -116,8 +126,8 @@ private:
     async::Channel<TrackSequenceId, TrackId, AudioOutputParams> m_outputParamsChanged;
     async::Channel<AudioOutputParams> m_masterOutputParamsChanged;
 
-    mutable std::map<TrackSequenceId, async::Channel<int64_t, int64_t> > m_saveSoundTrackProgressChannels;
-    async::Channel<TrackSequenceId, int64_t, int64_t> m_saveSoundTrackProgressStream;
+    mutable std::map<TrackSequenceId, SaveSoundTrackProgress> m_saveSoundTrackProgressChannels;
+    async::Channel<TrackSequenceId, int64_t, int64_t, SaveSoundTrackStage> m_saveSoundTrackProgressStream;
     mutable rpc::StreamId m_saveSoundTrackProgressStreamId = 0;
 };
 }

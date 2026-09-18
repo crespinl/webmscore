@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<museScore version="4.60">
+<museScore version="4.70">
   <Score>
     <eid>B_B</eid>
     <Division>480</Division>
@@ -209,8 +209,7 @@
             </Chord>
           <StaffText>
             <eid>o_o</eid>
-            <text>MuseScore testfile
-Leon Vinken</text>
+            <text>MuseScore testfile<br/>Leon Vinken</text>
             </StaffText>
           <Chord>
             <eid>p_p</eid>

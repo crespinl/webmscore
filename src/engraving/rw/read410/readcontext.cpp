@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -24,8 +24,9 @@
 
 #include "dom/linkedobjects.h"
 #include "dom/score.h"
+#include "dom/staff.h"
 #include "dom/trill.h"
-#include "dom/undo.h"
+#include "editing/undo.h"
 
 #include "connectorinforeader.h"
 
@@ -59,6 +60,11 @@ ReadContext::~ReadContext()
 Score* ReadContext::score() const
 {
     return m_score;
+}
+
+void ReadContext::setScore(Score* score)
+{
+    m_score = score;
 }
 
 const MStyle& ReadContext::style() const
