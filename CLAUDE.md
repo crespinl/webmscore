@@ -124,11 +124,14 @@ audio engine and the RPC plumbing — always run both.
 
 ## Traps (each of these cost hours)
 
-* **ioc: global vs context interfaces.** `MODULE_GLOBAL_INTERFACE` → `globalIoc()`,
-  `MODULE_CONTEXT_INTERFACE` → `ioc()`. `resolve<T>()` on the wrong container silently
-  returns `nullptr` (only `Inject`/`GlobalInject` static_assert). Audio, playback, project
-  and rpc services are *context* interfaces. Keep using the default (null) context
-  everywhere in webmscore so all objects share one container.
+* **ioc: global vs context interfaces.** `globalIoc()` *is* `ioc(nullptr)` (same container),
+  so as long as webmscore keeps using the default (null) context everywhere, both spellings
+  register/resolve the same services — do keep it that way. The distinction is compile-time:
+  `GlobalInject<T>` requires `MODULE_GLOBAL_INTERFACE`, `ContextInject<T>` requires
+  `MODULE_CONTEXT_INTERFACE`. When upstream flips an interface from one to the other, the
+  fix is the inject type (or dropping an unused inject), not the container.
+  `resolve<T>()` never asserts: a service nobody registered is silently `nullptr`, and the
+  crash comes later as a null virtual call.
 * **Logging can be silent.** Qt/kors logger output from some call paths never reaches the
   Node console. When debugging, use `fprintf(stderr, ...); fflush(stderr);` — it always works.
 * **Decoding wasm stack traces**: the `RuntimeError` frames are indices into
