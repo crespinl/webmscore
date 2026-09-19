@@ -21,6 +21,7 @@
 #include "importexport/guitarpro/guitarpromodule.h"
 #include "importexport/midi/midimodule.h"
 #include "importexport/imagesexport/imagesexportmodule.h"
+#include "importexport/imagesexport/iimagesexportconfiguration.h"
 
 #include "draw/ifontprovider.h"
 #include "engraving/dom/score.h"
@@ -47,6 +48,10 @@
 using namespace mu;
 using namespace muse;
 using project::INotationWriter;
+
+//! NOTE Resolution of the exported PNG images, in dpi.
+//! This used to be `mu::engraving::DPI` (which was 360 until MuseScore 4.7)
+static constexpr float PNG_DPI_RESOLUTION = 360.f;
 
 std::set<engraving::EngravingProjectPtr> instances;
 static auto s_globalContext = std::make_shared<context::GlobalContext>();
@@ -111,6 +116,11 @@ void _init(int argc, char** argv) {
     imgM->registerExports();
     imgM->resolveImports();
     imgM->onInit(IApplication::RunMode::ConsoleApp);
+
+    // The PNG writer exports at `mu::engraving::DPI`, which changed from 360 to 1200 in
+    // MuseScore 4.7 (an A4 page would become 9924x14028 px). Keep the previous size.
+    auto imgConf = modularity::ioc()->resolve<iex::imagesexport::IImagesExportConfiguration>("");
+    imgConf->setExportPngDpiResolutionOverride(PNG_DPI_RESOLUTION);
 
     auto writers = modularity::ioc()->resolve<project::INotationWritersRegister>("");
     writers->reg({ engraving::MSCZ }, std::make_shared<notation::MscNotationWriter>(engraving::MscIoMode::Zip));
