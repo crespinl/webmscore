@@ -421,21 +421,17 @@ muse::async::Channel<Color> EngravingConfiguration::unlinkedColorChanged() const
 
 const IEngravingConfiguration::DebuggingOptions& EngravingConfiguration::debuggingOptions() const
 {
-    NOT_IMPLEMENTED;
-    // return m_debuggingOptions.val;
+    return m_debuggingOptions.val;
 }
 
 void EngravingConfiguration::setDebuggingOptions(const DebuggingOptions& options)
 {
-    (void)options;
-    NOT_IMPLEMENTED;
-    // m_debuggingOptions.set(options);
+    m_debuggingOptions.set(options);
 }
 
 muse::async::Notification EngravingConfiguration::debuggingOptionsChanged() const
 {
-    NOT_IMPLEMENTED;
-    // return m_debuggingOptions.notification;
+    return m_debuggingOptions.notification;
 }
 
 bool EngravingConfiguration::isAccessibleEnabled() const

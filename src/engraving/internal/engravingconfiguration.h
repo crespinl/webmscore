@@ -23,6 +23,7 @@
 #pragma once
 
 #include "async/asyncable.h"
+#include "types/retval.h"
 
 #include "modularity/ioc.h"
 #include "global/iglobalconfiguration.h"
@@ -139,7 +140,7 @@ private:
     muse::async::Channel<muse::io::path_t> m_defaultStyleFilePathChanged;
     muse::async::Channel<muse::io::path_t> m_partStyleFilePathChanged;
 
-    // muse::ValNt<DebuggingOptions> m_debuggingOptions;
+    muse::ValNt<DebuggingOptions> m_debuggingOptions;
 
     bool m_multiVoice = false;
 };
