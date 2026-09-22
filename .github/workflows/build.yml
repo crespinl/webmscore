@@ -194,11 +194,11 @@ jobs:
       - name: Publish to Github Releases
         uses: softprops/action-gh-release@v1
         with:
-          files: webmscore-*.tgz
+          files: webmscore4-*.tgz
           name: webmscore ${{ env.VERSION }}
           tag_name: ${{ env.VERSION }}
           target_commitish: ${{ github.sha }}
       - name: Publish to NPM
-        run: npm publish webmscore-*.tgz
+        run: npm publish webmscore4-*.tgz
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }} # npm_gUA5...
