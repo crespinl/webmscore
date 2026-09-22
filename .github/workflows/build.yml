@@ -39,7 +39,7 @@ jobs:
           sudo apt update
           sudo apt install -y cmake
           cmake --version
-    
+
       - uses: actions/setup-node@v6
         with:
           node-version: 24
@@ -51,7 +51,7 @@ jobs:
         with:
           # Allows updating the cache
           # https://github.com/actions/cache/blob/main/tips-and-workarounds.md#update-a-cache
-          key: emmake_cache-${{ github.run_id }} 
+          key: emmake_cache-${{ github.run_id }}
           restore-keys: |
             emmake_cache
           path: ${{ github.workspace }}/.ccache
@@ -87,7 +87,7 @@ jobs:
           sudo ln -sf $(whereis libicui18n.so | awk '{print $NF}') $(whereis libicui18n.so | awk '{print $NF}').56
           sudo ln -sf $(whereis libicudata.so | awk '{print $NF}') $(whereis libicudata.so | awk '{print $NF}').56
           sudo ln -sf $(whereis libicuuc.so | awk '{print $NF}') $(whereis libicuuc.so | awk '{print $NF}').56
-        
+
       - name: Install emscripten
         uses: Xmader/setup-emsdk@master
         with:
@@ -156,7 +156,7 @@ jobs:
         with:
           name: example-exports
           path: web-example/exported*
-      
+
       - uses: actions/upload-artifact@v7
         if: steps.run-test.outputs.failed == '1'
         with:
@@ -192,7 +192,7 @@ jobs:
           echo "VERSION=$(echo $COMMIT_MSG | cut -d ' ' -f 2)" >> $GITHUB_ENV
           echo $VERSION
       - name: Publish to Github Releases
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v3
         with:
           files: webmscore4-*.tgz
           name: webmscore ${{ env.VERSION }}
