@@ -68,7 +68,11 @@ void _init(int argc, char** argv) {
     loadFonts();
 
     modularity::globalIoc()->registerExport<context::IGlobalContext>("", s_globalContext);
-    modularity::globalIoc()->registerExport<notation::INotationConfiguration>("", new notation::NotationConfiguration());
+    auto notationConfiguration = new notation::NotationConfiguration();
+    modularity::globalIoc()->registerExport<notation::INotationConfiguration>("", notationConfiguration);
+    // `NotationConfiguration::init()` is never called here, so the setting has no default
+    // value and reads as `false`: the synthesized audio would skip repeats
+    notationConfiguration->setIsPlayRepeatsEnabled(true);
 
     // src/framework/global/globalmodule.cpp#67
     modularity::globalIoc()->registerExport<io::IFileSystem>("", new io::FileSystem());
