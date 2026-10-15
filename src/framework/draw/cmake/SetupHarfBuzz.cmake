@@ -36,25 +36,42 @@ endif()
 
 # If not MUE_COMPILE_USE_SYSTEM_HARFBUZZ, or if it was not found,
 # download and build harfbuzz
+#
+# The harfbuzz/7.1.0 recipe that used to be downloaded from musescore/muse_deps
+# does not exist anymore, so the official release is fetched instead.
+# harfbuzz uses the `freetype` target by itself when it exists.
 
-set(REMOTE_ROOT_URL https://raw.githubusercontent.com/musescore/muse_deps/main)
-set(remote_url ${REMOTE_ROOT_URL}/harfbuzz/7.1.0)
-set(local_path ${PROJECT_BINARY_DIR}/_deps/harfbuzz)
-if (NOT EXISTS ${local_path}/harfbuzz.cmake)
-    file(MAKE_DIRECTORY ${local_path})
-    file(DOWNLOAD ${remote_url}/harfbuzz.cmake ${local_path}/harfbuzz.cmake
-        HTTPHEADER "Cache-Control: no-cache"
-    )
+include(FetchContent)
+if (POLICY CMP0135)
+    cmake_policy(SET CMP0135 NEW)
 endif()
 
-include(${local_path}/harfbuzz.cmake)
-
-# func from ${name}.cmake)
-cmake_language(CALL harfbuzz_Populate ${remote_url} ${local_path} "source" "" "")
+FetchContent_Declare(harfbuzz
+    URL https://github.com/harfbuzz/harfbuzz/releases/download/7.1.0/harfbuzz-7.1.0.tar.xz
+    URL_HASH SHA256=f135a61cd464c9ed6bc9823764c188f276c3850a8dc904628de2a87966b7077b
+)
 
 set(HB_HAVE_FREETYPE ON)
 
-add_subdirectory(${local_path}/harfbuzz harfbuzz)
+# harfbuzz is only used as a static library of this build: no install rules
+# (they would also require the `freetype` target to be in an export set)
+set(SKIP_INSTALL_ALL ON)
+
+FetchContent_MakeAvailable(harfbuzz)
+
+unset(SKIP_INSTALL_ALL)
+
+# Qt already bundles harfbuzz (libQt6BundledHarfbuzz.a), which is linked too.
+# harfbuzz builds a single object (the amalgamated harfbuzz.cc) defining every
+# symbol: it clashes with Qt's one ("duplicate symbol"). Build one object per
+# file instead, so the linker only takes the missing ones (e.g. hb-ft.cc).
+file(STRINGS ${harfbuzz_SOURCE_DIR}/src/harfbuzz.cc harfbuzz_includes REGEX "^#include \"hb-.*\\.cc\"")
+set(harfbuzz_sources)
+foreach(harfbuzz_include IN LISTS harfbuzz_includes)
+    string(REGEX REPLACE "^#include \"(.*)\"" "\\1" harfbuzz_source "${harfbuzz_include}")
+    list(APPEND harfbuzz_sources ${harfbuzz_SOURCE_DIR}/src/${harfbuzz_source})
+endforeach()
+set_property(TARGET harfbuzz PROPERTY SOURCES ${harfbuzz_sources})
 
 # In incremental/cache-reuse builds, harfbuzz can be rebuilt independently
 # from draw targets, so it must carry freetype includes explicitly.
@@ -71,4 +88,4 @@ target_no_warning(harfbuzz -WMSVC-no-unreachable)
 #add_subdirectory(thirdparty/msdfgen)
 
 set(HARFBUZZ_LIBRARIES harfbuzz)
-set(HARFBUZZ_INCLUDE_DIRS ${local_path}/harfbuzz/harfbuzz/src)
+set(HARFBUZZ_INCLUDE_DIRS ${harfbuzz_SOURCE_DIR}/src)

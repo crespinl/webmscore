@@ -58,7 +58,7 @@
         "clean": "npm run clean:d-ts && npm run clean:md && cd ../web/ && make clean",
         "clean:d-ts": "rm -f src/*.d.ts *.d.ts",
         "clean:md": "rm -f *.md",
-        "d-ts": "npm i typescript --no-save && tsc --emitDeclarationOnly --declaration --allowJs --lib esnext --target esnext src/index.js",
+        "d-ts": "npm i typescript@5 --no-save && tsc --emitDeclarationOnly --declaration --allowJs --lib esnext --target esnext src/index.js",
         "prepack": "cp ../README.md . && cp ../CHANGELOG.md .",
         "install:webpack": "node -e \"fs.linkSync('webmscore.lib.wasm', 'webmscore.lib.wasm-');fs.linkSync('webmscore.lib.mem.wasm', 'webmscore.lib.mem-')\" || true # workaround for Webpack 4"
     }
