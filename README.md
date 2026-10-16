@@ -18,7 +18,10 @@
 
 ## Installation
 
-The package is available on npm: https://www.npmjs.com/package/webmscore
+> [!IMPORTANT]  
+> The latest version available on npm corresponds to MuseScore 3, published by the [original LibreScore project](https://github.com/librescore/). For other versions, refer to (successively) [CarlGao4](https://github.com/CarlGao4/webmscore) (v4.3.2) [augustin64](https://github.com/augustin64/MuseScore) (v4.6.5) [partitioncloud](https://github.com/partitioncloud/webmscore) (this repo, v4.6.5-1 to current)
+
+~~The package is available on npm: https://www.npmjs.com/package/webmscore~~
 
 ```sh
 npm i webmscore

@@ -4,13 +4,22 @@ All notable changes to this project will be documented in this file.
 
 ### Unreleased
 
-* Modify synthesis per-track audio params with `score.get/setAudioOutputParams(...)`
-
 ### To be added
 
 * Stream audio file exporting
 * Python API
 * Pure WebAssembly API
+
+## 4.6.5-2 - 2026-10-16
+
+### Added
+
+* Query synthesis per-track audio params with `score.getAudioOutputParams()`
+* Modify per-track synthesis audio params with [`score.setAudioOutputParams(...)`](https://github.com/partitioncloud/webmscore/blob/9392e35fb22ae37e5f489fe7a0699826d7d95cf3/web-public/schemas.ts#L270C1-L273C2)
+
+### Fixed
+
+* Enable repeats
 
 ## 1.2.1 - 2023-01-23
 
