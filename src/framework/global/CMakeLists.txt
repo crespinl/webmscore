@@ -235,7 +235,7 @@ else()
 
     include(GetPlatformInfo)
 
-    if (OS_IS_WASM)
+    if (OS_IS_WASM AND NOT MUSE_WEB_LIB)
         target_sources(muse_global PRIVATE
             io/internal/memfilesystem.cpp
             io/internal/memfilesystem.h

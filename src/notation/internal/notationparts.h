@@ -27,7 +27,7 @@
 
 #include "inotationparts.h"
 #include "inotationundostack.h"
-#include "inotationinteraction.h"
+#include "../inotationinteraction.h"
 
 namespace mu::notation {
 class IGetScore;

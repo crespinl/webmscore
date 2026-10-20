@@ -23,6 +23,7 @@
 
 #include <memory>
 
+#include <QSet>
 #include <QBuffer>
 #include <QDir>
 #include <QFile>
@@ -49,7 +50,8 @@
 #include "notation/notationerrors.h"
 #include "projectaudiosettings.h"
 #include "projectfileinfoprovider.h"
-#include "projecterrors.h"
+#include "../projecterrors.h"
+#include "notation/internal/masternotation.h"
 
 #include "defer.h"
 #include "log.h"
@@ -460,7 +462,8 @@ muse::async::Notification NotationProject::displayNameChanged() const
 
 bool NotationProject::isCloudProject() const
 {
-    return configuration()->isCloudProject(m_path);
+    return false;
+    // return configuration()->isCloudProject(m_path);
 }
 
 const CloudProjectInfo& NotationProject::cloudInfo() const

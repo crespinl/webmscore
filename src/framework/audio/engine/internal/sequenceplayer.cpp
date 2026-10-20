@@ -105,7 +105,14 @@ void SequencePlayer::seek(const secs_t newPosition, const bool flushSound)
 {
     ONLY_AUDIO_ENGINE_THREAD;
 
-    msecs_t newPos = secsToMicrosecs(newPosition);
+    seek_ms(secsToMicrosecs(newPosition), flushSound);
+}
+
+/* newPos: microsecs */
+void SequencePlayer::seek_ms(const msecs_t newPos, const bool flushSound)
+{
+    ONLY_AUDIO_ENGINE_THREAD;
+
     m_tracksFollowClockSeek = false;
     m_clock->seek(newPos);
     m_tracksFollowClockSeek = true;

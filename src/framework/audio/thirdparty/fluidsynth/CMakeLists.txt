@@ -1,6 +1,7 @@
 muse_create_thirdparty_module(fluidsynth)
 
 include(${CMAKE_CURRENT_LIST_DIR}/fluidsynth.cmake)
+include(${CMAKE_CURRENT_LIST_DIR}/sndfile.cmake)
 
 target_sources(fluidsynth PRIVATE 
     ${FLUIDSYNTH_SRC}

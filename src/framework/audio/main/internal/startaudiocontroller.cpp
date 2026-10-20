@@ -32,7 +32,13 @@
 
 #include "audio/engine/platform/general/generalaudioworker.h"
 
-#ifndef Q_OS_WASM
+//! NOTE On the web, the engine normally runs in a separate worker (wasm instance).
+//! webmscore runs the engine in-process (same thread), see MUSE_AUDIO_INLINE_ENGINE.
+#if !defined(Q_OS_WASM) || defined(MUSE_AUDIO_INLINE_ENGINE)
+#define MUSE_AUDIO_ENGINE_IN_PROCESS
+#endif
+
+#ifdef MUSE_AUDIO_ENGINE_IN_PROCESS
 #include "audio/engine/internal/enginecontroller.h"
 #endif
 
@@ -60,19 +66,19 @@ StartAudioController::StartAudioController(std::shared_ptr<rpc::IRpcChannel> rpc
                                            const muse::modularity::ContextPtr& iocCtx)
     : muse::Contextable(iocCtx), m_rpcChannel(rpcChannel)
 {
-#ifndef Q_OS_WASM
+#ifdef MUSE_AUDIO_ENGINE_IN_PROCESS
     m_engineController = std::make_shared<engine::EngineController>(rpcChannel, iocCtx);
 #endif
 }
 
 void StartAudioController::registerExports()
 {
-#ifndef Q_OS_WASM
+#ifdef MUSE_AUDIO_ENGINE_IN_PROCESS
     m_engineController->registerExports();
 #endif
 }
 
-#ifndef Q_OS_WASM
+#ifdef MUSE_AUDIO_ENGINE_IN_PROCESS
 void StartAudioController::th_setupEngine()
 {
     LOGI() << "begin engine run";
@@ -97,6 +103,12 @@ void StartAudioController::init()
     });
 
     workmode::load();
+
+#if defined(MUSE_AUDIO_INLINE_ENGINE)
+    //! NOTE No threads available: set up the engine on the current thread.
+    //! Rpc messages are processed by the host (see IRpcChannel::process)
+    th_setupEngine();
+#endif
 
 #ifndef Q_OS_WASM
     if (workmode::mode() == workmode::WorkerMode) {
@@ -276,6 +288,7 @@ void StartAudioController::startAudioProcessing(const IApplication::RunMode& mod
         });
     };
 
+
     if (m_isEngineRunning.val) {
         sendEngineInit();
     } else {
@@ -289,7 +302,7 @@ void StartAudioController::startAudioProcessing(const IApplication::RunMode& mod
 
 void StartAudioController::stopAudioProcessing()
 {
-#ifndef Q_OS_WASM
+#ifdef MUSE_AUDIO_ENGINE_IN_PROCESS
     m_rpcChannel->send(rpc::make_request(Method::EngineDeinit), [this](const Msg&) {
         if (m_isAudioStarted.val) {
             m_isAudioStarted.set(false);
@@ -311,9 +324,12 @@ void StartAudioController::stopAudioProcessing()
 
     audioDriverController()->close();
 
+#ifndef Q_OS_WASM
+    //! NOTE There is no audio worker thread on the web
     if (m_worker && m_worker->isRunning()) {
         m_worker->stop();
     }
+#endif
 
     m_engineController->unregisterExports();
 #endif

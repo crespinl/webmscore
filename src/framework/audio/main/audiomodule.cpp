@@ -26,7 +26,7 @@
 
 #include "audio/common/audiosanitizer.h"
 #include "audio/common/audiothreadsecurer.h"
-#ifdef Q_OS_WASM
+#if defined(Q_OS_WASM) && !defined(MUSE_AUDIO_INLINE_ENGINE)
 #include "audio/common/rpc/platform/web/webrpcchannel.h"
 #include "platform/web/websoundfontcontroller.h"
 #else
@@ -68,11 +68,15 @@ void AudioModule::registerExports()
     m_mainPlayback = std::make_shared<Playback>(iocContext());
     m_audioDriverController = std::make_shared<AudioDriverController>(iocContext());
 
-#ifdef Q_OS_WASM
+#if defined(Q_OS_WASM) && !defined(MUSE_AUDIO_INLINE_ENGINE)
     m_rpcChannel = std::make_shared<rpc::WebRpcChannel>();
     m_soundFontController = std::make_shared<WebSoundFontController>();
 #else
+#ifdef MUSE_AUDIO_INLINE_ENGINE
+    m_rpcChannel = std::make_shared<rpc::GeneralRpcChannel>(true /*singleThread*/);
+#else
     m_rpcChannel = std::make_shared<rpc::GeneralRpcChannel>();
+#endif
     m_soundFontController = std::make_shared<GeneralSoundFontController>(iocContext());
 #endif
 
@@ -121,7 +125,7 @@ void AudioModule::onInit(const IApplication::RunMode& mode)
 
     m_startAudioController->init();
 
-#ifndef Q_OS_WASM
+#if !defined(Q_OS_WASM) || defined(MUSE_AUDIO_INLINE_ENGINE)
     m_startAudioController->startAudioProcessing(mode);
 #endif
 

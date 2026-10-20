@@ -40,6 +40,7 @@ static constexpr audioch_t AUDIO_CHANNELS = 2;
 static constexpr samples_t DEFAULT_BUFFER_SIZE = 1024;
 static constexpr sample_rate_t DEFAULT_SAMPLE_RATE = 44100;
 
+#if 0
 //TODO: add other setting: audio device etc
 static const Settings::Key AUDIO_API_KEY("audio", "io/audioApi");
 static const Settings::Key AUDIO_OUTPUT_DEVICE_ID_KEY("audio", "io/outputDevice");
@@ -51,9 +52,11 @@ static const Settings::Key ONLINE_SOUNDS_PROCESS_IN_BACKGROUND("audio", "io/onli
 static const Settings::Key USE_SOUNDFONT_LOWPASS_FILTER("audio", "synthesizer/useSoundFontLowPassFilter");
 
 static const Settings::Key USER_SOUNDFONTS_PATHS("midi", "application/paths/mySoundfonts");
+#endif
 
 void AudioConfiguration::init()
 {
+#if 0
     settings()->setDefaultValue(AUDIO_BUFFER_SIZE_KEY, Val(static_cast<int>(DEFAULT_BUFFER_SIZE)));
     settings()->valueChanged(AUDIO_BUFFER_SIZE_KEY).onReceive(nullptr, [this](const Val&) {
         m_driverBufferSizeChanged.notify();
@@ -101,6 +104,7 @@ void AudioConfiguration::init()
     settings()->valueChanged(USE_SOUNDFONT_LOWPASS_FILTER).onReceive(nullptr, [this](const Val& val) {
         m_useSoundFontLowPassFilterChanged.send(val.toBool());
     });
+#endif
 }
 
 AudioEngineConfig AudioConfiguration::engineConfig() const
@@ -119,17 +123,20 @@ void AudioConfiguration::onEngineConfigChanged()
 
 std::string AudioConfiguration::defaultAudioApi() const
 {
-    return settings()->defaultValue(AUDIO_API_KEY).toString();
+    // return settings()->defaultValue(AUDIO_API_KEY).toString();
+    return std::string();
 }
 
 std::string AudioConfiguration::currentAudioApi() const
 {
-    return settings()->value(AUDIO_API_KEY).toString();
+    // return settings()->value(AUDIO_API_KEY).toString();
+    return std::string();
 }
 
 void AudioConfiguration::setCurrentAudioApi(const std::string& name)
 {
-    settings()->setSharedValue(AUDIO_API_KEY, Val(name));
+    NOT_IMPLEMENTED;
+    // settings()->setSharedValue(AUDIO_API_KEY, Val(name));
 }
 
 async::Notification AudioConfiguration::currentAudioApiChanged() const
@@ -139,12 +146,15 @@ async::Notification AudioConfiguration::currentAudioApiChanged() const
 
 std::string AudioConfiguration::audioOutputDeviceId() const
 {
-    return settings()->value(AUDIO_OUTPUT_DEVICE_ID_KEY).toString();
+    NOT_IMPLEMENTED;
+    return std::string();
+    // return settings()->value(AUDIO_OUTPUT_DEVICE_ID_KEY).toString();
 }
 
 void AudioConfiguration::setAudioOutputDeviceId(const std::string& deviceId)
 {
-    settings()->setSharedValue(AUDIO_OUTPUT_DEVICE_ID_KEY, Val(deviceId));
+    NOT_IMPLEMENTED;
+    // settings()->setSharedValue(AUDIO_OUTPUT_DEVICE_ID_KEY, Val(deviceId));
 }
 
 async::Notification AudioConfiguration::audioOutputDeviceIdChanged() const
@@ -159,12 +169,14 @@ audioch_t AudioConfiguration::audioChannelsCount() const
 
 unsigned int AudioConfiguration::driverBufferSize() const
 {
-    return settings()->value(AUDIO_BUFFER_SIZE_KEY).toInt();
+    return 8192;
+    // return settings()->value(AUDIO_BUFFER_SIZE_KEY).toInt();
 }
 
 void AudioConfiguration::setDriverBufferSize(unsigned int size)
 {
-    settings()->setSharedValue(AUDIO_BUFFER_SIZE_KEY, Val(static_cast<int>(size)));
+    NOT_IMPLEMENTED;
+    // settings()->setSharedValue(AUDIO_BUFFER_SIZE_KEY, Val(static_cast<int>(size)));
 }
 
 async::Notification AudioConfiguration::driverBufferSizeChanged() const
@@ -174,12 +186,14 @@ async::Notification AudioConfiguration::driverBufferSizeChanged() const
 
 unsigned int AudioConfiguration::sampleRate() const
 {
-    return settings()->value(AUDIO_SAMPLE_RATE_KEY).toInt();
+    return 44100;
+    // return settings()->value(AUDIO_SAMPLE_RATE_KEY).toInt();
 }
 
 void AudioConfiguration::setSampleRate(unsigned int sampleRate)
 {
-    settings()->setSharedValue(AUDIO_SAMPLE_RATE_KEY, Val(static_cast<int>(sampleRate)));
+    NOT_IMPLEMENTED;
+    // settings()->setSharedValue(AUDIO_SAMPLE_RATE_KEY, Val(static_cast<int>(sampleRate)));
 }
 
 async::Notification AudioConfiguration::sampleRateChanged() const
@@ -207,21 +221,24 @@ OutputSpec AudioConfiguration::desiredOutputSpec() const
 
 io::paths_t AudioConfiguration::soundFontDirectories() const
 {
-    io::paths_t paths = userSoundFontDirectories();
-    paths.push_back(globalConfiguration()->appDataPath());
+    // io::paths_t paths = userSoundFontDirectories();
+    // paths.push_back(globalConfiguration()->appDataPath());
 
-    return paths;
+    // return paths;
+    return io::pathsFromString("/"); // HACK: load soundfonts from the root directory
 }
 
 io::paths_t AudioConfiguration::userSoundFontDirectories() const
 {
-    std::string pathsStr = settings()->value(USER_SOUNDFONTS_PATHS).toString();
-    return io::pathsFromString(pathsStr);
+    // std::string pathsStr = settings()->value(USER_SOUNDFONTS_PATHS).toString();
+    // return io::pathsFromString(pathsStr);
+    return io::paths_t();
 }
 
 void AudioConfiguration::setUserSoundFontDirectories(const io::paths_t& paths)
 {
-    settings()->setSharedValue(USER_SOUNDFONTS_PATHS, Val(io::pathsToString(paths)));
+    NOT_IMPLEMENTED;
+    // settings()->setSharedValue(USER_SOUNDFONTS_PATHS, Val(io::pathsToString(paths)));
 }
 
 async::Channel<io::paths_t> AudioConfiguration::soundFontDirectoriesChanged() const
@@ -231,14 +248,16 @@ async::Channel<io::paths_t> AudioConfiguration::soundFontDirectoriesChanged() co
 
 bool AudioConfiguration::autoProcessOnlineSoundsInBackground() const
 {
-    return settings()->value(ONLINE_SOUNDS_PROCESS_IN_BACKGROUND).toBool();
+    // return settings()->value(ONLINE_SOUNDS_PROCESS_IN_BACKGROUND).toBool();
+    NOT_IMPLEMENTED;
+    return false;
 }
 
 void AudioConfiguration::setAutoProcessOnlineSoundsInBackground(bool value)
 {
-    settings()->setSharedValue(ONLINE_SOUNDS_PROCESS_IN_BACKGROUND, Val(value));
-
-    onEngineConfigChanged();
+    // settings()->setSharedValue(ONLINE_SOUNDS_PROCESS_IN_BACKGROUND, Val(value));
+    UNUSED(value);
+    NOT_IMPLEMENTED;
 }
 
 async::Channel<bool> AudioConfiguration::autoProcessOnlineSoundsInBackgroundChanged() const
@@ -248,14 +267,15 @@ async::Channel<bool> AudioConfiguration::autoProcessOnlineSoundsInBackgroundChan
 
 bool AudioConfiguration::useSoundFontLowPassFilter() const
 {
-    return settings()->value(USE_SOUNDFONT_LOWPASS_FILTER).toBool();
+    // return settings()->value(USE_SOUNDFONT_LOWPASS_FILTER).toBool();
+    return true;
 }
 
 void AudioConfiguration::setUseSoundFontLowPassFilter(bool value)
 {
-    settings()->setSharedValue(USE_SOUNDFONT_LOWPASS_FILTER, Val(value));
-
-    onEngineConfigChanged();
+    // settings()->setSharedValue(USE_SOUNDFONT_LOWPASS_FILTER, Val(value));
+    UNUSED(value);
+    NOT_IMPLEMENTED;
 }
 
 async::Channel<bool> AudioConfiguration::useSoundFontLowPassFilterChanged() const
@@ -265,5 +285,6 @@ async::Channel<bool> AudioConfiguration::useSoundFontLowPassFilterChanged() cons
 
 bool AudioConfiguration::shouldMeasureInputLag() const
 {
-    return settings()->value(AUDIO_MEASURE_INPUT_LAG).toBool();
+    // return settings()->value(AUDIO_MEASURE_INPUT_LAG).toBool();
+    return false;
 }

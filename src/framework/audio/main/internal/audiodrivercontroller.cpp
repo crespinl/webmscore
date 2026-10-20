@@ -49,7 +49,7 @@
 #include "audio/driver/platform/osx/osxaudiodriver.h"
 #endif
 
-#ifdef Q_OS_WASM
+#if defined(Q_OS_WASM) && 0
 #include "audio/driver/platform/web/webaudiodriver.h"
 #endif
 
@@ -110,8 +110,9 @@ IAudioDriverPtr AudioDriverController::createDriver(const std::string& name) con
 #endif
 
 #ifdef Q_OS_WASM
+    // webmscore renders audio on demand, there is no audio driver
     UNUSED(name);
-    return std::shared_ptr<IAudioDriver>(new WebAudioDriver());
+    return std::shared_ptr<IAudioDriver>(nullptr);
 #endif
 }
 
@@ -260,6 +261,11 @@ bool AudioDriverController::open(const IAudioDriver::Spec& spec, IAudioDriver::S
 
     const std::string currentAudioApi = configuration()->currentAudioApi();
     IAudioDriverPtr driver = createDriver(currentAudioApi);
+    if (!driver) {
+        LOGW() << "No audio driver available";
+        return false;
+    }
+
     driver->init();
     setNewDriver(driver);
 

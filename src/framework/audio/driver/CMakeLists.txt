@@ -98,12 +98,15 @@ elseif(OS_IS_MAC)
     find_library(CoreAudio NAMES CoreAudio)
     target_link_libraries(muse_audio_driver PRIVATE ${AudioToolbox} ${CoreAudio})
 elseif(OS_IS_WASM)
-    target_sources(muse_audio_driver PRIVATE
-        platform/web/webaudiodriver.cpp
-        platform/web/webaudiodriver.h
-        platform/web/webaudiochannel.cpp
-        platform/web/webaudiochannel.h
-    )
+    #! NOTE webmscore renders audio on demand, it does not use an audio driver
+    if (NOT MUSE_WEB_LIB)
+        target_sources(muse_audio_driver PRIVATE
+            platform/web/webaudiodriver.cpp
+            platform/web/webaudiodriver.h
+            platform/web/webaudiochannel.cpp
+            platform/web/webaudiochannel.h
+        )
+    endif()
 endif()
 
 target_link_libraries(muse_audio_driver PRIVATE muse_audio_common)

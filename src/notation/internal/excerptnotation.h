@@ -22,7 +22,7 @@
 
 #pragma once
 
-#include "iexcerptnotation.h"
+#include "../iexcerptnotation.h"
 #include "notation.h"
 
 namespace mu::notation {

@@ -41,7 +41,7 @@ target_sources(muse_audio_common PRIVATE
     rpc/rpcpacker.h
 )
 
-if(OS_IS_WASM)
+if(OS_IS_WASM AND NOT MUSE_WEB_LIB)
     target_sources(muse_audio_common PRIVATE
         rpc/platform/web/webrpcchannel.cpp
         rpc/platform/web/webrpcchannel.h

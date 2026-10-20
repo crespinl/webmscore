@@ -57,16 +57,20 @@ ISynthesizerPtr FluidResolver::resolveSynth(const TrackId /*trackId*/, const Aud
 {
     ONLY_AUDIO_ENGINE_THREAD;
 
+#if 0
     auto search = m_resourcesCache.find(params.resourceMeta.id);
     if (search == m_resourcesCache.end()) {
         LOGE() << "Not found: " << params.resourceMeta.id;
         return nullptr;
     }
+#endif
 
     FluidSynthPtr synth = std::make_shared<FluidSynth>(params, iocContext());
     synth->init(spec);
-    synth->addSoundFonts({ search->second.path });
-    synth->setPreset(search->second.preset);
+
+    muse::io::path_t path = "/MS Basic.sf3";
+    synth->addSoundFonts({ path });
+    // synth->setPreset(search->second.preset);
 
     return synth;
 }

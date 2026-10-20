@@ -28,8 +28,8 @@
 #include "modularity/ioc.h"
 #include "io/ifilesystem.h"
 #include "../iprojectconfiguration.h"
-#include "inotationreadersregister.h"
-#include "inotationwritersregister.h"
+#include "../inotationreadersregister.h"
+#include "../inotationwritersregister.h"
 
 #include "engraving/engravingproject.h"
 #include "engraving/rendering/iscorerenderer.h"
@@ -113,9 +113,11 @@ public:
     notation::IMasterNotationPtr masterNotation() const override;
     IProjectAudioSettingsPtr audioSettings() const override;
 
-private:
     void setupProject();
-
+    mu::engraving::EngravingProjectPtr m_engravingProject = nullptr;
+    notation::IMasterNotationPtr m_masterNotation = nullptr;
+    
+private:
     muse::Ret loadTemplate(const ProjectCreateOptions& projectOptions);
 
     muse::Ret doLoad(const muse::io::path_t& path, const OpenParams& params, const std::string& format);
@@ -137,8 +139,6 @@ private:
     void markAsSaved(const muse::io::path_t& path);
     void setNeedSave(bool needSave);
 
-    mu::engraving::EngravingProjectPtr m_engravingProject = nullptr;
-    notation::IMasterNotationPtr m_masterNotation = nullptr;
     ProjectAudioSettingsPtr m_projectAudioSettings = nullptr;
     mutable CloudProjectInfo m_cloudInfo;
     mutable CloudAudioInfo m_cloudAudioInfo;

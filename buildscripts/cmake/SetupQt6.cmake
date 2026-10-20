@@ -18,49 +18,49 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-if (OS_IS_WASM)
-    set(QT_IS_STATIC ON)
-endif()
+# if (OS_IS_WASM)
+#     set(QT_IS_STATIC ON)
+# endif()
 
 set(qt_components
     Core
     Gui
     Widgets
-    Network
+    # Network
     Qml
     Quick
-    QuickControls2
-    QuickWidgets
+    # QuickControls2
+    # QuickWidgets
     Xml
     Svg
-    ShaderTools
+    # ShaderTools
 
     Core5Compat
 )
 
 set(QT_LIBRARIES
     Qt::Core
-    Qt::Gui
-    Qt::Widgets
-    Qt::Network
+    # Qt::Gui
+    # Qt::Widgets
+    # Qt::Network
     Qt::Qml
     Qt::Quick
-    Qt::QuickControls2
-    Qt::QuickWidgets
+    # Qt::QuickControls2
+    # Qt::QuickWidgets
     Qt::Xml
     Qt::Svg
 
     Qt::Core5Compat
 )
 
-if(NOT OS_IS_WASM)
-
-    list(APPEND qt_components NetworkAuth)
-    list(APPEND QT_LIBRARIES Qt::NetworkAuth)
-
-    list(APPEND qt_components PrintSupport)
-    list(APPEND QT_LIBRARIES Qt::PrintSupport)
-endif()
+# if(NOT OS_IS_WASM)
+# 
+#     list(APPEND qt_components NetworkAuth)
+#     list(APPEND QT_LIBRARIES Qt::NetworkAuth)
+# 
+#     list(APPEND qt_components PrintSupport)
+#     list(APPEND QT_LIBRARIES Qt::PrintSupport)
+# endif()
 
 if(OS_IS_LIN)
     list(APPEND qt_components DBus)
@@ -81,9 +81,9 @@ if(QT_ADD_WEBSOCKET)
     list(APPEND QT_LIBRARIES Qt::WebSockets)
 endif()
 
-if (OS_IS_WASM)
-    set(QT_WASM_EXTRA_EXPORTED_METHODS ccall)
-endif()
+# if (OS_IS_WASM)
+#     set(QT_WASM_EXTRA_EXPORTED_METHODS ccall)
+# endif()
 
 find_package(Qt6 6.8 REQUIRED COMPONENTS ${qt_components})
 
@@ -98,3 +98,7 @@ if (QT_IS_STATIC)
     qt_import_qml_plugins(all_qml_plugins)
     list(APPEND QT_LIBRARIES all_qml_plugins)
 endif()
+
+set(QT_PLATFORM_PLUGINS
+    Qt6::QOffscreenIntegrationPlugin
+    )

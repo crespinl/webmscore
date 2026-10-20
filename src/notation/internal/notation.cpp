@@ -32,14 +32,16 @@
 #include "notationpainting.h"
 #include "notationviewstate.h"
 #include "notationsolomutestate.h"
-#include "notationinteraction.h"
+// #include "notationinteraction.h"
+// #include "notationplayback.h"
 #include "notationundostack.h"
-#include "notationstyle.h"
+// #include "notationstyle.h"
 #include "notationelements.h"
-#include "notationaccessibility.h"
-#include "notationmidiinput.h"
+// #include "notationaccessibility.h"
+// #include "notationmidiinput.h"
 #include "notationparts.h"
 #include "notationtypes.h"
+#include "draw/types/pen.h"
 
 #include "log.h"
 
@@ -54,46 +56,51 @@ Notation::Notation(MasterNotation* master, const muse::modularity::ContextPtr& i
     m_viewState = std::make_shared<NotationViewState>(this, iocCtx);
     m_soloMuteState = std::make_shared<NotationSoloMuteState>();
     m_undoStack = std::make_shared<NotationUndoStack>(this, m_notationChanged);
-    m_interaction = std::make_shared<NotationInteraction>(this, m_undoStack);
-    m_midiInput = std::make_shared<NotationMidiInput>(this, m_interaction, m_undoStack, iocContext());
-    m_accessibility = std::make_shared<NotationAccessibility>(this);
-    m_parts = std::make_shared<NotationParts>(this, m_interaction, m_undoStack);
-    m_style = std::make_shared<NotationStyle>(this, m_undoStack);
+    //m_interaction = std::make_shared<NotationInteraction>(this, m_undoStack);
+    //m_midiInput = std::make_shared<NotationMidiInput>(this, m_interaction, m_undoStack, iocContext());
+    //m_accessibility = std::make_shared<NotationAccessibility>(this);
+    //m_parts = std::make_shared<NotationParts>(this, m_interaction, m_undoStack);
+    m_parts = std::make_shared<NotationParts>(this, nullptr, nullptr);
+    //m_style = std::make_shared<NotationStyle>(this, m_undoStack);
     m_elements = std::make_shared<NotationElements>(this);
 
-    m_interaction->noteInput()->noteAdded().onNotify(this, [this]() {
-        notifyAboutNotationChanged();
-    });
+    // m_interaction->noteInput()->noteAdded().onNotify(this, [this]() {
+    //     notifyAboutNotationChanged();
+    // });
 
-    m_interaction->dragChanged().onNotify(this, [this]() {
-        notifyAboutNotationChanged();
-    });
+    // m_interaction->dragChanged().onNotify(this, [this]() {
+    //     notifyAboutNotationChanged();
+    // });
 
-    m_interaction->textEditingChanged().onNotify(this, [this]() {
-        notifyAboutNotationChanged();
-    });
+    // m_interaction->textEditingChanged().onNotify(this, [this]() {
+    //     notifyAboutNotationChanged();
+    // });
 
-    m_interaction->dropChanged().onNotify(this, [this]() {
-        notifyAboutNotationChanged();
-    });
+    // m_interaction->dropChanged().onNotify(this, [this]() {
+    //     notifyAboutNotationChanged();
+    // });
 
-    m_midiInput->notesReceived().onReceive(this, [this](const std::vector<const Note*>&){
-        notifyAboutNotationChanged();
-    });
+    // m_midiInput->notesReceived().onReceive(this, [this](const std::vector<const Note*>&){
+    //     notifyAboutNotationChanged();
+    // });
 
-    m_style->styleChanged().onNotify(this, [this]() {
-        notifyAboutNotationChanged();
-    });
+    // m_style->styleChanged().onNotify(this, [this]() {
+    //     notifyAboutNotationChanged();
+    // });
 
     m_parts->partsChanged().onNotify(this, [this]() {
         notifyAboutNotationChanged();
     });
 
-    configuration()->canvasOrientation().ch.onReceive(this, [this](muse::Orientation) {
-        if (m_score && m_score->autoLayoutEnabled()) {
-            m_score->doLayout();
-        }
-    });
+    // engravingConfiguration()->selectionColorChanged().onReceive(this, [this](int, const muse::draw::Color&) {
+    //     notifyAboutNotationChanged();
+    // });
+
+    // configuration()->canvasOrientation().ch.onReceive(this, [this](muse::Orientation) {
+    //     if (m_score && m_score->autoLayoutEnabled()) {
+    //         m_score->doLayout();
+    //     }
+    // });
 
     setScore(score);
 }
@@ -123,7 +130,7 @@ mu::project::INotationProject* Notation::project() const
 
 IMasterNotationPtr Notation::masterNotation() const
 {
-    return m_masterNotation->shared_from_this();
+    return m_masterNotation ? m_masterNotation->shared_from_this() : nullptr;
 }
 
 void Notation::setScore(Score* score)
@@ -220,7 +227,8 @@ void Notation::setIsOpen(bool open)
     }
 
     Score* s = score();
-    IF_ASSERT_FAILED(s) {
+    // IF_ASSERT_FAILED(s) {
+    if (!s) {  // Without asserting WASM also works so we don't need to print the error message
         return;
     }
 

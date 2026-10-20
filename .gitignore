@@ -82,4 +82,17 @@ __pycache__/
 /dependencies
 /mscore/revision.h
 /share/sound/MuseScore_General*
+
+# User overrides of SetupBuildEnvironment
+/buildscripts/cmake/SetupBuildEnvironment.user.cmake
+
+# CMake User presets
+CMakeUserPresets.json
+
+.cache/*
+compile_commands.json
+**/.qmlls.ini
+
+.ccache
+
 /VERSION

@@ -22,7 +22,7 @@
 
 #pragma once
 
-#include "inotationelements.h"
+#include "../inotationelements.h"
 #include "igetscore.h"
 
 namespace mu::notation {

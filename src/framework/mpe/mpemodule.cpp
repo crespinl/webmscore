@@ -22,7 +22,10 @@
 
 #include "mpemodule.h"
 
+// #include <QQmlEngine>
+
 #include "modularity/ioc.h"
+// #include "ui/iuiengine.h"
 
 #include "internal/articulationprofilesrepository.h"
 

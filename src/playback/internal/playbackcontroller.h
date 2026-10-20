@@ -44,7 +44,7 @@
 #include "../isoundprofilesrepository.h"
 
 namespace mu::playback {
-class OnlineSoundsController;
+// class OnlineSoundsController;
 class PlaybackController : public IPlaybackController, public muse::actions::Actionable, public muse::async::Asyncable,
     public muse::Contextable
 {
@@ -263,7 +263,7 @@ private:
     bool m_isRangeSelection = false;
 
     DrumsetLoader m_drumsetLoader;
-    std::unique_ptr<OnlineSoundsController> m_onlineSoundsController;
+    // std::unique_ptr<OnlineSoundsController> m_onlineSoundsController;
 
     bool m_measureInputLag = false;
 };

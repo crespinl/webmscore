@@ -26,7 +26,7 @@
 #include "engraving/dom/score.h"
 
 #include "notation.h"
-#include "notationinteraction.h"
+// #include "notationinteraction.h"
 
 #include "log.h"
 
@@ -125,13 +125,9 @@ void NotationPainting::doPaint(Painter* painter, const Options& opt)
 
     scoreRenderer()->paintScore(painter, score(), myopt);
 
-    if (!myopt.isPrinting) {
-        rendering::PaintOptions eopt;
-        eopt.isPrinting = myopt.isPrinting;
-        eopt.invertColors = myopt.invertColors;
-
-        static_cast<NotationInteraction*>(m_notation->interaction().get())->paint(painter, eopt);
-    }
+    // if (!myopt.isPrinting) {
+    //     static_cast<NotationInteraction*>(m_notation->interaction().get())->paint(painter);
+    // }
 }
 
 void NotationPainting::paintPageSheet(Painter* painter, const Page* page, const RectF& pageRect, bool printPageBackground) const
@@ -185,6 +181,8 @@ void NotationPainting::paintPageSheet(Painter* painter, const Page* page, const 
 
 void NotationPainting::paintView(Painter* painter, const RectF& frameRect, bool isPrinting)
 {
+    NOT_IMPLEMENTED;
+#if 0
     Options opt;
     opt.isSetViewport = false;
     opt.isMultiPage = true;
@@ -193,6 +191,7 @@ void NotationPainting::paintView(Painter* painter, const RectF& frameRect, bool 
     opt.isPrinting = isPrinting;
     opt.invertColors = configuration()->shouldInvertScore();
     doPaint(painter, opt);
+#endif
 }
 
 void NotationPainting::paintPdf(Painter* painter, const Options& opt)

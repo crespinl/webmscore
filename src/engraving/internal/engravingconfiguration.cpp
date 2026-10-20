@@ -24,7 +24,7 @@
 #include <cstdlib>
 
 #ifndef NO_QT_SUPPORT
-#include <QLocale>
+// #include <QLocale>
 #include <QPageSize>
 #endif
 
@@ -90,11 +90,11 @@ void EngravingConfiguration::init()
         settings()->setDefaultValue(key, Val(DEFAULT_VOICE_COLORS[voice].toQColor()));
         settings()->setDescription(key, muse::qtrc("engraving", "Voice %1 color").arg(voice + 1).toStdString());
         settings()->setCanBeManuallyEdited(key, true);
-        settings()->valueChanged(key).onReceive(this, [this, voice](const Val& val) {
-            Color color = val.toQColor();
-            VOICE_COLORS[voice].color = color;
-            m_voiceColorChanged.send(voice, color);
-        });
+        // settings()->valueChanged(key).onReceive(this, [this, voice](const Val& val) {
+        //     Color color = val.toQColor();
+        //     VOICE_COLORS[voice].color = color;
+        //     m_voiceColorChanged.send(voice, color);
+        // });
 
         Color currentColor = settings()->value(key).toQColor();
         VOICE_COLORS[voice] = VoiceColor { std::move(key), currentColor };
@@ -201,7 +201,7 @@ static bool defaultPageSizeIsLetter()
     if (papersize) {
         return strcmp(papersize, "letter") == 0;
     }
-#ifndef NO_QT_SUPPORT
+#if 0
     // try locale
     switch (QLocale::system().territory()) {
     case QLocale::UnitedStates:
@@ -234,12 +234,14 @@ SizeF EngravingConfiguration::defaultPageSize() const
 
 bool EngravingConfiguration::canLayoutIcons() const
 {
-    return uiConfiguration() != nullptr;
+    // return uiConfiguration() != nullptr;
+    return false;
 }
 
 muse::String EngravingConfiguration::iconsFontFamily() const
 {
-    return uiConfiguration() ? String::fromStdString(uiConfiguration()->iconsFontFamily()) : String();
+    return String::fromStdString("");
+    // return String::fromStdString(uiConfiguration()->iconsFontFamily());
 }
 
 Color EngravingConfiguration::defaultColor() const
@@ -295,9 +297,9 @@ Color EngravingConfiguration::noteBackgroundColor() const
 
 Color EngravingConfiguration::fontPrimaryColor() const
 {
-    return uiConfiguration()
-           ? Color(uiConfiguration()->currentTheme().values[muse::ui::ThemeStyleKey::FONT_PRIMARY_COLOR].toString())
-           : Color::BLACK;
+    NOT_IMPLEMENTED;
+    return Color::BLACK;
+    // return Color(uiConfiguration()->currentTheme().values[muse::ui::ThemeStyleKey::FONT_PRIMARY_COLOR].toString());
 }
 
 Color EngravingConfiguration::voiceColor(voice_idx_t voiceIdx) const
@@ -307,7 +309,9 @@ Color EngravingConfiguration::voiceColor(voice_idx_t voiceIdx) const
 
 double EngravingConfiguration::guiScaling() const
 {
-    return uiConfiguration() ? uiConfiguration()->guiScaling() : 1.0;
+    NOT_IMPLEMENTED;
+    return 1.;
+    // return uiConfiguration()->guiScaling();
 }
 
 Color EngravingConfiguration::selectionColor(voice_idx_t voice, bool itemVisible, bool itemIsUnlinkedFromScore) const

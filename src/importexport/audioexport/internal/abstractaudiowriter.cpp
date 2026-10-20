@@ -24,8 +24,11 @@
 #include <QCoreApplication>
 #include <QFile>
 #include <QFileInfo>
-#include <QThread>
+// #include <QThread>
 
+#include "async/processevents.h"
+#include "audio/common/rpc/irpcchannel.h"
+#include "modularity/ioc.h"
 #include "global/containers.h"
 
 #include "log.h"
@@ -105,8 +108,8 @@ Ret AbstractAudioWriter::doWriteAndWait(INotationPtr notation,
 
     //! NOTE Waiting for the audio system to start if it is not already running
     while (!startAudioController()->isAudioStarted()) {
-        application()->processEvents();
-        QThread::yieldCurrentThread();
+        async::processMessages();
+        rpcChannel()->process();
     }
 
     m_isCompleted = false;
@@ -127,11 +130,17 @@ Ret AbstractAudioWriter::doWriteAndWait(INotationPtr notation,
 
     doWrite(path, actualFormat);
 
+    m_progress.finished().onReceive(this, [this](const ProgressResult&) {
+        playbackController()->setIsExportingAudio(false);
+        playbackController()->setNotation(globalContext()->currentNotation());
+    });
+
     bool waitForCompletion = muse::value(options, OptionKey::WAIT_FOR_COMPLETION, Val(true)).toBool();
     if (waitForCompletion) {
         while (!m_isCompleted) {
-            application()->processEvents();
-            QThread::yieldCurrentThread();
+            // process async events
+            async::processMessages(); // XXX: !important, otherwise promises won't run
+            rpcChannel()->process();
         }
     }
 
@@ -171,7 +180,7 @@ void AbstractAudioWriter::doWrite(const QString& path, const SoundTrackFormat& f
 
             playback()->saveSoundTrack(sequenceId, muse::io::path_t(path), std::move(format))
             .onResolve(this, [this, path, sequenceId, restoreState](const bool /*result*/) {
-                LOGI() << "Successfully saved sound track by path: " << path;
+                LOGD() << "Successfully saved sound track by path: " << path;
                 m_writeRet = muse::make_ok();
                 m_isCompleted = true;
                 m_progress.finish(muse::make_ok());

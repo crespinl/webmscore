@@ -49,7 +49,7 @@ target_sources(muse_audio_main PRIVATE
     internal/audiodrivercontroller.h
 )
 
-if (OS_IS_WASM)
+if (OS_IS_WASM AND NOT MUSE_WEB_LIB)
     target_sources(muse_audio_main PRIVATE
         platform/web/websoundfontcontroller.cpp
         platform/web/websoundfontcontroller.h

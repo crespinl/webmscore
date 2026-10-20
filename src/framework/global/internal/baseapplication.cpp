@@ -26,7 +26,8 @@
 #include "muse_framework_config.h"
 
 #ifndef NO_QT_SUPPORT
-#include <QApplication>
+// #include <QApplication> // QApplication depends on QWidget
+#include <QGuiApplication>
 #endif
 
 #ifdef QT_QPROCESS_SUPPORTED
@@ -152,7 +153,7 @@ bool BaseApplication::notify(QObject* object, QEvent* event)
 
 Qt::KeyboardModifiers BaseApplication::keyboardModifiers() const
 {
-    return QApplication::keyboardModifiers();
+    return QGuiApplication::keyboardModifiers();
 }
 
 #endif
