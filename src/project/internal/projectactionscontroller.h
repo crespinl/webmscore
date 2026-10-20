@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -19,29 +19,30 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-#ifndef MU_PROJECT_PROJECTACTIONSCONTROLLER_H
-#define MU_PROJECT_PROJECTACTIONSCONTROLLER_H
+
+#pragma once
 
 #include "iprojectfilescontroller.h"
 
 #include <QObject>
+#include <QString>
 
 #include "modularity/ioc.h"
 #include "iinteractive.h"
 #include "context/iglobalcontext.h"
 #include "actions/actionable.h"
 #include "actions/iactionsdispatcher.h"
-#include "multiinstances/imultiinstancesprovider.h"
-#include "multiinstances/iprojectprovider.h"
+#include "multiwindows/imultiwindowsprovider.h"
+#include "multiwindows/iprojectprovider.h"
 #include "cloud/musescorecom/imusescorecomservice.h"
 #include "cloud/audiocom/iaudiocomservice.h"
 #include "playback/iplaybackcontroller.h"
 #include "print/iprintprovider.h"
+#include "iexportprojectscenario.h"
 #include "inotationreadersregister.h"
 #include "iopensaveprojectscenario.h"
 #include "imscmetareader.h"
 #include "io/ifilesystem.h"
-#include "internal/iexportprojectscenario.h"
 #include "notation/inotationconfiguration.h"
 #include "musesounds/imusesoundscheckupdatescenario.h"
 #include "musesounds/imusesamplercheckupdatescenario.h"
@@ -55,35 +56,35 @@
 #include "iprojectautosaver.h"
 
 namespace mu::project {
-class ProjectActionsController : public IProjectFilesController, public muse::mi::IProjectProvider, public muse::Injectable,
+class ProjectActionsController : public IProjectFilesController, public muse::mi::IProjectProvider, public muse::Contextable,
     public muse::actions::Actionable, public muse::async::Asyncable
 {
-    muse::Inject<IProjectConfiguration> configuration = { this };
-    muse::Inject<INotationReadersRegister> readers = { this };
-    muse::Inject<IProjectCreator> projectCreator = { this };
-    muse::Inject<IRecentFilesController> recentFilesController = { this };
-    muse::Inject<IProjectAutoSaver> projectAutoSaver = { this };
-    muse::Inject<IOpenSaveProjectScenario> openSaveProjectScenario = { this };
-    muse::Inject<IExportProjectScenario> exportProjectScenario = { this };
-    muse::Inject<IMscMetaReader> mscMetaReader = { this };
-    muse::Inject<muse::actions::IActionsDispatcher> dispatcher = { this };
-    muse::Inject<muse::IInteractive> interactive = { this };
-    muse::Inject<context::IGlobalContext> globalContext = { this };
-    muse::Inject<muse::mi::IMultiInstancesProvider> multiInstancesProvider = { this };
-    muse::Inject<muse::cloud::IMuseScoreComService> museScoreComService = { this };
-    muse::Inject<muse::cloud::IAudioComService> audioComService = { this };
-    muse::Inject<notation::INotationConfiguration> notationConfiguration = { this };
-    muse::Inject<playback::IPlaybackController> playbackController = { this };
-    muse::Inject<print::IPrintProvider> printProvider = { this };
-    muse::Inject<muse::io::IFileSystem> fileSystem = { this };
-    muse::Inject<musesounds::IMuseSoundsCheckUpdateScenario> museSoundsCheckUpdateScenario = { this };
-    muse::Inject<musesounds::IMuseSamplerCheckUpdateScenario> museSamplerCheckUpdateScenario = { this };
-    muse::Inject<muse::extensions::IExtensionsProvider> extensionsProvider = { this };
+    muse::GlobalInject<IProjectConfiguration> configuration;
+    muse::GlobalInject<muse::mi::IMultiWindowsProvider> multiwindowsProvider;
+    muse::GlobalInject<notation::INotationConfiguration> notationConfiguration;
+    muse::GlobalInject<muse::io::IFileSystem> fileSystem;
+    muse::GlobalInject<IMscMetaReader> mscMetaReader;
+    muse::GlobalInject<IProjectCreator> projectCreator;
+    muse::ContextInject<INotationReadersRegister> readers = { this };
+    muse::ContextInject<IRecentFilesController> recentFilesController = { this };
+    muse::ContextInject<IProjectAutoSaver> projectAutoSaver = { this };
+    muse::ContextInject<IOpenSaveProjectScenario> openSaveProjectScenario = { this };
+    muse::ContextInject<IExportProjectScenario> exportProjectScenario = { this };
+    muse::ContextInject<muse::actions::IActionsDispatcher> dispatcher = { this };
+    muse::ContextInject<muse::IInteractive> interactive = { this };
+    muse::ContextInject<context::IGlobalContext> globalContext = { this };
+    muse::ContextInject<muse::cloud::IMuseScoreComService> museScoreComService = { this };
+    muse::ContextInject<muse::cloud::IAudioComService> audioComService = { this };
+    muse::ContextInject<playback::IPlaybackController> playbackController = { this };
+    muse::ContextInject<print::IPrintProvider> printProvider = { this };
+    muse::ContextInject<musesounds::IMuseSoundsCheckUpdateScenario> museSoundsCheckUpdateScenario = { this };
+    muse::ContextInject<musesounds::IMuseSamplerCheckUpdateScenario> museSamplerCheckUpdateScenario = { this };
+    muse::ContextInject<muse::extensions::IExtensionsProvider> extensionsProvider = { this };
 
 public:
 
     ProjectActionsController(const muse::modularity::ContextPtr& iocCtx)
-        : muse::Injectable(iocCtx) {}
+        : muse::Contextable(iocCtx) {}
 
     void init();
 
@@ -138,7 +139,7 @@ private:
 
     struct AudioFile {
         QString format;
-        QIODevice* device = nullptr;
+        std::shared_ptr<QIODevice> device = nullptr;
 
         AudioFile() {}
 
@@ -151,6 +152,7 @@ private:
     void publish();
     void shareAudio(const AudioFile& existingAudio);
     void shareAudio() { shareAudio(AudioFile()); }
+    void uploadAudioToAudioCom(const AudioFile& audio, const INotationProjectPtr& project, const CloudAudioInfo& info);
     void alsoShareAudioCom(const AudioFile& audio);
 
     muse::Ret askAudioGenerationSettings() const;
@@ -161,7 +163,8 @@ private:
     void closeUploadProgressDialog();
 
     muse::Ret uploadProject(const CloudProjectInfo& info, const AudioFile& audio, bool openEditUrl, bool publishMode);
-    void uploadAudio(const AudioFile& audio, const QUrl& sourceUrl, const QUrl& urlToOpen, bool isFirstSave, bool publishMode);
+    void uploadAudioToMuseScoreCom(const AudioFile& audio, const QUrl& sourceUrl, const QUrl& urlToOpen, bool isFirstSave,
+                                   bool publishMode);
 
     void onProjectSuccessfullyUploaded(const QUrl& urlToOpen = QUrl(), bool isFirstSave = true);
     muse::Ret onProjectUploadFailed(const muse::Ret& ret, const CloudProjectInfo& info, const AudioFile& audio, bool openEditUrl,
@@ -191,6 +194,7 @@ private:
     void moveProject(INotationProjectPtr project, const muse::io::path_t& newPath, bool replace);
 
     void importPdf();
+    void importAudioToScore();
 
     void clearRecentScores();
 
@@ -235,5 +239,3 @@ private:
     muse::async::Notification m_projectBeingDownloadedChanged;
 };
 }
-
-#endif // MU_PROJECT_PROJECTACTIONSCONTROLLER_H

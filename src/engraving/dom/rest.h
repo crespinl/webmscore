@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -20,8 +20,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef MU_ENGRAVING_REST_H
-#define MU_ENGRAVING_REST_H
+#pragma once
 
 #include "containers.h"
 
@@ -70,10 +69,6 @@ public:
 
     void hack_toRestType();
 
-    // Score Tree functions
-    EngravingObject* scanParent() const override;
-    EngravingObjectList scanChildren() const override;
-
     Rest& operator=(const Rest&) = delete;
 
     Rest* clone() const override { return new Rest(*this, false); }
@@ -82,7 +77,7 @@ public:
     double mag() const override;
     double intrinsicMag() const override;
 
-    void scanElements(void* data, void (* func)(void*, EngravingItem*), bool all = true) override;
+    void scanElements(std::function<void(EngravingItem*)> func) override;
     void setTrack(track_idx_t val) override;
 
     bool acceptDrop(EditData&) const override;
@@ -127,9 +122,9 @@ public:
     EngravingItem* prevElement() override;
     String accessibleInfo() const override;
     String screenReaderInfo() const override;
-    void editDrag(EditData& editData) override;
 
     bool shouldNotBeDrawn() const;
+    bool debugDrawGap() const;
 
     RestVerticalClearance& verticalClearance() { return m_verticalClearance; }
 
@@ -172,5 +167,4 @@ private:
 
     bool m_alignWithOtherRests = true;
 };
-} // namespace mu::engraving
-#endif
+}

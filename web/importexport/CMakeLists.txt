@@ -1,13 +1,13 @@
 
-declare_module(importexport)
+muse_create_module(importexport)
 
-set(MODULE_INCLUDE
+target_include_directories(importexport PRIVATE
     ${MU_ROOT}/src/notation
     ${MU_ROOT}/src/project
     ${MU_ROOT}/src/engraving
 )
 
-set(MODULE_SRC
+target_sources(importexport PRIVATE
     ${MU_ROOT}/src/project/internal/notationreadersregister.cpp
     ${MU_ROOT}/src/project/internal/notationreadersregister.h
     ${MU_ROOT}/src/project/internal/notationwritersregister.cpp
@@ -41,25 +41,23 @@ set(MODULE_SRC
     ${MU_ROOT}/src/notation/internal/masternotationparts.h
     ${MU_ROOT}/src/notation/internal/notationparts.cpp
     ${MU_ROOT}/src/notation/internal/notationparts.h
-    ${MU_ROOT}/src/notation/utilities/percussionutilities.cpp
-    ${MU_ROOT}/src/notation/utilities/percussionutilities.h
-    
+    ${MU_ROOT}/src/notationscene/utilities/percussionutilities.cpp
+    ${MU_ROOT}/src/notationscene/utilities/percussionutilities.h
+
     positionjsonwriter.cpp
     positionjsonwriter.h
 )
 
 add_subdirectory(${MU_ROOT}/src/importexport/musicxml musicxml)
-set(MODULE_LINK ${MODULE_LINK} iex_musicxml)
-
 add_subdirectory(${MU_ROOT}/src/importexport/guitarpro guitarpro)
-set(MODULE_LINK ${MODULE_LINK} iex_guitarpro)
-
 add_subdirectory(${MU_ROOT}/src/importexport/midi midi)
-# add_subdirectory(${MU_ROOT}/thirdparty/beatroot beatroot)
-set(MODULE_LINK ${MODULE_LINK} iex_midi)
-set(MODULE_LINK ${MODULE_LINK} beatroot)
-
 add_subdirectory(${MU_ROOT}/src/importexport/imagesexport imagesexport)
-set(MODULE_LINK ${MODULE_LINK} iex_imagesexport)
 
-setup_module()
+target_link_libraries(importexport PUBLIC
+    iex_musicxml
+    iex_guitarpro
+    iex_midi
+    beatroot
+    iex_imagesexport
+    engraving
+)

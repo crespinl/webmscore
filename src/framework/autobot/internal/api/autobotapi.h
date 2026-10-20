@@ -5,7 +5,7 @@
  * MuseScore
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore BVBA and others
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -40,12 +40,12 @@ class AutobotApi : public muse::api::ApiObject, public async::Asyncable
 {
     Q_OBJECT
 
-    Inject<autobot::IAutobot> autobot = { this };
-    Inject<autobot::IAutobotConfiguration> autobotConfiguration = { this };
-    Inject<actions::IActionsDispatcher> dispatcher = { this };
-    Inject<IInteractive> interactive = { this };
-    Inject<io::IFileSystem> fileSystem = { this };
-    Inject<muse::ui::IMainWindow> mainWindow = { this };
+    GlobalInject<autobot::IAutobotConfiguration> autobotConfiguration;
+    GlobalInject<io::IFileSystem> fileSystem;
+    ContextInject<autobot::IAutobot> autobot = { this };
+    ContextInject<actions::IActionsDispatcher> dispatcher = { this };
+    ContextInject<IInteractive> interactive = { this };
+    ContextInject<muse::ui::IMainWindow> mainWindow = { this };
 
 public:
     explicit AutobotApi(muse::api::IApiEngine* e);

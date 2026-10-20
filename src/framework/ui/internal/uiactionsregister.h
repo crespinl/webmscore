@@ -5,7 +5,7 @@
  * MuseScore
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore BVBA and others
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -27,27 +27,28 @@
 
 #include "../iuiactionsregister.h"
 #include "modularity/ioc.h"
-#include "shortcuts/ishortcutsregister.h"
 #include "iuicontextresolver.h"
 #include "async/asyncable.h"
 
 namespace muse::ui {
-class UiActionsRegister : public IUiActionsRegister, public Injectable, public async::Asyncable
+class UiActionsRegister : public IUiActionsRegister, public Contextable, public async::Asyncable
 {
-    Inject<IUiContextResolver> uicontextResolver = { this };
-    Inject<shortcuts::IShortcutsRegister> shortcutsRegister = { this };
+    ContextInject<IUiContextResolver> uicontextResolver = { this };
 
 public:
     UiActionsRegister(const modularity::ContextPtr& iocCtx)
-        : Injectable(iocCtx) {}
+        : Contextable(iocCtx) {}
 
     void init();
 
-    void reg(const IUiActionsModulePtr& actions) override;
+    void reg(const IUiActionsModulePtr& module) override;
+    void unreg(const IUiActionsModulePtr& module) override;
 
     std::vector<UiAction> actionList() const override;
 
     const UiAction& action(const actions::ActionCode& code) const override;
+    const actions::ActionCode& parentActionCode(const actions::ActionCode& code) const override;
+
     async::Channel<UiActionList> actionsChanged() const override;
 
     UiActionState actionState(const actions::ActionCode& code) const override;
@@ -69,9 +70,6 @@ private:
 
     Info& info(const actions::ActionCode& code);
     const Info& info(const actions::ActionCode& code) const;
-
-    void updateShortcuts(const actions::ActionCodeList& codes);
-    void updateShortcutsAll();
 
     void updateActions(const UiActionList& actions);
 

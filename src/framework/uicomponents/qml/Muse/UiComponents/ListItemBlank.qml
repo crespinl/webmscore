@@ -5,7 +5,7 @@
  * MuseScore
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore BVBA and others
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -41,6 +41,7 @@ FocusableControl {
     signal clicked(var mouse)
     signal doubleClicked(var mouse)
     signal hovered(var isHovered, real mouseX, real mouseY)
+    signal pressed(var isPressed)
     signal removeSelectionRequested()
 
     function scrollIntoView() {
@@ -85,6 +86,10 @@ FocusableControl {
         }
     }
 
+    mouseArea.onPressedChanged: {
+        root.pressed(mouseArea.pressed)
+    }
+
     mouseArea.onPressed: {
         ui.tooltip.hide(root, true)
     }
@@ -106,7 +111,7 @@ FocusableControl {
     states: [
         State {
             name: "HOVERED"
-            when: mouseArea.containsMouse && !mouseArea.pressed && !root.isSelected
+            when: root.mouseArea.containsMouse && !root.mouseArea.pressed && !root.isSelected
 
             PropertyChanges {
                 target: root.background
@@ -117,7 +122,7 @@ FocusableControl {
 
         State {
             name: "PRESSED"
-            when: mouseArea.pressed && !root.isSelected
+            when: root.mouseArea.pressed && !root.isSelected
 
             PropertyChanges {
                 target: root.background
@@ -128,7 +133,7 @@ FocusableControl {
 
         State {
             name: "SELECTED"
-            when: !mouseArea.containsMouse && !mouseArea.pressed && root.isSelected
+            when: !root.mouseArea.containsMouse && !root.mouseArea.pressed && root.isSelected
 
             PropertyChanges {
                 target: root.background
@@ -139,7 +144,7 @@ FocusableControl {
 
         State {
             name: "SELECTED_HOVERED"
-            when: mouseArea.containsMouse && !mouseArea.pressed && root.isSelected
+            when: root.mouseArea.containsMouse && !root.mouseArea.pressed && root.isSelected
 
             PropertyChanges {
                 target: root.background
@@ -150,7 +155,7 @@ FocusableControl {
 
         State {
             name: "SELECTED_PRESSED"
-            when: mouseArea.pressed && root.isSelected
+            when: root.mouseArea.pressed && root.isSelected
 
             PropertyChanges {
                 target: root.background

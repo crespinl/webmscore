@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2022 MuseScore Limited
+ * Copyright (C) 2022 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -33,12 +33,16 @@
 #include "../iplaybackconfiguration.h"
 
 namespace mu::playback {
-class SoundProfilesRepository : public ISoundProfilesRepository, public muse::async::Asyncable
+class SoundProfilesRepository : public ISoundProfilesRepository, public muse::async::Asyncable, public muse::Contextable
 {
-    INJECT_STATIC(muse::audio::IPlayback, playback)
-    INJECT_STATIC(IPlaybackConfiguration, config)
+    muse::GlobalInject<IPlaybackConfiguration> config;
+    muse::ContextInject<muse::audio::IPlayback> playback = { this };
+
 public:
-    SoundProfilesRepository() = default;
+    SoundProfilesRepository(const muse::modularity::ContextPtr& iocCtx)
+        : muse::Contextable(iocCtx)
+    {
+    }
 
     void init();
 

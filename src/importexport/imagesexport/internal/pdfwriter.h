@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -20,8 +20,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef MU_IMPORTEXPORT_PDFWRITER_H
-#define MU_IMPORTEXPORT_PDFWRITER_H
+#pragma once
 
 #include "abstractimagewriter.h"
 
@@ -34,8 +33,8 @@ class QPdfWriter;
 namespace mu::iex::imagesexport {
 class PdfWriter : public AbstractImageWriter
 {
-    Inject<IImagesExportConfiguration> configuration = { this };
-    Inject<muse::IApplication> application = { this };
+    muse::GlobalInject<IImagesExportConfiguration> configuration;
+    muse::ContextInject<muse::IApplication> application = { this };
 
 public:
     PdfWriter(const muse::modularity::ContextPtr& iocCtx)
@@ -50,5 +49,3 @@ private:
     void preparePdfWriter(QPdfWriter& pdfWriter, const QString& title, const QSizeF& size) const;
 };
 }
-
-#endif // MU_IMPORTEXPORT_PDFWRITER_H

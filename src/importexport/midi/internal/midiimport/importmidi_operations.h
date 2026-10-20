@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -222,6 +222,7 @@ struct FileData
     MidiFile midiFile;
     QList<MTrack> tracks;
     int processingsOfOpenedFile = 0;
+    qint64 fileModificationTime = 0;
     bool hasTempoText = false;
     QByteArray HHeaderData;
     QByteArray VHeaderData;

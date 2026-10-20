@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -22,13 +22,12 @@
 
 #include <gtest/gtest.h>
 
-#include "dom/masterscore.h"
-#include "dom/undo.h"
+#include "engraving/dom/masterscore.h"
+#include "engraving/editing/undo.h"
 
 #include "utils/scorerw.h"
 #include "utils/scorecomp.h"
 
-using namespace mu;
 using namespace mu::engraving;
 
 static const String IMPLODEEXP_DATA_DIR("implode_explode_data/");
@@ -124,20 +123,15 @@ TEST_F(Engraving_ImplodeExplodeTests, implodeScore)
 
 TEST_F(Engraving_ImplodeExplodeTests, explodeDynamics)
 {
-    bool useRead302 = MScore::useRead302InTestMode;
-    MScore::useRead302InTestMode = false;
-
     testUndoExplode(u"explodeDynamics");
-
-    MScore::useRead302InTestMode = useRead302;
 }
 
 TEST_F(Engraving_ImplodeExplodeTests, implodeDynamics)
 {
-    bool useRead302 = MScore::useRead302InTestMode;
-    MScore::useRead302InTestMode = false;
-
     testUndoImplode(u"implodeDynamics");
+}
 
-    MScore::useRead302InTestMode = useRead302;
+TEST_F(Engraving_ImplodeExplodeTests, implodeArticulations)
+{
+    testUndoImplode(u"implodeArticulations");
 }

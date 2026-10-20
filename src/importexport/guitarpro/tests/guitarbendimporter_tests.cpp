@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2024 MuseScore Limited
+ * Copyright (C) 2024 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -30,26 +30,21 @@
 #include "engraving/dom/masterscore.h"
 #include "engraving/dom/excerpt.h"
 
-#include "iengravingconfiguration.h"
-
-using namespace mu;
 using namespace mu::engraving;
 
 static const String GUITARPRO_DIR(u"guitarbendimporter_data/");
 
 namespace mu::iex::guitarpro {
 extern Err importGTP(MasterScore*, muse::io::IODevice* io, const muse::modularity::ContextPtr& iocCtx, bool experimental = false);
-class GuitarBendImporter_Tests : public ::testing::Test, public muse::Injectable
+class GuitarBendImporter_Tests : public ::testing::Test, public muse::Contextable
 {
 public:
-    muse::Inject<mu::engraving::IEngravingConfiguration> engravingConfiguration = { this };
-
     GuitarBendImporter_Tests();
     void gpReadTest(const String& folderName, const String& extension);
 };
 
 GuitarBendImporter_Tests::GuitarBendImporter_Tests()
-    : muse::Injectable(muse::modularity::globalCtx())
+    : muse::Contextable(muse::modularity::globalCtx())
 {
 }
 
@@ -200,6 +195,15 @@ TEST_F(GuitarBendImporter_Tests, gpGraceChordDiffBends) {
 }
 TEST_F(GuitarBendImporter_Tests, gpTiedBendsReleaseOrHold) {
     gpReadTest(u"tied_bends_release_or_hold", u"gp");
+}
+TEST_F(GuitarBendImporter_Tests, gpBendReleaseGraceAfter) {
+    gpReadTest(u"bends_release_grace_after", u"gp");
+}
+TEST_F(GuitarBendImporter_Tests, gpPrebendReleaseBend) {
+    gpReadTest(u"prebend_release_bend", u"gp");
+}
+TEST_F(GuitarBendImporter_Tests, gpSlightBendTied) {
+    gpReadTest(u"slight_bend_tied", u"gp");
 }
 #endif
 }

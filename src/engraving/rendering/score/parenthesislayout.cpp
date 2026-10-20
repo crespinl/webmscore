@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2025 MuseScore Limited
+ * Copyright (C) 2025 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -37,6 +37,8 @@
 using namespace mu::engraving;
 using namespace mu::engraving::rendering::score;
 
+static constexpr double maxMidPointThicknessSpRatio = 0.2;
+
 void ParenthesisLayout::layoutParentheses(const EngravingItem* parent, const LayoutContext& ctx)
 {
     // Layout parentheses surrounding an engraving item. Handle padding and placement
@@ -47,16 +49,47 @@ void ParenthesisLayout::layoutParentheses(const EngravingItem* parent, const Lay
         return;
     }
     if (leftParen) {
-        layoutParenthesis(parent->leftParen(), parent->leftParen()->mutldata(), ctx);
+        layoutParenthesis(leftParen, leftParen->mutldata(), ctx);
     }
 
     if (rightParen) {
-        layoutParenthesis(parent->rightParen(), parent->rightParen()->mutldata(), ctx);
+        layoutParenthesis(rightParen, rightParen->mutldata(), ctx);
     }
 
     bool itemAddToSkyline = parent->autoplace() && !parent->ldata()->isSkipDraw();
     Shape dummyItemShape = getParentShape(parent);
 
+    layoutParentheses(leftParen, rightParen, dummyItemShape, itemAddToSkyline, ctx);
+}
+
+void ParenthesisLayout::layoutChordParentheses(const Chord* chord, const LayoutContext& ctx)
+{
+    for (const NoteParenthesisInfo* parenNotesInfo : chord->noteParentheses()) {
+        Parenthesis* leftParen = parenNotesInfo->leftParen();
+        Parenthesis* rightParen = parenNotesInfo->rightParen();
+
+        if (!(leftParen || rightParen)) {
+            return;
+        }
+        if (leftParen) {
+            layoutParenthesis(leftParen, leftParen->mutldata(), ctx);
+        }
+
+        if (rightParen) {
+            layoutParenthesis(rightParen, rightParen->mutldata(), ctx);
+        }
+
+        bool itemAddToSkyline = chord->autoplace() && !chord->ldata()->isSkipDraw();
+        Shape dummyItemShape = getParentShape(chord);
+
+        layoutParentheses(leftParen, rightParen, dummyItemShape, itemAddToSkyline, ctx);
+    }
+}
+
+void ParenthesisLayout::layoutParentheses(Parenthesis* leftParen, Parenthesis* rightParen, Shape& dummyItemShape, bool itemAddToSkyline,
+                                          const LayoutContext& ctx)
+{
+    UNUSED(ctx);
     if (!leftParen || !rightParen) {
         // 1 parenthesis
         Parenthesis* paren = leftParen ? leftParen : rightParen;
@@ -88,23 +121,24 @@ void ParenthesisLayout::layoutParentheses(const EngravingItem* parent, const Lay
     Parenthesis::LayoutData* rightLdata = rightParen->mutldata();
 
     const double itemLeftX = dummyItemShape.bbox().x();
-    const double itemRightX = itemLeftX + parent->width();
+    const double parentWidth = dummyItemShape.bbox().width();
+    const double itemRightX = itemLeftX + parentWidth;
 
     const double leftParenPadding = HorizontalSpacing::minHorizontalDistance(leftParen->shape().translated(leftLdata->pos()),
                                                                              dummyItemShape, leftParen->spatium());
-    leftParen->mutldata()->moveX(-leftParenPadding);
+    leftLdata->moveX(-leftParenPadding);
     dummyItemShape.add(leftParen->shape().translate(leftLdata->pos() + leftParen->staffOffset()));
 
     const double rightParenPadding = HorizontalSpacing::minHorizontalDistance(dummyItemShape, rightParen->shape().translated(
                                                                                   rightLdata->pos()), rightParen->spatium());
-    rightParen->mutldata()->moveX(rightParenPadding);
+    rightLdata->moveX(rightParenPadding);
 
     // If the right parenthesis has been padded against the left parenthesis, this means the parenthesis -> parenthesis padding distance
     // is larger than the width of the item the parentheses surrounds. In this case, the result is visually unbalanced.  Move both parens
     // to the left (relative to the segment) in order to centre the item: (b  ) -> ( b )
-    const double itemWidth = parent->width();
-    double parenPadding = parent->score()->paddingTable().at(ElementType::PARENTHESIS).at(ElementType::PARENTHESIS);
-    parenPadding *= leftParen->ldata()->mag();
+    const double itemWidth = parentWidth;
+    double parenPadding = computeInternalParenthesisPadding(leftParen, rightParen);
+    parenPadding *= (leftParen->ldata()->mag() + rightParen->ldata()->mag()) / 2;
 
     if (itemWidth >= parenPadding) {
         return;
@@ -119,8 +153,8 @@ void ParenthesisLayout::layoutParentheses(const EngravingItem* parent, const Lay
     const double itemToRightParen = rightParenX - itemRightX;
     const double parenToItemDist = (leftParenToItem + itemToRightParen) / 2;
 
-    leftParen->mutldata()->moveX(-(parenToItemDist - leftParenToItem));
-    rightParen->mutldata()->moveX(-(itemToRightParen - parenToItemDist));
+    leftLdata->moveX(-(parenToItemDist - leftParenToItem));
+    rightLdata->moveX(-(itemToRightParen - parenToItemDist));
 }
 
 void ParenthesisLayout::layoutParenthesis(Parenthesis* item, Parenthesis::LayoutData* ldata, const LayoutContext& ctx)
@@ -130,7 +164,7 @@ void ParenthesisLayout::layoutParenthesis(Parenthesis* item, Parenthesis::Layout
     if (ldata->symId == SymId::noSym) {
         createPathAndShape(item, ldata);
     } else {
-        ldata->setShape(Shape(item->symBbox(ldata->symId), item));
+        createSmuflShape(item, ldata);
     }
 }
 
@@ -178,7 +212,7 @@ double ParenthesisLayout::computeInternalParenthesisPadding(const EngravingItem*
 {
     bool parenFirst = item1->isParenthesis();
     const EngravingItem* other = item1->isParenthesis() ? item2 : item1;
-    const double spatium = item1->spatium();
+    const double spatium = item1->style().spatium();
     double padding = 0.0;
 
     switch (other->type()) {
@@ -215,6 +249,9 @@ double ParenthesisLayout::computeInternalParenthesisPadding(const EngravingItem*
     case ElementType::HARMONY:
         padding = 0.2 * spatium;
         break;
+    case ElementType::PARENTHESIS:
+        padding = spatium;
+        break;
     default:
         padding = 0.1 * spatium;
         break;
@@ -234,7 +271,7 @@ void ParenthesisLayout::createPathAndShape(Parenthesis* item, Parenthesis::Layou
     const double height = ldata->height;
     const double xPos = ldata->pos().x();
     const double mag = ldata->mag();
-    const double maxMidPointThickness = 0.2 * spatium;
+    const double maxMidPointThickness = maxMidPointThicknessSpRatio * spatium;
     const double midPointThickness = std::min(ldata->midPointThickness.value(), maxMidPointThickness);
 
     const double heightInSpatium = height / spatium;
@@ -249,7 +286,7 @@ void ParenthesisLayout::createPathAndShape(Parenthesis* item, Parenthesis::Layou
     double shoulderX = !muse::RealIsNull(ldata->shoulderWidth()) ? ldata->shoulderWidth() : 0.2
                        * std::pow(height, 0.95) * std::pow(mag, 0.1);
 
-    const double minShoulderX = 0.25 * spatium;
+    const double minShoulderX = 0.25 * spatium * ldata->intrinsicMag();
     shoulderX = std::max(shoulderX, minShoulderX);
 
     PointF start = PointF(xPos, startY);
@@ -277,8 +314,8 @@ void ParenthesisLayout::createPathAndShape(Parenthesis* item, Parenthesis::Layou
 
     PointF startPoint = PointF();
     double midThickness = 2 * midPointThickness;
-    int nbShapes = round(5.0 * heightInSpatium);
-    nbShapes = std::clamp(nbShapes, 20, 50);
+    int nbShapes = round(2.0 * heightInSpatium);
+    nbShapes = std::clamp(nbShapes, 3, 10);
     PointF bezier1mid = bezier1for - PointF(midPointThickness * direction, 0.0);
     PointF bezier2mid = bezier2for - PointF(midPointThickness * direction, 0.0);
     const CubicBezier b(startPoint, bezier1mid, bezier2mid, endNormalised);
@@ -300,6 +337,14 @@ void ParenthesisLayout::createPathAndShape(Parenthesis* item, Parenthesis::Layou
     item->setPos(start);
 }
 
+void ParenthesisLayout::createSmuflShape(Parenthesis* item, Parenthesis::LayoutData* ldata)
+{
+    Shape bbox = Shape(item->symBbox(ldata->symId), item);
+    double scale = item->ldata()->symScale;
+    bbox.scale(SizeF(scale, scale));
+    ldata->setShape(bbox);
+}
+
 void ParenthesisLayout::setLayoutValues(Parenthesis* item, Parenthesis::LayoutData* ldata, const LayoutContext& ctx)
 {
     if (!item->parentItem()) {
@@ -313,8 +358,8 @@ void ParenthesisLayout::setLayoutValues(Parenthesis* item, Parenthesis::LayoutDa
 
     // Set ldata values based on parent
     switch (item->parentItem()->type()) {
-    case ElementType::NOTE:
-        setNoteValues(item, ldata);
+    case ElementType::CHORD:
+        setChordValues(item, ldata);
         break;
     // height & startY are set in MeasureLayout for clef, timesig and keysig
     // TODO: create generic way of matching height & startY between parentheses on different items
@@ -327,7 +372,7 @@ void ParenthesisLayout::setLayoutValues(Parenthesis* item, Parenthesis::LayoutDa
     case ElementType::KEYSIG:
         break;
     case ElementType::HARMONY:
-        setHarmonyValues(item, ldata);
+        setHarmonyValues(item, ldata, ctx);
         break;
     default:
         setDefaultValues(item, ldata);
@@ -369,32 +414,68 @@ void ParenthesisLayout::setTimeSigValues(Parenthesis* item, Parenthesis::LayoutD
     ldata->startY.mut_value() += yOffset;
 }
 
-void ParenthesisLayout::setNoteValues(Parenthesis* item, Parenthesis::LayoutData* ldata)
+void ParenthesisLayout::setChordValues(Parenthesis* item, Parenthesis::LayoutData* ldata)
 {
-    Note* note = toNote(item->parentItem());
+    Chord* chord = toChord(item->parentItem());
 
-    const StaffType* st = note->staffType();
+    ldata->setMag(chord->mag());
+    ldata->intrinsicMag = chord->intrinsicMag();    // Scaling information not linked to staff size. item->spatium is NOT scaled by this
 
-    ldata->setMag(note->mag());
-    Shape noteShape = note->shape();
-    noteShape.remove_if([item](ShapeElement& s) {
-        return s.item() == item || s.item()->isBend() || s.item()->isParenthesis() || s.item()->isAccidental() || s.item()->isNoteDot() || s.item()->isLaissezVibSegment();
-    });
+    Shape notesShape;
 
-    if (st->isTabStaff()) {
-        ldata->startY = noteShape.top();
-        ldata->height = noteShape.bbox().height();
-        ldata->midPointThickness.set_value(ldata->height / 20 * ldata->mag());
-        ldata->endPointThickness.set_value(0.05);
-    } else {
-        ldata->startY = noteShape.top() - 0.25 * item->spatium();
-        ldata->height = noteShape.bbox().height() + 0.5 * item->spatium();
-        ldata->midPointThickness.set_value(ldata->height / 30 * ldata->mag());
-        ldata->endPointThickness.set_value(0.05);
+    const NoteParenthesisInfo* parenInfo = chord->findNoteParenthesisInfo(item);
+    IF_ASSERT_FAILED(parenInfo) {
+        LOGD() << "No parenthesis info found for this chord";
+        return;
     }
+
+    const std::vector<Note*>& notes = parenInfo->notes();
+
+    assert(!notes.empty());
+
+    for (const Note* note : notes) {
+        notesShape.add(getNoteShape(note, item).translated(note->pos()));
+    }
+
+    const StaffType* st = chord->staffType();
+    const bool isTab = st->isTabStaff();
+
+    auto calculateMidPointThickness = [item, ldata, isTab]() -> double {
+        const double sp = item->spatium();
+        const double sp0 = item->defaultSpatium();
+
+        IF_ASSERT_FAILED(sp > 0.0 && sp0 > 0.0) {
+            LOGE() << "spatium or default spatium is 0";
+            return 0.0;
+        }
+
+        const double exponent = isTab ? 0.36 : 0.33;
+        const double exponentComplement = 1.0 - exponent;
+
+        const double normalizedHeight = ldata->height / sp;
+
+        // Scale factor that keeps the normalized formula compatible with the
+        // original formula at the default spatium.
+        const double scaleNormalization = sp / std::pow(sp0, exponentComplement);
+        const double normalizedThickness = std::pow(normalizedHeight, exponent)
+                                           * scaleNormalization
+                                           * ldata->intrinsicMag();
+
+        return normalizedThickness;
+    };
+
+    if (isTab) {
+        ldata->startY = notesShape.top();
+        ldata->height = notesShape.bbox().height();
+    } else {
+        ldata->startY = notesShape.top() - 0.25 * item->spatium() * ldata->intrinsicMag();
+        ldata->height = notesShape.bbox().height() + 0.5 * item->spatium() * ldata->intrinsicMag();
+    }
+    ldata->midPointThickness.set_value(calculateMidPointThickness());
+    ldata->endPointThickness.set_value(0.05);
 }
 
-void ParenthesisLayout::setHarmonyValues(Parenthesis* item, Parenthesis::LayoutData* ldata)
+void ParenthesisLayout::setHarmonyValues(Parenthesis* item, Parenthesis::LayoutData* ldata, const LayoutContext& ctx)
 {
     const double spatium = item->spatium();
     Harmony* parent = toHarmony(item->parentItem());
@@ -422,6 +503,14 @@ void ParenthesisLayout::setHarmonyValues(Parenthesis* item, Parenthesis::LayoutD
 
     double top = topCapHeight - extension;
     double height = bottom - top;
+
+    if (ctx.conf().styleB(Sid::harmonyParenUseSmuflSym)) {
+        ldata->symId = item->direction() == DirectionH::LEFT ? SymId::csymParensLeftTall : SymId::csymParensRightTall;
+        double symHeight = item->symHeight(ldata->symId);
+        ldata->symScale = height / symHeight;
+
+        return;
+    }
 
     double rootCapHeight = rootTextSeg ? rootTextSeg->capHeight() : defaultCapHeight;
     double scale = (height - 2 * extension) / rootCapHeight;
@@ -458,25 +547,26 @@ Shape ParenthesisLayout::getParentShape(const EngravingItem* parent)
 {
     Shape parentShape = parent->shape();
 
-    bool isNote = parent->isNote();
+    bool isChord = parent->isChord();
 
-    parentShape.remove_if([isNote](ShapeElement& s) {
+    parentShape.remove_if([isChord](ShapeElement& s) {
         return !s.item() || s.item()->isParenthesis()
-               || (s.item()->isLaissezVibSegment() && isNote);
+               || (s.item()->isLaissezVibSegment() && isChord)
+               || (s.item()->isHook() && isChord)
+               || (s.item()->isStem() && isChord)
+               || (s.item()->isArpeggio() && isChord)
+               || (s.item()->isChordBracket() && isChord);
     });
 
-    if (!isNote) {
-        return parentShape;
-    }
-
-    const Note* note = toNote(parent);
-    const Chord* chord = note->chord();
-
-    if ((note->line() < -1 || note->line() > note->staff()->lines(note->tick())) && !chord->ledgerLines().empty()) {
-        for (LedgerLine* ledger : chord->ledgerLines()) {
-            parentShape.add(ledger->shape().translate(ledger->pos() - note->pos() - ledger->staffOffset()));
-        }
-    }
-
     return parentShape;
+}
+
+Shape ParenthesisLayout::getNoteShape(const Note* note, Parenthesis* paren)
+{
+    Shape noteShape = note->shape();
+    noteShape.remove_if([paren](ShapeElement& s) {
+        return s.item() == paren || s.item()->isBend() || s.item()->isParenthesis() || s.item()->isAccidental() || s.item()->isNoteDot() || s.item()->isLaissezVibSegment();
+    });
+
+    return noteShape;
 }

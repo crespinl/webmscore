@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2023 MuseScore Limited
+ * Copyright (C) 2023 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -198,6 +198,7 @@ double AlignmentLayout::yOpticalCenter(const EngravingItem* item)
     case ElementType::DYNAMIC:
     case ElementType::EXPRESSION:
     {
+        // Please keep `Dynamic::gripsPositions` in sync with this calculation
         curY += item->staffOffsetY();
         AlignV vertAlign = toTextBase(item)->align().vertical;
         double bboxHeight = item->ldata()->bbox().height();
@@ -212,7 +213,7 @@ double AlignmentLayout::yOpticalCenter(const EngravingItem* item)
             break;
         case AlignV::BASELINE:
             if (item->isDynamic()) {
-                curY -= 0.46 * item->spatium() * toDynamic(item)->dynamicsSize(); // approximated half x-height of dynamic
+                curY -= 0.46 * item->spatium() * toDynamic(item)->symbolScale(); // approximated half x-height of dynamic
             } else {
                 curY -= 0.5 * toExpression(item)->fontMetrics().xHeight();
             }

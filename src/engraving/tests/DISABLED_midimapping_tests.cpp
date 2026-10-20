@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -130,10 +130,10 @@ void TestMidiMapping::testReadChangeWrite2(const char* f1, const char* ref)
     QVERIFY(score);
     score->rebuildMidiMapping();
     MeasureBase* mb = score->measures()->last();
-    while (mb && mb->type() != ElementType::MEASURE) {
+    while (mb && !mb->isMeasure()) {
         mb = mb->prev();
     }
-    score->deleteItem(static_cast<Measure*>(mb));
+    score->deleteItem(toMeasure(mb));
     score->rebuildMidiMapping();
     QVERIFY(saveCompareScore(score, f1 + QString("_changed.mscx"), MIDIMAPPING_DATA_DIR + ref));
     delete score;

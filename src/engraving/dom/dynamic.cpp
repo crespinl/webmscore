@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -21,7 +21,8 @@
  */
 #include "dynamic.h"
 
-#include "types/typesconv.h"
+#include "../editing/textedit.h"
+#include "../types/typesconv.h"
 
 #include "dynamichairpingroup.h"
 #include "expression.h"
@@ -29,10 +30,9 @@
 #include "measure.h"
 #include "score.h"
 #include "segment.h"
+#include "staff.h"
 #include "system.h"
 #include "tempo.h"
-#include "textedit.h"
-#include "undo.h"
 
 #include "log.h"
 
@@ -107,7 +107,6 @@ const std::vector<Dyn> Dynamic::DYN_LIST = {
 static const ElementStyle dynamicsStyle {
     { Sid::dynamicsMinDistance, Pid::MIN_DISTANCE },
     { Sid::avoidBarLines, Pid::AVOID_BARLINES },
-    { Sid::dynamicsSize, Pid::DYNAMICS_SIZE },
     { Sid::centerOnNotehead, Pid::CENTER_ON_NOTEHEAD },
 };
 
@@ -133,7 +132,6 @@ Dynamic::Dynamic(const Dynamic& d)
     m_changeInVelocity = d.m_changeInVelocity;
     m_velChangeSpeed = d.m_velChangeSpeed;
     _avoidBarLines = d._avoidBarLines;
-    _dynamicsSize = d._dynamicsSize;
     _centerOnNotehead = d._centerOnNotehead;
 }
 
@@ -374,7 +372,7 @@ TranslatableString Dynamic::subtypeUserName() const
     }
 }
 
-void Dynamic::editDrag(EditData& ed)
+void Dynamic::dragGrip(EditData& ed)
 {
     const bool hasLeftGrip = this->hasLeftGrip();
     const bool hasRightGrip = this->hasRightGrip();
@@ -397,14 +395,14 @@ void Dynamic::editDrag(EditData& ed)
         return;
     }
 
-    TextBase::editDrag(ed);
+    UNREACHABLE;
 }
 
-void Dynamic::endEditDrag(EditData& ed)
+void Dynamic::endDragGrip(EditData& ed)
 {
     m_leftDragOffset = m_rightDragOffset = 0.0;
 
-    TextBase::endEditDrag(ed);
+    TextBase::endDragGrip(ed);
 }
 
 //---------------------------------------------------------
@@ -451,8 +449,6 @@ PropertyValue Dynamic::getProperty(Pid propertyId) const
         return m_dynamicType;
     case Pid::VELOCITY:
         return velocity();
-    case Pid::SUBTYPE:
-        return int(m_dynamicType);
     case Pid::VELO_CHANGE:
         if (isVelocityChangeAvailable()) {
             return changeInVelocity();
@@ -463,8 +459,6 @@ PropertyValue Dynamic::getProperty(Pid propertyId) const
         return m_velChangeSpeed;
     case Pid::AVOID_BARLINES:
         return avoidBarLines();
-    case Pid::DYNAMICS_SIZE:
-        return _dynamicsSize;
     case Pid::CENTER_ON_NOTEHEAD:
         return _centerOnNotehead;
     case Pid::PLAY:
@@ -493,9 +487,6 @@ bool Dynamic::setProperty(Pid propertyId, const PropertyValue& v)
     case Pid::VELOCITY:
         m_velocity = v.toInt();
         break;
-    case Pid::SUBTYPE:
-        m_dynamicType = v.value<DynamicType>();
-        break;
     case Pid::VELO_CHANGE:
         if (isVelocityChangeAvailable()) {
             setChangeInVelocity(v.toInt());
@@ -506,9 +497,6 @@ bool Dynamic::setProperty(Pid propertyId, const PropertyValue& v)
         break;
     case Pid::AVOID_BARLINES:
         setAvoidBarLines(v.toBool());
-        break;
-    case Pid::DYNAMICS_SIZE:
-        _dynamicsSize = v.toDouble();
         break;
     case Pid::CENTER_ON_NOTEHEAD:
         _centerOnNotehead = v.toBool();
@@ -653,7 +641,7 @@ Shape Dynamic::symShapeWithCutouts(SymId id) const
 {
     Staff* stf = staff();
     double staffMag = stf ? stf->staffMag(tick()) : 1.0;
-    Shape shape = score()->engravingFont()->shapeWithCutouts(id, magS() * staffMag * dynamicsSize());
+    Shape shape = score()->engravingFont()->shapeWithCutouts(id, magS() * staffMag * symbolScale());
     for (ShapeElement& element : shape.elements()) {
         element.setItem(this);
     }
@@ -694,25 +682,37 @@ int Dynamic::gripsCount() const
 
 std::vector<PointF> Dynamic::gripsPositions(const EditData&) const
 {
-    const LayoutData* ldata = this->ldata();
-    const PointF pp(pagePos());
-    double md = score()->style().styleS(Sid::hairpinMinDistance).val() * spatium(); // Minimum distance between dynamic and grip
+    const RectF bbox = ldata()->bbox();
+    const PointF pagePos = this->pagePos();
+    const double horizontalPadding = absoluteFromSpatium(score()->style().styleS(Sid::hairpinMinDistance));
 
-    // Calculated by subtracting the y-value of the dynamic's pagePos from the y-value of hairpin's Grip::START position in HairpinSegment::gripsPositions
-    const double GRIP_VERTICAL_OFFSET = -11.408;
+    // Based on rendering::score::AlignmentLayout::yOpticalCenter
+    const double yOpticalCenter = [&] {
+        switch (align().vertical) {
+        case AlignV::TOP:
+            return 0.5 * bbox.height();
+        case AlignV::VCENTER:
+            return 0.0;
+        case AlignV::BOTTOM:
+            return -0.5 * bbox.height();
+        case AlignV::BASELINE:
+            return -0.46 * spatium() * symbolScale(); // approximated half x-height of dynamic
+        }
+        return 0.0;
+    }();
 
-    PointF leftOffset(-ldata->bbox().width() / 2 - md + m_leftDragOffset, GRIP_VERTICAL_OFFSET);
-    PointF rightOffset(ldata->bbox().width() / 2 + md + m_rightDragOffset, GRIP_VERTICAL_OFFSET);
+    PointF leftOffset(bbox.left() - horizontalPadding + m_leftDragOffset, yOpticalCenter);
+    PointF rightOffset(bbox.right() + horizontalPadding + m_rightDragOffset, yOpticalCenter);
 
     const bool hasLeftGrip = this->hasLeftGrip();
     const bool hasRightGrip = this->hasRightGrip();
 
     if (hasLeftGrip && hasRightGrip) {
-        return { pp + leftOffset, pp + rightOffset };
+        return { pagePos + leftOffset, pagePos + rightOffset };
     } else if (hasLeftGrip) {
-        return { pp + leftOffset };
+        return { pagePos + leftOffset };
     } else if (hasRightGrip) {
-        return { pp + rightOffset };
+        return { pagePos + rightOffset };
     } else {
         return {};
     }

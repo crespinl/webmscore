@@ -5,7 +5,7 @@
 # MuseScore Studio
 # Music Composition & Notation
 #
-# Copyright (C) 2025 MuseScore Limited
+# Copyright (C) 2025 MuseScore Limited and others
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 3 as
@@ -25,4 +25,5 @@ BUILD_TOOLS=$HOME/build_tools
 ARTIFACTS_DIR=build.artifacts
 BUILD_DIR=build.release
 
-cp -r $BUILD_DIR/public_html $ARTIFACTS_DIR/public_html
+# Nothing is needed at the moment, artifacts appear during the build stage
+#cp -r $BUILD_DIR/public_html $ARTIFACTS_DIR/public_html

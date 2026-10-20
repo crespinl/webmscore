@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -20,8 +20,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef MU_ENGRAVING_MSCORE_H
-#define MU_ENGRAVING_MSCORE_H
+#pragma once
 
 #include "global/containers.h"
 
@@ -63,16 +62,15 @@ inline constexpr bool isDownVoice(voice_idx_t voiceIdx)
 static constexpr int MAX_HEADERS = 3;
 static constexpr int MAX_FOOTERS = 3;
 
-static constexpr double INCH      = 25.4;
-static constexpr double PPI       = 72.0; // printer points per inch
-static constexpr double DPI_F     = 5;
-static constexpr double DPI       = 72.0 * DPI_F;
-static constexpr double SPATIUM20 = 5.0 * (DPI / 72.0);
-static constexpr double DPMM      = DPI / INCH;
+// UNIVERSAL UNITS
+static constexpr double INCH      = 25.4; // millimitres per inch
+static constexpr double PPI       = 72.0; // typographical points per inch
 
-// NOTE: the SMuFL default is actually 20pt. We use 10 for historical reasons
-// and back-compatibility, but this will be multiplied x2 during layout.
-static constexpr double MUSICAL_SYMBOLS_DEFAULT_FONT_SIZE = 10.0;
+// INTERNAL DRAWING UNITS
+static constexpr double DPI = 1200;
+static constexpr double DPMM = DPI / INCH;
+
+static constexpr double UI_ICONS_DEFAULT_FONT_SIZE = 12.0;
 
 static constexpr int MAX_STAVES = 4;
 
@@ -137,8 +135,10 @@ enum class MsError : unsigned char {
     NO_LYRICS_SELECTED,
     NO_NOTE_REST_SELECTED,
     NO_FLIPPABLE_SELECTED,
+    NO_MEASURE_SELECTED,
     NO_STAFF_SELECTED,
     NO_NOTE_FIGUREDBASS_SELECTED,
+    NO_NOTE_REST_HARMONY_SELECTED,
     CANNOT_INSERT_TUPLET,
     CANNOT_SPLIT_TUPLET,
     CANNOT_SPLIT_MEASURE_FIRST_BEAT,
@@ -149,9 +149,11 @@ enum class MsError : unsigned char {
     CANNOT_REMOVE_TIME_TUPLET,
     CANNOT_REMOVE_TIME_MEASURE_REPEAT,
     NO_DEST,
+    SOURCE_PARTIAL_TUPLET,
     DEST_TUPLET,
     TUPLET_CROSSES_BAR,
     DEST_LOCAL_TIME_SIGNATURE,
+    SOURCE_PARTIAL_TREMOLO,
     DEST_TREMOLO,
     NO_MIME,
     DEST_NO_CR,
@@ -160,6 +162,9 @@ enum class MsError : unsigned char {
     CORRUPTED_MEASURE,
     CANNOT_REMOVE_KEY_SIG,
     CANNOT_JOIN_MEASURE_STAFFTYPE_CHANGE,
+    CANNOT_REPEAT_SELECTION,
+    TRANSPOSE_NO_FRET_DIAGRAM,
+    CANNOT_EXPLODE_IMPLODE_LOCAL_TIMESIG,
 };
 
 /// \cond PLUGIN_API \private \endcond
@@ -182,6 +187,7 @@ class MScore
 public:
 
     static MsError _error;
+    static bool _errorIsWarning;
 
     static void registerUiTypes();
 
@@ -212,26 +218,21 @@ public:
     static bool debugMode;
     static bool testMode;
     static bool testWriteStyleToScore;
-    static bool useRead302InTestMode;
 
     static bool saveTemplateMode;
     static bool noGui;
 
-    static bool noExcerpts;
     static bool noImages;
 
     static bool pdfPrinting;
     static bool svgPrinting;
-    static double pixelRatio;
 
     static double verticalPageGap;
     static double horizontalPageGapEven;
     static double horizontalPageGapOdd;
 
-    static void setError(MsError e) { _error = e; }
+    static void setError(MsError e, bool warning = false) { _error = e; _errorIsWarning = warning; }
 
     static std::string errorToString(MsError err);
 };
 } // namespace mu::engraving
-
-#endif

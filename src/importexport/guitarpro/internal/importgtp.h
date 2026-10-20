@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -128,10 +128,10 @@ struct GpBar {
 //   GuitarPro
 //---------------------------------------------------------
 
-class GuitarPro : public muse::Injectable
+class GuitarPro : public muse::Contextable
 {
 public:
-    muse::Inject<mu::engraving::IEngravingConfiguration> engravingConfiguration = { this };
+    muse::GlobalInject<mu::engraving::IEngravingConfiguration> engravingConfiguration;
 
 protected:
 
@@ -170,7 +170,7 @@ protected:
 
     GPProperties m_properties;
 
-    std::list<Note*> slideList;   //list of start slide notes
+    std::vector<Note*> slideList;   //list of start slide notes
 
     // note effect bit masks
     static const uint8_t EFFECT_BEND = 0x1;
@@ -321,7 +321,7 @@ public:
     void setTempo(int n, Measure* measure);
     muse::String title, subtitle, artist, album, composer, poet;
     muse::StringList comments;
-    GpTrack channelDefaults[GP_MAX_TRACK_NUMBER * 2];
+    std::array<GpTrack, GP_MAX_TRACK_NUMBER* 2> channelDefaults;
     size_t staves = 0;
     size_t measures = 0;
     std::vector<GpBar> bars;
@@ -413,6 +413,7 @@ class GuitarPro5 : public GuitarPro
     std::unordered_map<Note*, Note*> m_harmonicNotes; // for adding ties for harmonic notes
     bool m_currentBeatHasRasgueado = false;
     std::unordered_set<ChordRest*> m_letRingForChords; // fixing gp5 bug with no storing let ring for tied notes
+    std::vector<std::pair<Note*, Note*> > m_glissandoNotePairs;
 
     void readInfo();
     void readPageSetup();
@@ -425,6 +426,7 @@ class GuitarPro5 : public GuitarPro
     Fraction readBeat(const Fraction& tick, int voice, Measure* measure, int staffIdx, mu::engraving::Tuplet** tuplets, bool mixChange);
     ReadNoteResult readNoteEffects(Note*);
     float naturalHarmonicFromFret(int fret);
+    void addGlissandos();
 
 public:
     GuitarPro5(mu::engraving::MasterScore* s, int v, const muse::modularity::ContextPtr& iocCtx)

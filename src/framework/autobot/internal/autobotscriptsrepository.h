@@ -5,7 +5,7 @@
  * MuseScore
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore BVBA and others
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -29,13 +29,13 @@
 #include "io/ifilesystem.h"
 
 namespace muse::autobot {
-class AutobotScriptsRepository : public IAutobotScriptsRepository, public Injectable
+class AutobotScriptsRepository : public IAutobotScriptsRepository, public Contextable
 {
-    Inject<IAutobotConfiguration> configuration = { this };
+    GlobalInject<IAutobotConfiguration> configuration;
     GlobalInject<io::IFileSystem> fileSystem;
 public:
     AutobotScriptsRepository(const modularity::ContextPtr& iocCtx)
-        : Injectable(iocCtx) {}
+        : Contextable(iocCtx) {}
 
     Scripts scripts() const override;
 };

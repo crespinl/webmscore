@@ -5,7 +5,7 @@
  * MuseScore
  * Music Composition & Notation
  *
- * Copyright (C) 2025 MuseScore BVBA and others
+ * Copyright (C) 2025 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -32,15 +32,15 @@
 #include "../itoursservice.h"
 
 namespace muse::tours {
-class ToursService : public IToursService, public Injectable, public async::Asyncable
+class ToursService : public IToursService, public Contextable, public async::Asyncable
 {
-    Inject<IInteractive> interactive = { this };
-    Inject<IToursProvider> toursProvider = { this };
-    Inject<IToursConfiguration> toursConfiguration = { this };
+    ContextInject<IInteractive> interactive = { this };
+    ContextInject<IToursProvider> toursProvider = { this };
+    GlobalInject<IToursConfiguration> toursConfiguration;
 
 public:
     ToursService(const muse::modularity::ContextPtr& ctx)
-        : Injectable(ctx) {}
+        : Contextable(ctx) {}
 
     void registerTour(const String& eventCode, const Tour& tour) override;
 

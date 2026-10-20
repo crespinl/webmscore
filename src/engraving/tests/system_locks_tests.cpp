@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -22,13 +22,13 @@
 
 #include <gtest/gtest.h>
 
+#include "engraving/dom/system.h"
+#include "engraving/editing/editsystemlocks.h"
+
 #include "utils/scorerw.h"
 #include "utils/scorecomp.h"
 #include "utils/testutils.h"
 
-#include "dom/system.h"
-
-using namespace mu;
 using namespace mu::engraving;
 
 static const String SYSTEM_LOCKS_DATA_DIR("system_locks_data/");
@@ -39,9 +39,6 @@ class Engraving_SystemLocksTests : public ::testing::Test
 
 TEST_F(Engraving_SystemLocksTests, readLocksFromFile)
 {
-    bool useRead302 = MScore::useRead302InTestMode;
-    MScore::useRead302InTestMode = false;
-
     MasterScore* score = ScoreRW::readScore(SYSTEM_LOCKS_DATA_DIR + u"system_locks-1.mscx");
     EXPECT_TRUE(score);
 
@@ -65,14 +62,10 @@ TEST_F(Engraving_SystemLocksTests, readLocksFromFile)
     }
 
     delete score;
-    MScore::useRead302InTestMode = useRead302;
 }
 
 TEST_F(Engraving_SystemLocksTests, lockMeasuresPerSystem)
 {
-    bool useRead302 = MScore::useRead302InTestMode;
-    MScore::useRead302InTestMode = false;
-
     MasterScore* score = ScoreRW::readScore(SYSTEM_LOCKS_DATA_DIR + u"system_locks-1.mscx");
     EXPECT_TRUE(score);
 
@@ -85,7 +78,7 @@ TEST_F(Engraving_SystemLocksTests, lockMeasuresPerSystem)
     score->endCmd();
 
     score->startCmd(TranslatableString::untranslatable("Engraving system locks tests"));
-    score->addRemoveSystemLocks(0, false); // Remove all locks
+    EditSystemLocks::addRemoveSystemLocks(score, 0, false); // Remove all locks
     score->endCmd();
 
     allLocks = systemLocks->allLocks();
@@ -99,7 +92,7 @@ TEST_F(Engraving_SystemLocksTests, lockMeasuresPerSystem)
     }
 
     score->startCmd(TranslatableString::untranslatable("Engraving system locks tests"));
-    score->addRemoveSystemLocks(0, true); // Lock current layout
+    EditSystemLocks::addRemoveSystemLocks(score, 0, true); // Lock current layout
     score->endCmd();
 
     for (MeasureBase* mb : measuresAtSystemStart) {
@@ -110,7 +103,7 @@ TEST_F(Engraving_SystemLocksTests, lockMeasuresPerSystem)
     }
 
     score->startCmd(TranslatableString::untranslatable("Engraving system locks tests"));
-    score->addRemoveSystemLocks(4, false); // Add locks every 4 measures
+    EditSystemLocks::addRemoveSystemLocks(score, 4, false); // Add locks every 4 measures
     score->endCmd();
 
     allLocks = systemLocks->allLocks();
@@ -123,14 +116,10 @@ TEST_F(Engraving_SystemLocksTests, lockMeasuresPerSystem)
     }
 
     delete score;
-    MScore::useRead302InTestMode = useRead302;
 }
 
 TEST_F(Engraving_SystemLocksTests, makeIntoSystem)
 {
-    bool useRead302 = MScore::useRead302InTestMode;
-    MScore::useRead302InTestMode = false;
-
     MasterScore* score = ScoreRW::readScore(SYSTEM_LOCKS_DATA_DIR + u"system_locks-1.mscx");
     EXPECT_TRUE(score);
 
@@ -141,11 +130,8 @@ TEST_F(Engraving_SystemLocksTests, makeIntoSystem)
 
     EXPECT_NE(thirdMeasure->system(), sixthMeasure->system());
 
-    score->select(thirdMeasure, SelectType::RANGE);
-    score->select(sixthMeasure, SelectType::RANGE);
-
     score->startCmd(TranslatableString::untranslatable("Engraving system locks tests"));
-    score->cmdMakeIntoSystem();
+    EditSystemLocks::makeIntoSystem(score, thirdMeasure, sixthMeasure);
     score->endCmd();
 
     EXPECT_TRUE(thirdMeasure->prev()->isEndOfSystemLock());
@@ -156,14 +142,10 @@ TEST_F(Engraving_SystemLocksTests, makeIntoSystem)
     EXPECT_TRUE(sixthMeasure->next()->isStartOfSystemLock());
 
     delete score;
-    MScore::useRead302InTestMode = useRead302;
 }
 
 TEST_F(Engraving_SystemLocksTests, moveToPreviousNext)
 {
-    bool useRead302 = MScore::useRead302InTestMode;
-    MScore::useRead302InTestMode = false;
-
     MasterScore* score = ScoreRW::readScore(SYSTEM_LOCKS_DATA_DIR + u"system_locks-1.mscx");
     EXPECT_TRUE(score);
 
@@ -174,32 +156,25 @@ TEST_F(Engraving_SystemLocksTests, moveToPreviousNext)
 
     EXPECT_NE(thirdMeasure->system(), sixthMeasure->system());
 
-    score->select(thirdMeasure, SelectType::RANGE);
-    score->select(sixthMeasure, SelectType::RANGE);
-
     score->startCmd(TranslatableString::untranslatable("Engraving system locks tests"));
-    score->cmdMoveMeasureToPrevSystem();
+    EditSystemLocks::moveMeasureToPrevSystem(score, sixthMeasure);
     score->endCmd();
 
     EXPECT_TRUE(sixthMeasure->isEndOfSystemLock());
     EXPECT_TRUE(sixthMeasure->next()->isStartOfSystemLock());
 
     score->startCmd(TranslatableString::untranslatable("Engraving system locks tests"));
-    score->cmdMoveMeasureToNextSystem();
+    EditSystemLocks::moveMeasureToNextSystem(score, thirdMeasure);
     score->endCmd();
 
     EXPECT_TRUE(thirdMeasure->prev()->isEndOfSystemLock());
     EXPECT_TRUE(thirdMeasure->isStartOfSystemLock());
 
     delete score;
-    MScore::useRead302InTestMode = useRead302;
 }
 
 TEST_F(Engraving_SystemLocksTests, toggleSystemLock)
 {
-    bool useRead302 = MScore::useRead302InTestMode;
-    MScore::useRead302InTestMode = false;
-
     MasterScore* score = ScoreRW::readScore(SYSTEM_LOCKS_DATA_DIR + u"system_locks-1.mscx");
     EXPECT_TRUE(score);
 
@@ -208,19 +183,19 @@ TEST_F(Engraving_SystemLocksTests, toggleSystemLock)
     score->select(score->first(), SelectType::RANGE);
 
     score->startCmd(TranslatableString::untranslatable("Engraving system locks tests"));
-    score->cmdToggleSystemLock();
+    EditSystemLocks::toggleSystemLock(score, score->selection().selectedSystems());
     score->endCmd();
 
     EXPECT_FALSE(score->systems().front()->isLocked());
 
     score->startCmd(TranslatableString::untranslatable("Engraving system locks tests"));
-    score->cmdToggleSystemLock();
+    EditSystemLocks::toggleSystemLock(score, score->selection().selectedSystems());
     score->endCmd();
 
     EXPECT_TRUE(score->systems().front()->isLocked());
 
     score->startCmd(TranslatableString::untranslatable("Engraving system locks tests"));
-    score->cmdToggleScoreLock();
+    EditSystemLocks::toggleScoreLock(score);
     score->endCmd();
 
     for (System* sys : score->systems()) {
@@ -228,7 +203,7 @@ TEST_F(Engraving_SystemLocksTests, toggleSystemLock)
     }
 
     score->startCmd(TranslatableString::untranslatable("Engraving system locks tests"));
-    score->cmdToggleScoreLock();
+    EditSystemLocks::toggleScoreLock(score);
     score->endCmd();
 
     for (System* sys : score->systems()) {
@@ -236,5 +211,4 @@ TEST_F(Engraving_SystemLocksTests, toggleSystemLock)
     }
 
     delete score;
-    MScore::useRead302InTestMode = useRead302;
 }

@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -1015,7 +1015,7 @@ int SvgGenerator::metric(QPaintDevice::PaintDeviceMetric metric) const
     case QPaintDevice::PdmDevicePixelRatioScaled:
         return 1;
     default:
-        LOGW("SvgGenerator::metric(), unhandled metric %d\n", metric);
+        LOGD("SvgGenerator::metric(), unhandled metric %d\n", metric);
         break;
     }
     return 0;

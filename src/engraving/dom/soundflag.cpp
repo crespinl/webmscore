@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2024 MuseScore Limited
+ * Copyright (C) 2024 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -24,8 +24,10 @@
 
 #include <climits>
 
-#include "undo.h"
+#include "../editing/editsoundflag.h"
 #include "linkedobjects.h"
+#include "mscore.h"
+#include "score.h"
 
 using namespace muse::draw;
 using namespace mu::engraving;
@@ -36,6 +38,7 @@ SoundFlag::SoundFlag(EngravingItem* parent)
     String fontFamily = configuration()->iconsFontFamily();
     m_iconFontValid = !fontFamily.empty();
     m_iconFont = Font(fontFamily, Font::Type::Icon);
+    m_iconFont.setPointSizeF(UI_ICONS_DEFAULT_FONT_SIZE);
 
     //! draw on top of all elements
     setZ(INT_MAX);
@@ -225,17 +228,14 @@ char16_t SoundFlag::iconCode() const
 
 Font SoundFlag::iconFont() const
 {
-    return m_iconFont;
-}
-
-void SoundFlag::setIconFontSize(double size)
-{
-    m_iconFont.setPointSizeF(size);
+    Font font = m_iconFont;
+    font.setPointSizeF(UI_ICONS_DEFAULT_FONT_SIZE * magS());
+    return font;
 }
 
 Color SoundFlag::iconBackgroundColor() const
 {
-    Color color = curColor(true);
+    Color color = curColor(true, {});
     if (!selected()) {
         color = Color("#CFD5DD");
         color.setAlpha(128);

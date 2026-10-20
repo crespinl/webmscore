@@ -5,7 +5,7 @@
  * MuseScore
  * Music Composition & Notation
  *
- * Copyright (C) 2022 MuseScore BVBA and others
+ * Copyright (C) 2022 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -23,7 +23,7 @@
 #include "musesamplermodule.h"
 
 #include "modularity/ioc.h"
-#include "audio/worker/isynthresolver.h"
+#include "audio/engine/isynthresolver.h"
 
 #include "ui/iuiactionsregister.h"
 
@@ -69,12 +69,8 @@ void MuseSamplerModule::resolveImports()
     }
 }
 
-void MuseSamplerModule::onInit(const IApplication::RunMode& mode)
+void MuseSamplerModule::onInit(const IApplication::RunMode&)
 {
-    if (IApplication::RunMode::AudioPluginRegistration == mode) {
-        return;
-    }
-
     m_configuration->init();
     m_resolver->init();
     m_actionController->init(m_resolver);
@@ -83,4 +79,9 @@ void MuseSamplerModule::onInit(const IApplication::RunMode& mode)
     if (pr) {
         pr->reg("musesampler", m_configuration->libraryPath());
     }
+}
+
+void MuseSamplerModule::onDeinit()
+{
+    m_resolver->deinit();
 }

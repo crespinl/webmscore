@@ -5,7 +5,7 @@
  * MuseScore
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore BVBA and others
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -20,12 +20,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import QtQuick 2.15
+import QtQuick
 
-import Muse.Ui 1.0
-import Muse.UiComponents 1.0
-
-import "internal"
+import Muse.Ui
 
 PopupView {
     id: root
@@ -62,6 +59,15 @@ PopupView {
         if (!(openPolicies & PopupView.NoActivateFocus) && content.navigationSection) {
             content.navigationSection.requestActive()
         }
+        Qt.callLater(root.repositionWindowIfNeed)
+    }
+
+    onWidthChanged: {
+        Qt.callLater(root.repositionWindowIfNeed)
+    }
+
+    onHeightChanged: {
+        Qt.callLater(root.repositionWindowIfNeed)
     }
 
     onClosed: {

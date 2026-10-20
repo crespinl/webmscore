@@ -5,7 +5,7 @@
  * MuseScore
  * Music Composition & Notation
  *
- * Copyright (C) 2025 MuseScore BVBA and others
+ * Copyright (C) 2025 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -29,9 +29,7 @@ class MuseSoundsCheckUpdateServiceStub : public IMuseSoundsCheckUpdateService
 public:
     muse::Ret needCheckForUpdate() const override;
 
-    muse::RetVal<muse::update::ReleaseInfo> checkForUpdate() override;
-    muse::RetVal<muse::update::ReleaseInfo> lastCheckResult() override;
-
-    muse::Progress updateProgress() override;
+    muse::async::Promise<muse::RetVal<muse::update::ReleaseInfo> > checkForUpdate() override;
+    const muse::RetVal<muse::update::ReleaseInfo>& lastCheckResult() const override;
 };
 }

@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -38,7 +38,7 @@ namespace mu::engraving {
 //---------------------------------------------------------
 
 StaffTypeChange::StaffTypeChange(MeasureBase* parent)
-    : EngravingItem(ElementType::STAFFTYPE_CHANGE, parent, ElementFlag::HAS_TAG)
+    : EngravingItem(ElementType::STAFFTYPE_CHANGE, parent)
 {
     m_lw = spatium() * 0.3;
 }
@@ -101,7 +101,7 @@ PropertyValue StaffTypeChange::getProperty(Pid propertyId) const
     case Pid::STAFF_STEMLESS:
         return m_staffType->stemless();
     case Pid::HEAD_SCHEME:
-        return int(m_staffType->noteHeadScheme());
+        return m_staffType->noteHeadScheme();
     case Pid::STAFF_GEN_CLEF:
         return m_staffType->genClef();
     case Pid::STAFF_GEN_TIMESIG:
@@ -211,7 +211,7 @@ PropertyValue StaffTypeChange::propertyDefault(Pid id) const
     case Pid::STAFF_LINES:
         return 5;
     case Pid::LINE_DISTANCE:
-        return Spatium(1.0);
+        return 1.0_sp;
     case Pid::STAFF_SHOW_BARLINES:
         return true;
     case Pid::STAFF_SHOW_LEDGERLINES:
@@ -235,7 +235,7 @@ PropertyValue StaffTypeChange::propertyDefault(Pid id) const
     case Pid::STAFF_COLOR:
         return PropertyValue::fromValue(configuration()->defaultColor());
     case Pid::STAFF_YOFFSET:
-        return Spatium(0.0);
+        return 0.0_sp;
     default:
         return EngravingItem::propertyDefault(id);
     }

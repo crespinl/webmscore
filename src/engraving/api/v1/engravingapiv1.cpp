@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2024 MuseScore Limited
+ * Copyright (C) 2024 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -26,9 +26,14 @@
 
 #include "qmlpluginapi.h"
 
-#include "log.h"
+// #include "log.h"
 
 using namespace mu::engraving::apiv1;
+
+/** APIDOC
+ * Information and actions related to Score
+ * @namespace Engraving
+ */
 
 EngravingApiV1::EngravingApiV1(muse::api::IApiEngine* e)
     : muse::api::ApiObject(e)
@@ -71,7 +76,7 @@ void EngravingApiV1::setup(QJSValue globalObj)
             continue;
         }
 
-        LOGDA() << it.name() << ": " << it.value().toString();
+        // LOGDA() << it.name() << ": " << it.value().toString();
         globalObj.setProperty(it.name(), it.value());
     }
 }

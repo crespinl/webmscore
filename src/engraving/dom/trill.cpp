@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -24,17 +24,18 @@
 
 #include <cmath>
 
+#include "../editing/addremoveelement.h"
 #include "types/typesconv.h"
 
 #include "iengravingfont.h"
 
 #include "accidental.h"
 #include "chord.h"
+#include "clef.h"
 #include "factory.h"
 #include "ornament.h"
 #include "score.h"
 #include "system.h"
-#include "undo.h"
 
 #include "log.h"
 
@@ -120,21 +121,32 @@ void TrillSegment::symbolLine(SymId start, SymId fill, SymId end)
     setbbox(r);
 }
 
+void TrillSegment::rebaseAnchors(EditData& ed, Grip grip)
+{
+    EngravingItem* startElement = spanner()->startElement();
+    if (startElement && startElement->isChord() && toChord(startElement)->staffMove() != 0) {
+        // This trill is on a cross-staff chord. Don't try to rebase its anchors when dragging.
+        return;
+    }
+
+    LineSegment::rebaseAnchors(ed, grip);
+}
+
 //---------------------------------------------------------
 //   scanElements
 //---------------------------------------------------------
 
-void TrillSegment::scanElements(void* data, void (* func)(void*, EngravingItem*), bool)
+void TrillSegment::scanElements(std::function<void(EngravingItem*)> func)
 {
-    func(data, this);
+    func(this);
     if (isSingleType() || isBeginType()) {
         Accidental* a = trill()->accidental();
         if (a) {
-            func(data, a);
+            func(a);
         }
         Chord* cueNoteChord = trill()->cueNoteChord();
         if (cueNoteChord) {
-            cueNoteChord->scanElements(data, func);
+            cueNoteChord->scanElements(func);
         }
     }
 }
@@ -143,7 +155,7 @@ void TrillSegment::scanElements(void* data, void (* func)(void*, EngravingItem*)
 //   propertyDelegate
 //---------------------------------------------------------
 
-EngravingItem* TrillSegment::propertyDelegate(Pid pid)
+EngravingObject* TrillSegment::propertyDelegate(Pid pid) const
 {
     if (pid == Pid::TRILL_TYPE || pid == Pid::ORNAMENT_STYLE || pid == Pid::PLACEMENT) {
         return spanner();
@@ -397,12 +409,10 @@ bool Trill::setProperty(Pid propertyId, const PropertyValue& val)
         break;
     case Pid::COLOR:
         setColor(val.value<Color>());
-        [[fallthrough]];
-    default:
-        if (!SLine::setProperty(propertyId, val)) {
-            return false;
-        }
+        setLineColor(val.value<Color>());
         break;
+    default:
+        return SLine::setProperty(propertyId, val);
     }
     triggerLayout();
     return true;
@@ -416,7 +426,7 @@ PropertyValue Trill::propertyDefault(Pid propertyId) const
 {
     switch (propertyId) {
     case Pid::TRILL_TYPE:
-        return 0;
+        return static_cast<int>(TrillType::TRILL_LINE);
     case Pid::ORNAMENT_STYLE:
         return OrnamentStyle::DEFAULT;
     case Pid::PLACEMENT:

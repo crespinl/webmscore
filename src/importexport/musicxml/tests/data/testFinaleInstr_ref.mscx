@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<museScore version="4.60">
+<museScore version="4.70">
   <Score>
     <eid>B_B</eid>
     <Division>480</Division>
@@ -135,7 +135,7 @@
       <user11FontSize>7.4</user11FontSize>
       <user12FontFace>Times</user12FontFace>
       <user12FontSize>7.4</user12FontSize>
-      <spatium>1.31233</spatium>
+      <spatium>1.31232</spatium>
       </Style>
     <showInvisible>1</showInvisible>
     <showUnprintable>1</showUnprintable>
@@ -1206,8 +1206,7 @@
       <trackName>Tuba
 (String Bass)</trackName>
       <Instrument id="tuba">
-        <longName>Tuba
-(String Bass)</longName>
+        <longName>Tuba<br/>(String Bass)</longName>
         <shortName>Tuba</shortName>
         <trackName>Tuba
 (String Bass)</trackName>

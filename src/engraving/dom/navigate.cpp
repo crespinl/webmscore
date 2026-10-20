@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -196,7 +196,7 @@ ChordRest* nextChordRest(const ChordRest* cr, const ChordRestNavigateOptions& op
     SegmentType st = SegmentType::ChordRest;
     Segment* curSeg = cr->segment();
     for (Segment* seg = curSeg->next1MM(st); seg; seg = seg->next1MM(st)) {
-        if (options.disableOverRepeats && !segmentsAreAdjacentInRepeatStructure(curSeg, seg)) {
+        if (options.disableOverRepeats && !segmentsAreAdjacent(curSeg, seg)) {
             return nullptr;
         }
         ChordRest* e = toChordRest(seg->element(track));
@@ -277,7 +277,7 @@ ChordRest* prevChordRest(const ChordRest* cr, const ChordRestNavigateOptions& op
     SegmentType st = SegmentType::ChordRest;
     Segment* curSeg = cr->segment();
     for (Segment* seg = cr->segment()->prev1MM(st); seg; seg = seg->prev1MM(st)) {
-        if (options.disableOverRepeats && !segmentsAreAdjacentInRepeatStructure(curSeg, seg)) {
+        if (options.disableOverRepeats && !segmentsAreAdjacent(curSeg, seg)) {
             return nullptr;
         }
 
@@ -739,7 +739,7 @@ EngravingItem* Score::nextElement()
         case ElementType::KEYSIG:
         case ElementType::TIMESIG:
         case ElementType::BAR_LINE: {
-            for (; e && e->type() != ElementType::SEGMENT; e = e->parentItem()) {
+            for (; e && !e->isSegment(); e = e->parentItem()) {
             }
             Segment* s = toSegment(e);
             EngravingItem* next = s->nextElement(staffId);
@@ -823,7 +823,7 @@ EngravingItem* Score::nextElement()
             GuitarBend* bend
                 = e->isGuitarBendSegment() ? toGuitarBendSegment(e)->guitarBend() : toGuitarBendHoldSegment(e)->guitarBendHold()->
                   guitarBend();
-            if (bend->type() != GuitarBendType::SLIGHT_BEND) {
+            if (bend->bendType() != GuitarBendType::SLIGHT_BEND) {
                 return bend->endNote();
             } else {
                 EngravingItem* next = nextElementForSpannerSegment(toSpannerSegment(e));
@@ -854,13 +854,13 @@ EngravingItem* Score::nextElement()
 
             EngravingItem* selectedElement = getSelectedElement();
 
-            if ((selectedElement->type() == ElementType::VBOX
-                 || selectedElement->type() == ElementType::HBOX
-                 || selectedElement->type() == ElementType::TBOX) && !boxChildren.empty()) {
+            if ((selectedElement->isVBox()
+                 || selectedElement->isHBox()
+                 || selectedElement->isTBox()) && !boxChildren.empty()) {
                 return boxChildren.begin()->first;
             }
 
-            if (selectedElement->type() == ElementType::FBOX) {
+            if (selectedElement->isFBox()) {
                 for (EngravingItem* child : toFBox(selectedElement)->el()) {
                     if (child->isFretDiagram() && child->visible()) {
                         return toFretDiagram(child)->harmony();
@@ -982,14 +982,11 @@ EngravingItem* Score::prevElement()
         case ElementType::KEYSIG:
         case ElementType::TIMESIG:
         case ElementType::BAR_LINE: {
-            for (; e && e->type() != ElementType::SEGMENT; e = e->parentItem()) {
+            for (; e && !e->isSegment(); e = e->parentItem()) {
             }
             EngravingItem* previousElement = toSegment(e)->prevElement(staffId);
 
-            if (previousElement->type() != ElementType::VBOX
-                && previousElement->type() != ElementType::HBOX
-                && previousElement->type() != ElementType::TBOX
-                && previousElement->type() != ElementType::FBOX) {
+            if (!previousElement->isBox()) {
                 return previousElement;
             }
 
@@ -1071,9 +1068,7 @@ EngravingItem* Score::prevElement()
                     }
                 }
                 EngravingItem* el = startSeg->lastElementOfSegment(staffId);
-                if (stEl->type() == ElementType::CHORD || stEl->type() == ElementType::REST
-                    || stEl->type() == ElementType::MEASURE_REPEAT || stEl->type() == ElementType::MMREST
-                    || stEl->type() == ElementType::NOTE) {
+                if (stEl->isChordRest() || stEl->isNote()) {
                     ChordRest* cr = startSeg->cr(stEl->track());
                     if (cr) {
                         EngravingItem* elCr = cr->lastElementBeforeSegment();
@@ -1232,7 +1227,7 @@ Lyrics* prevLyrics(const Lyrics* lyrics)
         const track_idx_t etrack = strack + VOICES;
         for (track_idx_t track = strack; track < etrack; ++track) {
             EngravingItem* el = seg->element(track);
-            Lyrics* prevLyrics = el && el->isChord() ? toChordRest(el)->lyrics(lyrics->no(), lyrics->placement()) : nullptr;
+            Lyrics* prevLyrics = el && el->isChord() ? toChordRest(el)->lyrics(lyrics->verse(), lyrics->placement()) : nullptr;
             if (prevLyrics) {
                 return prevLyrics;
             }
@@ -1253,7 +1248,7 @@ Lyrics* nextLyrics(const Lyrics* lyrics)
         const track_idx_t etrack = strack + VOICES;
         for (track_idx_t track = strack; track < etrack; ++track) {
             EngravingItem* el = nextSegment->element(track);
-            Lyrics* nextLyrics = el && el->isChord() ? toChordRest(el)->lyrics(lyrics->no(), lyrics->placement()) : nullptr;
+            Lyrics* nextLyrics = el && el->isChord() ? toChordRest(el)->lyrics(lyrics->verse(), lyrics->placement()) : nullptr;
             if (nextLyrics) {
                 return nextLyrics;
             }

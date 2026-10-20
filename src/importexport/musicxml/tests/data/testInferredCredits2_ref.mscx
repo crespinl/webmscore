@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<museScore version="4.60">
+<museScore version="4.70">
   <Score>
     <eid>B_B</eid>
     <Division>480</Division>
@@ -14,6 +14,7 @@
       <pageOddBottomMargin>0.590551</pageOddBottomMargin>
       <romanNumeralFontFace>Edwin</romanNumeralFontFace>
       <nashvilleNumberFontSize>10</nashvilleNumberFontSize>
+      <hideInstrumentNameIfOneInstrument>0</hideInstrumentNameIfOneInstrument>
       <tupletFontSize>10</tupletFontSize>
       <fingeringFontSize>10</fingeringFontSize>
       <lhGuitarFingeringFontSize>10</lhGuitarFingeringFontSize>
@@ -119,7 +120,7 @@ Words &amp; Music by also Henry Ives (and ampersands)
       </Part>
     <Staff id="1">
       <VBox>
-        <height>10.3739</height>
+        <height>10.3705</height>
         <eid>D_D</eid>
         <Text>
           <eid>E_E</eid>
@@ -163,8 +164,7 @@ Words &amp; Music by also Henry Ives (and ampersands)
             </TimeSig>
           <StaffText>
             <eid>M_M</eid>
-            <text>Lyrics to be sung by candlelight
-(and this not to be inferred)</text>
+            <text>Lyrics to be sung by candlelight<br/>(and this not to be inferred)</text>
             </StaffText>
           <Beam>
             <eid>N_N</eid>

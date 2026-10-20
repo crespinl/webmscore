@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2025 MuseScore Limited
+ * Copyright (C) 2025 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -24,20 +24,23 @@
 #include "modularity/imoduleinterface.h"
 
 #include "draw/painter.h"
-#include "dom/editdata.h"
+
+#include "paintoptions.h"
 
 namespace mu::engraving {
+class EditData;
 class EngravingItem;
 }
 
 namespace mu::engraving::rendering {
-class IEditModeRenderer : MODULE_EXPORT_INTERFACE
+class IEditModeRenderer : MODULE_CONTEXT_INTERFACE
 {
     INTERFACE_ID(IEditModeRenderer)
 
 public:
     virtual ~IEditModeRenderer() = default;
 
-    virtual void drawItem(EngravingItem* item, muse::draw::Painter* p, EditData& ed, double currentViewScaling) = 0;
+    virtual void drawItem(const EngravingItem* item, muse::draw::Painter* p, const EditData& ed, double currentViewScaling,
+                          const PaintOptions& opt) = 0;
 };
 }

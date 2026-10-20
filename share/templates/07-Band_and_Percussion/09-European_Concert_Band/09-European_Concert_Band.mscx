@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<museScore version="4.60">
+<museScore version="4.70">
   <Score>
     <LayerTag id="0" tag="default"></LayerTag>
     <currentLayer>0</currentLayer>
@@ -1034,9 +1034,9 @@
         <shortName>A. Sax. 1</shortName>
         <trackName>Alto Saxophone</trackName>
         <minPitchP>49</minPitchP>
-        <maxPitchP>87</maxPitchP>
+        <maxPitchP>92</maxPitchP>
         <minPitchA>49</minPitchA>
-        <maxPitchA>82</maxPitchA>
+        <maxPitchA>80</maxPitchA>
         <transposeDiatonic>-5</transposeDiatonic>
         <transposeChromatic>-9</transposeChromatic>
         <instrumentId>wind.reed.saxophone.alto</instrumentId>
@@ -1103,9 +1103,9 @@
         <shortName>A. Sax. 2</shortName>
         <trackName>Alto Saxophone</trackName>
         <minPitchP>49</minPitchP>
-        <maxPitchP>87</maxPitchP>
+        <maxPitchP>92</maxPitchP>
         <minPitchA>49</minPitchA>
-        <maxPitchA>82</maxPitchA>
+        <maxPitchA>80</maxPitchA>
         <transposeDiatonic>-5</transposeDiatonic>
         <transposeChromatic>-9</transposeChromatic>
         <instrumentId>wind.reed.saxophone.alto</instrumentId>
@@ -1174,9 +1174,9 @@
         <shortName>T. Sax.</shortName>
         <trackName>Tenor Saxophone</trackName>
         <minPitchP>44</minPitchP>
-        <maxPitchP>82</maxPitchP>
+        <maxPitchP>87</maxPitchP>
         <minPitchA>44</minPitchA>
-        <maxPitchA>77</maxPitchA>
+        <maxPitchA>75</maxPitchA>
         <transposeDiatonic>-8</transposeDiatonic>
         <transposeChromatic>-14</transposeChromatic>
         <instrumentId>wind.reed.saxophone.tenor</instrumentId>
@@ -1247,9 +1247,9 @@
         <shortName>Bar. Sax.</shortName>
         <trackName>Baritone Saxophone</trackName>
         <minPitchP>36</minPitchP>
-        <maxPitchP>75</maxPitchP>
-        <minPitchA>37</minPitchA>
-        <maxPitchA>70</maxPitchA>
+        <maxPitchP>80</maxPitchP>
+        <minPitchA>36</minPitchA>
+        <maxPitchA>68</maxPitchA>
         <transposeDiatonic>-12</transposeDiatonic>
         <transposeChromatic>-21</transposeChromatic>
         <instrumentId>wind.reed.saxophone.baritone</instrumentId>
@@ -1781,6 +1781,7 @@
         <maxPitchA>71</maxPitchA>
         <instrumentId>brass.trombone</instrumentId>
         <clef>F</clef>
+        <glissandoStyle>portamento</glissandoStyle>
         <Articulation>
           <velocity>100</velocity>
           <gateTime>100</gateTime>
@@ -1856,6 +1857,7 @@
         <maxPitchA>71</maxPitchA>
         <instrumentId>brass.trombone</instrumentId>
         <clef>F</clef>
+        <glissandoStyle>portamento</glissandoStyle>
         <Articulation>
           <velocity>100</velocity>
           <gateTime>100</gateTime>
@@ -1933,6 +1935,7 @@ B. Tbn.</shortName>
         <maxPitchA>71</maxPitchA>
         <instrumentId>brass.trombone</instrumentId>
         <clef>F</clef>
+        <glissandoStyle>portamento</glissandoStyle>
         <Articulation>
           <velocity>100</velocity>
           <gateTime>100</gateTime>
@@ -2153,6 +2156,7 @@ B. Tbn.</shortName>
         <instrumentId>strings.contrabass</instrumentId>
         <concertClef>F8vb</concertClef>
         <transposingClef>F</transposingClef>
+        <glissandoStyle>portamento</glissandoStyle>
         <Articulation>
           <velocity>100</velocity>
           <gateTime>100</gateTime>
@@ -2237,6 +2241,8 @@ B. Tbn.</shortName>
         <maxPitchA>60</maxPitchA>
         <instrumentId>drum.timpani</instrumentId>
         <clef>F</clef>
+        <singleNoteDynamics>0</singleNoteDynamics>
+        <glissandoStyle>portamento</glissandoStyle>
         <Articulation>
           <velocity>100</velocity>
           <gateTime>100</gateTime>
@@ -2306,6 +2312,7 @@ B. Tbn.</shortName>
         <instrumentId>pitched-percussion.glockenspiel</instrumentId>
         <concertClef>G15ma</concertClef>
         <transposingClef>G</transposingClef>
+        <singleNoteDynamics>0</singleNoteDynamics>
         <Articulation>
           <velocity>100</velocity>
           <gateTime>100</gateTime>
@@ -2769,6 +2776,7 @@ B. Tbn.</shortName>
         <panelColumn>0</panelColumn>
           </Drum>
         <clef>PERC</clef>
+        <singleNoteDynamics>0</singleNoteDynamics>
         <Articulation>
           <velocity>100</velocity>
           <gateTime>100</gateTime>
@@ -3233,6 +3241,7 @@ B. Tbn.</shortName>
         <panelColumn>0</panelColumn>
           </Drum>
         <clef>PERC</clef>
+        <singleNoteDynamics>0</singleNoteDynamics>
         <Articulation>
           <velocity>100</velocity>
           <gateTime>100</gateTime>

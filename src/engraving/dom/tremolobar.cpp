@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -78,7 +78,7 @@ PropertyValue TremoloBar::getProperty(Pid propertyId) const
 {
     switch (propertyId) {
     case Pid::LINE_WIDTH:
-        return lineWidth().val();
+        return lineWidth();
     case Pid::MAG:
         return userMag();
     case Pid::PLAY:
@@ -100,7 +100,7 @@ bool TremoloBar::setProperty(Pid propertyId, const PropertyValue& v)
 {
     switch (propertyId) {
     case Pid::LINE_WIDTH:
-        setLineWidth(Spatium(v.value<double>()));
+        setLineWidth(v.value<Spatium>());
         break;
     case Pid::MAG:
         setUserMag(v.toDouble());

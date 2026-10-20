@@ -5,7 +5,7 @@
  * MuseScore
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore BVBA and others
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -188,6 +188,11 @@ void QPainterProvider::restore()
     m_pen = Pen::fromQPen(m_painter->pen());
     m_brush = Brush::fromQBrush(m_painter->brush());
     m_transform = Transform::fromQTransform(m_painter->transform());
+}
+
+double QPainterProvider::deviceLogicalDpi() const
+{
+    return m_painter->device()->logicalDpiX();
 }
 
 void QPainterProvider::setTransform(const Transform& transform)

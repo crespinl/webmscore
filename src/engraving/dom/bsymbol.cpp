@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -80,11 +80,11 @@ void BSymbol::add(EngravingItem* e)
 //   scanElements
 //---------------------------------------------------------
 
-void BSymbol::scanElements(void* data, void (* func)(void*, EngravingItem*), bool all)
+void BSymbol::scanElements(std::function<void(EngravingItem*)> func)
 {
-    func(data, this);
+    func(this);
     for (EngravingItem* e : m_leafs) {
-        e->scanElements(data, func, all);
+        e->scanElements(func);
     }
 }
 
@@ -187,7 +187,7 @@ std::vector<LineF> BSymbol::dragAnchorLines() const
 
 PointF BSymbol::pagePos() const
 {
-    if (explicitParent() && (explicitParent()->type() == ElementType::SEGMENT)) {
+    if (explicitParent() && (explicitParent()->isSegment())) {
         PointF p(pos());
         System* system = segment()->measure()->system();
         if (system) {
@@ -206,7 +206,7 @@ PointF BSymbol::pagePos() const
 
 PointF BSymbol::canvasPos() const
 {
-    if (explicitParent() && (explicitParent()->type() == ElementType::SEGMENT)) {
+    if (explicitParent() && (explicitParent()->isSegment())) {
         PointF p(pos());
         Segment* s = toSegment(explicitParent());
 

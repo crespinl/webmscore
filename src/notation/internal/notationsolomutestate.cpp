@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2024 MuseScore Limited
+ * Copyright (C) 2024 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -23,27 +23,29 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 
+#include "engraving/infrastructure/mscreader.h"
+
 #include "notationsolomutestate.h"
 
-using namespace mu;
-using namespace mu::notation;
 using namespace muse;
+using namespace mu::engraving;
+using namespace mu::notation;
 
 Ret NotationSoloMuteState::read(const engraving::MscReader& reader, const muse::io::path_t& pathPrefix)
 {
-    ByteArray json = reader.readAudioSettingsJsonFile(pathPrefix);
+    const ByteArray json = reader.readAudioSettingsJsonFile(pathPrefix);
 
     if (json.empty()) {
         return make_ret(Ret::Code::UnknownError);
     }
 
-    QJsonObject rootObj = QJsonDocument::fromJson(json.toQByteArrayNoCopy()).object();
+    const QJsonObject rootObj = QJsonDocument::fromJson(json.toQByteArrayNoCopy()).object();
 
-    QJsonArray tracksArray = rootObj.value("tracks").toArray();
-    for (const QJsonValue track : tracksArray) {
-        QJsonObject trackObject = track.toObject();
+    const QJsonArray tracksArray = rootObj.value("tracks").toArray();
+    for (const QJsonValueConstRef track : tracksArray) {
+        const QJsonObject trackObject = track.toObject();
 
-        InstrumentTrackId id = {
+        const InstrumentTrackId id = {
             trackObject.value("partId").toString(),
             trackObject.value("instrumentId").toString()
         };
@@ -64,7 +66,7 @@ Ret NotationSoloMuteState::write(io::IODevice* out)
     QJsonObject rootObj;
     QJsonArray tracksArray;
 
-    for (auto pair : m_trackSoloMuteStatesMap) {
+    for (const auto& pair : m_trackSoloMuteStatesMap) {
         QJsonObject currentTrack;
         currentTrack["instrumentId"] = pair.first.instrumentId.toQString();
         currentTrack["partId"] = pair.first.partId.toQString();
@@ -90,12 +92,13 @@ bool NotationSoloMuteState::trackSoloMuteStateExists(const engraving::Instrument
     return search != m_trackSoloMuteStatesMap.end();
 }
 
-mu::notation::INotationSoloMuteState::SoloMuteState NotationSoloMuteState::trackSoloMuteState(const InstrumentTrackId& partId) const
+const INotationSoloMuteState::SoloMuteState& NotationSoloMuteState::trackSoloMuteState(const InstrumentTrackId& partId) const
 {
     auto search = m_trackSoloMuteStatesMap.find(partId);
 
     if (search == m_trackSoloMuteStatesMap.end()) {
-        return {};
+        static const SoloMuteState dummySoloMuteState;
+        return dummySoloMuteState;
     }
 
     return search->second;

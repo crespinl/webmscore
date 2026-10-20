@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2025 MuseScore Limited
+ * Copyright (C) 2025 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -76,7 +76,7 @@ static void createSplitDurationBends(const BendDataContextSplitChord& bendDataCt
             mainChord->setTicks(newMainChordDuration);
             mainChord->setDurationType(TDuration(newMainChordDuration));
             Fraction currentTick = mainChord->tick() + mainChord->ticks();
-            Fraction currentActualTick = mainChord->tick() + mainChord->actualTicks();
+            Fraction currentActualTick = mainChord->endTick();
             createSplitDurationBendsForChord(bendDataCtx, mainChord);
 
             Tuplet* tuplet = mainChord->tuplet();
@@ -200,7 +200,7 @@ static void createSplitDurationBendsForChord(const BendDataContextSplitChord& be
             return;
         }
 
-        QuarterOffset quarterOff = bendNoteData.quarterTones % 2 ? QuarterOffset::QUARTER_SHARP : QuarterOffset::NONE;
+        int quarterOff = bendNoteData.quarterTones % 2;
         bend->setEndNotePitch(bend->startNoteOfChain()->pitch() + pitch, quarterOff);
         bend->setStartTimeFactor(bendNoteData.startFactor);
         bend->setEndTimeFactor(bendNoteData.endFactor);

@@ -1,11 +1,12 @@
 #include "global/log.h"
+#include "global/containers.h"
 #include "async/processevents.h"
 
 #include "modularity/ioc.h"
 
 #include "audio/common/rpc/irpcchannel.h"
-#include "audio/worker/internal/audioengine.h"
-#include "audio/worker/internal/workerplayback.h"
+#include "audio/engine/internal/audioengine.h"
+#include "audio/engine/internal/engineplayback.h"
 
 #include "notation/inotation.h"
 
@@ -40,27 +41,52 @@ const char* Synth::processBatch(int batchSize, bool cancel) {
 }
 
 audio::TrackSequenceId Synth::getSequenceId() {
-    auto playbackController = modularity::globalIoc()->resolve<playback::IPlaybackController>("");
-    
-    auto sequenceId = playbackController->currentTrackSequenceId();
-    if (sequenceId != -1) return sequenceId;
-    
-    auto rpcChannel = modularity::globalIoc()->resolve<audio::rpc::IRpcChannel>("");
-    // Wait async ticks, otherwise `sequenceIdList` is empty
-    //  previous `Playback::addSequence()` is a `Promise`
-    for (int i=0; i < 3; i++) {
-        async::processEvents();
+    auto playbackController = modularity::ioc()->resolve<playback::IPlaybackController>("");
+    auto rpcChannel = modularity::ioc()->resolve<audio::rpc::IRpcChannel>("");
+    auto enginePlayback = modularity::ioc()->resolve<audio::engine::IEnginePlayback>("");
+
+    // NOTE The engine runs in-process, but it is still driven by the rpc queue and by
+    // promises, so both need to be pumped until the engine caught up
+    auto pump = [rpcChannel]() {
+        async::processMessages();
         rpcChannel->process();
+    };
+
+    static const int MAX_PUMPS = 64;
+
+    // The sequence is created asynchronously (`Playback::addSequence()` is a `Promise`)
+    audio::TrackSequenceId sequenceId = -1;
+    for (int i = 0; i < MAX_PUMPS; i++) {
+        sequenceId = playbackController->currentTrackSequenceId();
+        if (sequenceId != -1 && muse::contains(enginePlayback->sequenceIdList(), sequenceId)) {
+            break;
+        }
+
+        sequenceId = -1;
+        pump();
     }
-    //  resolve `totalDuration`
-    async::processEvents();
 
-
-    sequenceId = playbackController->currentTrackSequenceId();
-    IF_ASSERT_FAILED(sequenceId != -1) {
+    if (sequenceId == -1) {
         LOGE() << "No playback sequence found";
-        return make_ret(Ret::Code::InternalError, std::string("No playback sequence found"));
+        return -1;
     }
+
+    // The tracks of the sequence are added asynchronously as well (one rpc round trip each),
+    // wait until no more tracks are added
+    size_t trackCount = 0;
+    int stableCount = 0;
+    for (int i = 0; i < MAX_PUMPS * 8 && stableCount < 8; i++) {
+        pump();
+
+        const size_t count = enginePlayback->trackIdList(sequenceId).val.size();
+        if (count != 0 && count == trackCount) {
+            stableCount++;
+        } else {
+            stableCount = 0;
+            trackCount = count;
+        }
+    }
+
     return sequenceId;
 }
 
@@ -72,11 +98,12 @@ Synth Synth::start(MainScore score, float starttime) {
     static const size_t channels = 2;
     static const size_t sampleRate = 44100;
 
-    auto worker_playback = modularity::globalIoc()->resolve<audio::worker::WorkerPlayback>("");
-    auto audio_engine = modularity::globalIoc()->resolve<audio::worker::IAudioEngine>("");
+    auto engine_playback = std::static_pointer_cast<audio::engine::EnginePlayback>(
+        modularity::ioc()->resolve<audio::engine::IEnginePlayback>(""));
+    auto audio_engine = modularity::ioc()->resolve<audio::engine::IAudioEngine>("");
 
     const auto sequenceId = getSequenceId();
-    auto sequence = worker_playback->sequence(sequenceId);
+    auto sequence = engine_playback->sequence(sequenceId);
 
     // Seek
     // https://github.com/LibreScore/webmscore/blob/v4.0/src/framework/audio/internal/worker/audiooutputhandler.cpp#L200-L201
@@ -87,7 +114,12 @@ Synth Synth::start(MainScore score, float starttime) {
     // https://github.com/LibreScore/webmscore/blob/v4.0/src/framework/audio/internal/soundtracks/soundtrackwriter.cpp#L73-L76
     audio_engine->setMode(audio::RenderMode::OfflineMode);
     auto source = audio_engine->mixer();
-    source->setSampleRate(sampleRate);
+
+    audio::OutputSpec spec;
+    spec.sampleRate = sampleRate;
+    spec.samplesPerChannel = renderStep;
+    spec.audioChannelCount = channels;
+    source->setOutputSpec(spec);
     source->setIsActive(true);
 
     // https://github.com/LibreScore/webmscore/blob/v4.0/src/framework/audio/internal/soundtracks/soundtrackwriter.cpp#L49

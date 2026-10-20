@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -22,22 +22,20 @@
 
 #include <gtest/gtest.h>
 
-#include "dom/accidental.h"
-#include "dom/measure.h"
-#include "dom/chord.h"
-#include "dom/note.h"
-#include "dom/ornament.h"
-#include "dom/rest.h"
-#include "dom/stem.h"
-#include "dom/hook.h"
-#include "dom/beam.h"
+#include "engraving/dom/accidental.h"
+#include "engraving/dom/measure.h"
+#include "engraving/dom/chord.h"
+#include "engraving/dom/note.h"
+#include "engraving/dom/ornament.h"
+#include "engraving/dom/rest.h"
+#include "engraving/dom/stem.h"
+#include "engraving/dom/hook.h"
+#include "engraving/dom/beam.h"
 
 #include "utils/scorerw.h"
-#include "utils/scorecomp.h"
 
 #include "log.h"
 
-using namespace mu;
 using namespace mu::engraving;
 
 static const String CHANGEVISIBILITY_DATA_DIR(u"changevisibility_data/");
@@ -60,7 +58,7 @@ protected:
     {
         std::vector<EngravingItem*> children;
 
-        for (EngravingObject* obj : chord->scanChildren()) {
+        for (EngravingObject* obj : chord->getChildren()) {
             if (obj->isEngravingItem()) {
                 children.push_back(toEngravingItem(obj));
             }
@@ -226,7 +224,7 @@ TEST_F(Engraving_ChangeVisibilityTests, UndoChangeVisible_IgnoredElements)
         ElementType::LYRICS,
     };
 
-    for (EngravingObject* child : chord->scanChildren()) {
+    for (EngravingObject* child : chord->getChildren()) {
         if (muse::contains(IGNORED_TYPES, child->type())) {
             EngravingItem* item = toEngravingItem(child);
             EXPECT_TRUE(item->visible());
@@ -243,7 +241,7 @@ TEST_F(Engraving_ChangeVisibilityTests, UndoChangeVisible_IgnoredElements)
     // [THEN] Everything is visible
     EXPECT_TRUE(note->visible());
 
-    for (EngravingObject* child : chord->scanChildren()) {
+    for (EngravingObject* child : chord->getChildren()) {
         if (muse::contains(IGNORED_TYPES, child->type())) {
             EngravingItem* item = toEngravingItem(child);
             EXPECT_TRUE(item->visible());
@@ -471,7 +469,7 @@ TEST_F(Engraving_ChangeVisibilityTests, UndoChangeVisible_Ornaments)
     Measure* measure = m_score->tick2measure(Fraction(3, 1));
     ASSERT_TRUE(measure);
 
-    Chord* chord = toChord(measure->first()->elementAt(0));
+    Chord* chord = toChord(measure->first()->element(0));
     ASSERT_TRUE(chord);
     Note* note = chord->upNote();
     ASSERT_TRUE(note);
@@ -494,7 +492,7 @@ TEST_F(Engraving_ChangeVisibilityTests, UndoChangeVisible_Ornaments)
     ASSERT_FALSE(accidental->visible());
     ASSERT_TRUE(ornament->visible());
 
-    chord = toChord(chord->segment()->next()->elementAt(0));
+    chord = toChord(chord->segment()->next()->element(0));
     ASSERT_TRUE(chord);
     note = chord->upNote();
     ASSERT_TRUE(note);

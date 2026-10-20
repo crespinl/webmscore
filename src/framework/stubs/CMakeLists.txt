@@ -4,7 +4,7 @@
 # MuseScore
 # Music Composition & Notation
 #
-# Copyright (C) 2021 MuseScore BVBA and others
+# Copyright (C) 2021 MuseScore Limited and others
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 3 as
@@ -42,16 +42,24 @@ if (NOT MUSE_MODULE_LEARN)
     add_subdirectory(learn)
 endif()
 
+if (NOT MUSE_MODULE_MEDIA)
+    add_subdirectory(media)
+endif()
+
 if (NOT MUSE_MODULE_MIDI)
     add_subdirectory(midi)
+endif()
+
+if (NOT MUSE_MODULE_MIDIREMOTE)
+    add_subdirectory(midiremote)
 endif()
 
 if (NOT MUSE_MODULE_MPE)
     add_subdirectory(mpe)
 endif()
 
-if (NOT MUSE_MODULE_MULTIINSTANCES)
-    add_subdirectory(multiinstances)
+if (NOT MUSE_MODULE_MULTIWINDOWS)
+    add_subdirectory(multiwindows)
 endif()
 
 if (NOT MUSE_MODULE_NETWORK)

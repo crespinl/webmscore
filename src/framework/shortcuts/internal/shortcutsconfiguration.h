@@ -5,7 +5,7 @@
  * MuseScore
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore BVBA and others
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -31,13 +31,13 @@
 #include "global/types/config.h"
 
 namespace muse::shortcuts {
-class ShortcutsConfiguration : public IShortcutsConfiguration, public Injectable, public async::Asyncable
+class ShortcutsConfiguration : public IShortcutsConfiguration, public Contextable, public async::Asyncable
 {
-    Inject<IGlobalConfiguration> globalConfiguration = { this };
+    GlobalInject<IGlobalConfiguration> globalConfiguration;
 
 public:
     ShortcutsConfiguration(const modularity::ContextPtr& iocCtx)
-        : Injectable(iocCtx) {}
+        : Contextable(iocCtx) {}
 
     void init();
 
@@ -47,15 +47,7 @@ public:
     io::path_t shortcutsUserAppDataPath() const override;
     io::path_t shortcutsAppDataPath() const override;
 
-    io::path_t midiMappingUserAppDataPath() const override;
-
-    bool advanceToNextNoteOnKeyRelease() const override;
-    void setAdvanceToNextNoteOnKeyRelease(bool value) override;
-    virtual muse::async::Channel<bool> advanceToNextNoteOnKeyReleaseChanged() const override;
-
 private:
     Config m_config;
-
-    muse::async::Channel<bool> m_advanceToNextNoteOnKeyReleaseChanged;
 };
 }

@@ -24,8 +24,18 @@ export const shimDom = () => {
     const globalthis = getGlobalThis()
     globalthis.window = globalthis.window || {
         addEventListener() { },
+        removeEventListener() { },
         location: new URL("file:///"),
         encodeURIComponent,
+        // Qt (its wasm event dispatcher) schedules its timers on `window`
+        setTimeout: (...args) => globalthis.setTimeout(...args),
+        clearTimeout: (...args) => globalthis.clearTimeout(...args),
+        setInterval: (...args) => globalthis.setInterval(...args),
+        clearInterval: (...args) => globalthis.clearInterval(...args),
+        queueMicrotask: (...args) => globalthis.queueMicrotask(...args),
     }
-    globalthis.navigator = globalthis.navigator || {}
+    // `navigator` is a read-only accessor in recent Node.js versions
+    if (!globalthis.navigator) {
+        Object.defineProperty(globalthis, 'navigator', { value: {}, configurable: true, writable: true })
+    }
 }

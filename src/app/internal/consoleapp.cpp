@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -28,25 +28,32 @@
 #endif
 
 #include "modularity/ioc.h"
+#include "async/processevents.h"
 
 #include "muse_framework_config.h"
 #include "app_config.h"
 
 #include "log.h"
+#include "settings.h"
 
 using namespace muse;
 using namespace mu::app;
-using namespace mu::appshell;
+using namespace mu::converter;
 
-static std::optional<size_t> parsePageNum(const QMap<CmdOptions::ParamKey, QVariant>& params)
+static std::optional<ConvertTarget> parseTarget(const QMap<CmdOptions::ParamKey, QVariant>& params)
 {
-    auto it = params.find(CmdOptions::ParamKey::PageNumber);
+    auto it = params.find(CmdOptions::ParamKey::ScoreRegion);
+    if (it != params.end()) {
+        return it.value().toString().toStdString();
+    }
+
+    it = params.find(CmdOptions::ParamKey::PageNumber);
     if (it == params.end()) {
         return std::nullopt;
     }
 
     bool ok = true;
-    size_t num = it.value().toULongLong(&ok) - 1;
+    page_num_t num = it.value().toULongLong(&ok) - 1;
 
     if (!ok) {
         LOGE() << "Invalid page, ignoring...";
@@ -66,7 +73,7 @@ void ConsoleApp::addModule(modularity::IModuleSetup* module)
     m_modules.push_back(module);
 }
 
-void ConsoleApp::perform()
+void ConsoleApp::setup()
 {
     const CmdOptions& options = m_options;
 
@@ -79,7 +86,6 @@ void ConsoleApp::perform()
     m_globalModule.setApplication(shared_from_this());
     m_globalModule.registerResources();
     m_globalModule.registerExports();
-    m_globalModule.registerUiTypes();
 
     for (modularity::IModuleSetup* m : m_modules) {
         m->setApplication(shared_from_this());
@@ -90,11 +96,28 @@ void ConsoleApp::perform()
         m->registerExports();
     }
 
+#ifndef MUSE_MULTICONTEXT_WIP
+    modularity::ContextPtr ctx = std::make_shared<modularity::Context>();
+    ctx->id = 0;
+    std::vector<muse::modularity::IContextSetup*>& csetups = contextSetups(ctx);
+    for (modularity::IContextSetup* s : csetups) {
+        s->registerExports();
+    }
+#endif
+
     m_globalModule.resolveImports();
+    for (modularity::IModuleSetup* m : m_modules) {
+        m->resolveImports();
+    }
+
+#ifndef MUSE_MULTICONTEXT_WIP
+    for (modularity::IContextSetup* s : csetups) {
+        s->resolveImports();
+    }
+#endif
+
     m_globalModule.registerApi();
     for (modularity::IModuleSetup* m : m_modules) {
-        m->registerUiTypes();
-        m->resolveImports();
         m->registerApi();
     }
 
@@ -111,6 +134,11 @@ void ConsoleApp::perform()
         m->onPreInit(runMode);
     }
 
+#ifndef MUSE_MULTICONTEXT_WIP
+    for (modularity::IContextSetup* s : csetups) {
+        s->onPreInit(runMode);
+    }
+#endif
     // ====================================================
     // Setup modules: onInit
     // ====================================================
@@ -119,6 +147,11 @@ void ConsoleApp::perform()
         m->onInit(runMode);
     }
 
+#ifndef MUSE_MULTICONTEXT_WIP
+    for (modularity::IContextSetup* s : csetups) {
+        s->onInit(runMode);
+    }
+#endif
     // ====================================================
     // Setup modules: onAllInited
     // ====================================================
@@ -126,6 +159,12 @@ void ConsoleApp::perform()
     for (modularity::IModuleSetup* m : m_modules) {
         m->onAllInited(runMode);
     }
+
+#ifndef MUSE_MULTICONTEXT_WIP
+    for (modularity::IContextSetup* s : csetups) {
+        s->onAllInited(runMode);
+    }
+#endif
 
     // ====================================================
     // Setup modules: onStartApp (on next event loop)
@@ -187,6 +226,99 @@ void ConsoleApp::perform()
     }
 }
 
+int ConsoleApp::contextCount() const
+{
+    return m_context ? 1 : 0;
+}
+
+std::vector<muse::modularity::ContextPtr> ConsoleApp::contexts() const
+{
+    return { m_context };
+}
+
+std::vector<muse::modularity::IContextSetup*>& ConsoleApp::contextSetups(
+    const muse::modularity::ContextPtr& ctx)
+{
+    for (Context& c : m_contexts) {
+        if (c.ctx->id == ctx->id) {
+            return c.setups;
+        }
+    }
+
+    m_contexts.emplace_back();
+
+    Context& ref = m_contexts.back();
+    ref.ctx = ctx;
+
+    modularity::IContextSetup* global = m_globalModule.newContext(ctx);
+    if (global) {
+        ref.setups.push_back(global);
+    }
+
+    for (modularity::IModuleSetup* m : m_modules) {
+        modularity::IContextSetup* s = m->newContext(ctx);
+        if (s) {
+            ref.setups.push_back(s);
+        }
+    }
+
+    return ref.setups;
+}
+
+muse::modularity::ContextPtr ConsoleApp::setupNewContext()
+{
+    //! NOTE
+    //! We're currently in a transitional state from a single global context to multiple contexts.
+    //! Therefore, this code will be improved; not everything is yet complete,
+    //! for example, there's no way to delete (close) a specific context.
+    //! Probably the context initialization needs to be moved to the base class of the app.
+
+    m_context = std::make_shared<modularity::Context>();
+    auto& ctx = m_context;
+    // only global
+    ctx->id = 0;
+
+    const CmdOptions& options = m_options;
+    IApplication::RunMode runMode = options.runMode;
+    if (runMode == IApplication::RunMode::AudioPluginRegistration) {
+        return nullptr;
+    }
+
+    IF_ASSERT_FAILED(runMode == IApplication::RunMode::ConsoleApp) {
+        return nullptr;
+    }
+
+    LOGI() << "New context created with id: " << ctx->id;
+
+    // Setup
+#ifdef MUSE_MULTICONTEXT_WIP
+    std::vector<muse::modularity::IContextSetup*>& csetups = contextSetups(ctx);
+
+    for (modularity::IContextSetup* s : contexts) {
+        s->registerExports();
+    }
+
+    for (modularity::IContextSetup* s : contexts) {
+        s->resolveImports();
+    }
+
+    for (modularity::IContextSetup* s : contexts) {
+        s->onPreInit(runMode);
+    }
+
+    for (modularity::IContextSetup* s : contexts) {
+        s->onInit(runMode);
+    }
+
+    for (modularity::IContextSetup* s : contexts) {
+        s->onAllInited(runMode);
+    }
+
+#endif
+
+    return ctx;
+}
+
 void ConsoleApp::finish()
 {
     PROFILER_PRINT;
@@ -201,8 +333,7 @@ void ConsoleApp::finish()
 #endif
 
     // Deinit
-
-    m_globalModule.invokeQueuedCalls();
+    async::processMessages();
 
     for (modularity::IModuleSetup* m : m_modules) {
         m->onDeinit();
@@ -216,6 +347,11 @@ void ConsoleApp::finish()
 
     m_globalModule.onDestroy();
 
+    // Delete contexts
+    for (auto& c : m_contexts) {
+        qDeleteAll(c.setups);
+    }
+
     // Delete modules
     qDeleteAll(m_modules);
     m_modules.clear();
@@ -225,6 +361,14 @@ void ConsoleApp::finish()
 
 void ConsoleApp::applyCommandLineOptions(const CmdOptions& options, IApplication::RunMode runMode)
 {
+    if (options.app.loggerLevel) {
+        m_globalModule.setLoggerLevel(options.app.loggerLevel.value());
+    }
+
+    if (runMode == IApplication::RunMode::AudioPluginRegistration) {
+        return;
+    }
+
     uiConfiguration()->setPhysicalDotsPerInch(options.ui.physicalDotsPerInch);
 
     notationConfiguration()->setTemplateModeEnabled(options.notation.templateModeEnabled);
@@ -278,11 +422,7 @@ void ConsoleApp::applyCommandLineOptions(const CmdOptions& options, IApplication
     guitarProConfiguration()->setExperimental(options.guitarPro.experimental);
 #endif
     if (options.app.revertToFactorySettings) {
-        appshellConfiguration()->revertToFactorySettings(options.app.revertToFactorySettings.value());
-    }
-
-    if (options.app.loggerLevel) {
-        m_globalModule.setLoggerLevel(options.app.loggerLevel.value());
+        settings()->reset(options.app.revertToFactorySettings.value());
     }
 }
 
@@ -297,9 +437,10 @@ int ConsoleApp::processConverter(const CmdOptions::ConverterTask& task)
         soundProfile.clear();
     }
 
-    converter::IConverterController::OpenParams openParams;
+    converter::OpenParams openParams;
     openParams.stylePath = task.params[CmdOptions::ParamKey::StylePath].toString();
     openParams.forceMode = task.params[CmdOptions::ParamKey::ForceMode].toBool();
+    openParams.unrollRepeats = task.params[CmdOptions::ParamKey::UnrollRepeats].toBool();
 
     switch (task.type) {
     case ConvertType::Batch:
@@ -307,10 +448,10 @@ int ConsoleApp::processConverter(const CmdOptions::ConverterTask& task)
         break;
     case ConvertType::File: {
         std::string transposeOptionsJson = task.params[CmdOptions::ParamKey::ScoreTransposeOptions].toString().toStdString();
-        std::optional<size_t> pageNum = parsePageNum(task.params);
+        std::optional<ConvertTarget> target = parseTarget(task.params);
         io::path_t tracksDiffPath = task.params[CmdOptions::ParamKey::TracksDiffPath].toString();
-        ret = converter()->fileConvert(task.inputFile, task.outputFile, openParams, soundProfile, tracksDiffPath, extensionUri,
-                                       transposeOptionsJson, pageNum);
+        ret = converter()->fileConvert(task.inputFile, task.outputFile, openParams, soundProfile, tracksDiffPath,
+                                       extensionUri, transposeOptionsJson, target);
     } break;
     case ConvertType::ConvertScoreParts:
         ret = converter()->convertScoreParts(task.inputFile, task.outputFile, openParams);
@@ -333,11 +474,11 @@ int ConsoleApp::processConverter(const CmdOptions::ConverterTask& task)
         ret = converter()->exportScoreTranspose(task.inputFile, task.outputFile, scoreTranspose, openParams);
     } break;
     case ConvertType::ExportScoreElements: {
-        std::string options = task.params[CmdOptions::ParamKey::ScoreElementsOptions].toString().toStdString();
-        ret = converter()->exportScoreElements(task.inputFile, task.outputFile, options, openParams);
+        ret = converter()->exportScoreElements(task.inputFile, task.outputFile, openParams);
     } break;
     case ConvertType::ExportScoreVideo: {
-        ret = converter()->exportScoreVideo(task.inputFile, task.outputFile, openParams);
+        bool withAudio = !task.params[CmdOptions::ParamKey::NoAudio].toBool();
+        ret = converter()->exportScoreVideo(task.inputFile, task.outputFile, openParams, withAudio);
     } break;
     case ConvertType::SourceUpdate: {
         std::string scoreSource = task.params[CmdOptions::ParamKey::ScoreSource].toString().toStdString();
@@ -412,8 +553,10 @@ int ConsoleApp::processAudioPluginRegistration(const CmdOptions::AudioPluginRegi
     Ret ret = make_ret(Ret::Code::Ok);
 
     if (task.failedPlugin) {
+        LOGI() << "Register incompatible plugin: " << task.pluginPath << ", err code: " << task.failCode;
         ret = registerAudioPluginsScenario()->registerFailedPlugin(task.pluginPath, task.failCode);
     } else {
+        LOGI() << "Register plugin: " << task.pluginPath;
         ret = registerAudioPluginsScenario()->registerPlugin(task.pluginPath);
     }
 

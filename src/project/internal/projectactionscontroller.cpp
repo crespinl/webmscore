@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -34,7 +34,7 @@
 #include "translation.h"
 
 #include "cloud/clouderrors.h"
-#include "cloud/cloudqmltypes.h"
+#include "cloud/qml/Muse/Cloud/enums.h"
 #include "engraving/infrastructure/mscio.h"
 #include "engraving/engravingerrors.h"
 
@@ -67,14 +67,14 @@ void ProjectActionsController::init()
     dispatcher()->reg(this, "file-open", this, &ProjectActionsController::openProject);
 
     dispatcher()->reg(this, "file-close", [this]() {
-        auto anyInstanceWithoutProject = multiInstancesProvider()->isHasAppInstanceWithoutProject();
+        auto anyInstanceWithoutProject = multiwindowsProvider()->isHasWindowWithoutProject();
         bool ok = closeOpenedProject();
         if (ok && anyInstanceWithoutProject) {
             //! NOTE: we need to call `quit` in the next event loop due to controlling the lifecycle of this method
             async::Async::call(this, [this]() {
                 dispatcher()->dispatch("quit", ActionData::make_arg1<bool>(false));
             });
-            multiInstancesProvider()->activateWindowWithoutProject();
+            multiwindowsProvider()->activateWindowWithoutProject();
         }
     });
 
@@ -90,6 +90,7 @@ void ProjectActionsController::init()
 
     dispatcher()->reg(this, "file-export", this, &ProjectActionsController::exportScore);
     dispatcher()->reg(this, "file-import-pdf", this, &ProjectActionsController::importPdf);
+    dispatcher()->reg(this, "file-import-audio-to-score", this, &ProjectActionsController::importAudioToScore);
 
     dispatcher()->reg(this, "print", this, &ProjectActionsController::printScore);
 
@@ -132,6 +133,7 @@ bool ProjectActionsController::canReceiveAction(const ActionCode& code) const
             "file-new",
             "file-open",
             "file-import-pdf",
+            "file-import-audio-to-score",
             "continue-last-session",
             "clear-recent",
         };
@@ -182,7 +184,10 @@ void ProjectActionsController::openProject(const ActionData& args)
     QUrl url = !args.empty() ? args.arg<QUrl>(0) : QUrl();
     QString displayNameOverride = args.count() >= 2 ? args.arg<QString>(1) : QString();
 
-    openProject(ProjectFile(url, displayNameOverride));
+    Ret ret = openProject(ProjectFile(url, displayNameOverride));
+    if (!ret) {
+        LOGE() << ret.toString();
+    }
 }
 
 Ret ProjectActionsController::openProject(const ProjectFile& file)
@@ -218,7 +223,7 @@ Ret ProjectActionsController::openProject(const ProjectFile& file)
 Ret ProjectActionsController::openProject(const muse::io::path_t& givenPath, const QString& displayNameOverride)
 {
     //! NOTE This method is synchronous,
-    //! but inside `multiInstancesProvider` there can be an event loop
+    //! but inside `multiwindowsProvider` there can be an event loop
     //! to wait for the responses from other instances, accordingly,
     //! the events (like user click) can be executed and this method can be called several times,
     //! before the end of the current call.
@@ -245,8 +250,8 @@ Ret ProjectActionsController::openProject(const muse::io::path_t& givenPath, con
     }
 
     //! Step 3. Check, if the project already opened in another window, then activate the window with the project
-    if (multiInstancesProvider()->isProjectAlreadyOpened(actualPath)) {
-        multiInstancesProvider()->activateWindowWithProject(actualPath);
+    if (multiwindowsProvider()->isProjectAlreadyOpened(actualPath)) {
+        multiwindowsProvider()->activateWindowWithProject(actualPath);
         return make_ret(Ret::Code::Ok);
     }
 
@@ -260,7 +265,7 @@ Ret ProjectActionsController::openProject(const muse::io::path_t& givenPath, con
             args << "--score-display-name-override" << displayNameOverride;
         }
 
-        multiInstancesProvider()->openNewAppInstance(args);
+        multiwindowsProvider()->openNewWindow(args);
         return make_ret(Ret::Code::Ok);
     }
 
@@ -321,17 +326,17 @@ Ret ProjectActionsController::loadWithFallback(const std::shared_ptr<INotationPr
                                                const muse::io::path_t& loadPath,
                                                const std::string& format)
 {
-    bool forceLoad = false;
-    const std::string stylePath = "";
-    Ret result = project->load(loadPath, stylePath, forceLoad, format);
+    Ret result = project->load(loadPath, OpenParams(), format);
 
     if (result || result.code() == static_cast<int>(Ret::Code::Cancel)) {
         return result;
     }
 
-    forceLoad = shouldRetryLoadAfterError(result, loadPath);
+    bool forceLoad = shouldRetryLoadAfterError(result, loadPath);
     if (forceLoad) {
-        result = project->load(loadPath, stylePath, forceLoad, format);
+        OpenParams params;
+        params.forceMode = forceLoad;
+        result = project->load(loadPath, params, format);
     }
 
     return result;
@@ -408,7 +413,7 @@ Ret ProjectActionsController::doFinishOpenProject()
     extensionsProvider()->performPointAsync(EXEC_ONPOST_PROJECT_OPENED);
 
     //! Show MuseSounds / MuseSampler update if need
-    auto showUpdateNotification = [=](){
+    auto showUpdateNotification = [=]() {
         QTimer::singleShot(1000, [this]() {
             if (museSoundsCheckUpdateScenario()->hasUpdate()) {
                 museSoundsCheckUpdateScenario()->showUpdate();
@@ -425,7 +430,7 @@ Ret ProjectActionsController::doFinishOpenProject()
         opened.onReceive(this, [=](const Uri&) {
             async::Async::call(this, [=]() {
                 async::Channel<Uri> mut = opened;
-                mut.resetOnReceive(this);
+                mut.disconnect(this);
 
                 showUpdateNotification();
             });
@@ -491,20 +496,16 @@ void ProjectActionsController::downloadAndOpenCloudProject(int scoreId, const QS
     }
 
     // TODO(cloud): conflict checking (don't recklessly overwrite the existing file)
-    QFile* projectData = new QFile(localPath.toQString());
+    auto projectData = std::make_shared<QFile>(localPath.toQString());
     if (!projectData->open(QIODevice::WriteOnly)) {
         openSaveProjectScenario()->showCloudOpenError(make_ret(Err::FileOpenError));
-
-        delete projectData;
         return;
     }
 
     m_projectBeingDownloaded.scoreId = scoreId;
-    m_projectBeingDownloaded.progress = museScoreComService()->downloadScore(scoreId, *projectData, hash, secret);
+    m_projectBeingDownloaded.progress = museScoreComService()->downloadScore(scoreId, projectData, hash, secret);
 
-    m_projectBeingDownloaded.progress->finished().onReceive(this, [this, localPath, info, isOwner, projectData](const ProgressResult& res) {
-        projectData->deleteLater();
-
+    m_projectBeingDownloaded.progress->finished().onReceive(this, [this, localPath, info, isOwner](const ProgressResult& res) {
         m_projectBeingDownloaded = {};
         m_projectBeingDownloadedChanged.notify();
 
@@ -568,7 +569,7 @@ Ret ProjectActionsController::openScoreFromMuseScoreCom(const QUrl& url)
         return scoreInfo.ret;
     }
 
-    bool isOwner = QString::number(scoreInfo.val.owner.id) == museScoreComService()->authorization()->accountInfo().val.id;
+    bool isOwner = QString::number(scoreInfo.val.owner.id) == museScoreComService()->authorization()->accountInfo().id;
 
     // If yes, score will be opened as regular cloud score; check if not yet opened
     if (isOwner) {
@@ -580,8 +581,8 @@ Ret ProjectActionsController::openScoreFromMuseScoreCom(const QUrl& url)
         }
 
         // or in another one
-        if (multiInstancesProvider()->isProjectAlreadyOpened(projectPath)) {
-            multiInstancesProvider()->activateWindowWithProject(projectPath);
+        if (multiwindowsProvider()->isProjectAlreadyOpened(projectPath)) {
+            multiwindowsProvider()->activateWindowWithProject(projectPath);
             return muse::make_ok();
         }
     }
@@ -595,7 +596,7 @@ Ret ProjectActionsController::openScoreFromMuseScoreCom(const QUrl& url)
             args << "--score-display-name-override" << scoreInfo.val.title;
         }
 
-        multiInstancesProvider()->openNewAppInstance(args);
+        multiwindowsProvider()->openNewWindow(args);
         return muse::make_ok();
     }
 
@@ -653,7 +654,7 @@ bool ProjectActionsController::isAnyProjectOpened() const
 void ProjectActionsController::newProject()
 {
     //! NOTE This method is synchronous,
-    //! but inside `multiInstancesProvider` there can be an event loop
+    //! but inside `multiwindowsProvider` there can be an event loop
     //! to wait for the responses from other instances, accordingly,
     //! the events (like user click) can be executed and this method can be called several times,
     //! before the end of the current call.
@@ -668,13 +669,13 @@ void ProjectActionsController::newProject()
     };
 
     if (globalContext()->currentProject()) {
-        if (multiInstancesProvider()->isHasAppInstanceWithoutProject()) {
-            multiInstancesProvider()->activateWindowWithoutProject({ "file-new" });
+        if (multiwindowsProvider()->isHasWindowWithoutProject()) {
+            multiwindowsProvider()->activateWindowWithoutProject({ "file-new" });
             return;
         }
         QStringList args;
         args << "--session-type" << "start-with-new";
-        multiInstancesProvider()->openNewAppInstance(args);
+        multiwindowsProvider()->openNewWindow(args);
         return;
     }
 
@@ -693,6 +694,10 @@ void ProjectActionsController::newProject()
 bool ProjectActionsController::closeOpenedProject(bool goToHome)
 {
     if (m_isProjectClosing) {
+        return false;
+    }
+
+    if (m_isProjectSaving || m_isProjectUploading) {
         return false;
     }
 
@@ -725,7 +730,7 @@ bool ProjectActionsController::closeOpenedProject(bool goToHome)
     }
 
     if (result) {
-        interactive()->closeAllDialogs();
+        interactive()->closeAllDialogsSync();
         globalContext()->setCurrentProject(nullptr);
 
         if (goToHome) {
@@ -870,8 +875,6 @@ void ProjectActionsController::shareAudio(const AudioFile& existingAudio)
         return;
     }
 
-    CloudAudioInfo cloudAudioInfo = retVal.val;
-
     AudioFile audio;
     if (existingAudio.isValid()) {
         audio = existingAudio;
@@ -882,14 +885,18 @@ void ProjectActionsController::shareAudio(const AudioFile& existingAudio)
         }
     }
 
-    m_uploadingAudioProgress = audioComService()->uploadAudio(*audio.device, audio.format, cloudAudioInfo.name,
-                                                              project->cloudAudioInfo().url, cloudAudioInfo.visibility,
-                                                              cloudAudioInfo.replaceExisting);
+    uploadAudioToAudioCom(audio, project, retVal.val);
 
-    m_uploadingAudioProgress->started().onNotify(this, [this]() {
-        LOGD() << "Uploading audio started";
-        showUploadProgressDialog();
-    });
+    isSharingFinished = false;
+}
+
+void ProjectActionsController::uploadAudioToAudioCom(const AudioFile& audio, const INotationProjectPtr& project, const CloudAudioInfo& info)
+{
+    m_uploadingAudioProgress = audioComService()->uploadAudio(audio.device, audio.format, info.name,
+                                                              project->cloudAudioInfo().url, info.visibility,
+                                                              info.replaceExisting);
+    LOGD() << "Uploading audio started";
+    showUploadProgressDialog();
 
     m_uploadingAudioProgress->progressChanged().onReceive(this, [](int64_t current, int64_t total, const std::string&) {
         if (total > 0) {
@@ -897,10 +904,8 @@ void ProjectActionsController::shareAudio(const AudioFile& existingAudio)
         }
     });
 
-    m_uploadingAudioProgress->finished().onReceive(this, [this, audio, project, cloudAudioInfo](const ProgressResult& res) {
+    m_uploadingAudioProgress->finished().onReceive(this, [this, project, info](const ProgressResult& res) {
         LOGD() << "Uploading audio finished";
-
-        audio.device->deleteLater();
 
         if (!res.ret) {
             LOGE() << res.ret.toString();
@@ -908,15 +913,17 @@ void ProjectActionsController::shareAudio(const AudioFile& existingAudio)
         } else {
             ValMap resMap = res.val.toMap();
             onAudioSuccessfullyUploaded(resMap["editUrl"].toQString());
-            if (!cloudAudioInfo.replaceExisting) {
-                CloudAudioInfo info = project->cloudAudioInfo();
-                info.url = QUrl(resMap["url"].toQString());
-                project->setCloudAudioInfo(info);
+            if (!info.replaceExisting) {
+                CloudAudioInfo newInfo = project->cloudAudioInfo();
+                newInfo.url = QUrl(resMap["url"].toQString());
+                project->setCloudAudioInfo(newInfo);
             }
         }
-    });
 
-    isSharingFinished = false;
+        m_uploadingAudioProgress->started().disconnect(this);
+        m_uploadingAudioProgress->progressChanged().disconnect(this);
+        m_uploadingAudioProgress->finished().disconnect(this);
+    });
 }
 
 void ProjectActionsController::saveProjectAt(const muse::actions::ActionData& args)
@@ -1028,7 +1035,7 @@ bool ProjectActionsController::saveProjectToCloud(CloudProjectInfo info, SaveMod
             return false;
         }
 
-        using Response = muse::cloud::QMLSaveToCloudResponse::SaveToCloudResponse;
+        using Response = muse::cloud::SaveToCloudResponse::SaveToCloudResponse;
         bool saveLocally = static_cast<Response>(retVal.val.toInt()) == Response::SaveLocallyInstead;
         if (saveLocally && project) {
             RetVal<muse::io::path_t> rv = openSaveProjectScenario()->askLocalPath(project, saveMode);
@@ -1189,10 +1196,9 @@ RetVal<bool> ProjectActionsController::needGenerateAudio(bool isPublicUpload) co
 
 ProjectActionsController::AudioFile ProjectActionsController::exportMp3(const INotationPtr notation) const
 {
-    QTemporaryFile* tempFile = new QTemporaryFile(configuration()->temporaryMp3FilePathTemplate().toQString());
+    auto tempFile = std::make_shared<QTemporaryFile>(configuration()->temporaryMp3FilePathTemplate().toQString());
     if (!tempFile->open()) {
         LOGE() << "Could not open a temp file";
-        delete tempFile;
         return AudioFile();
     }
 
@@ -1201,7 +1207,6 @@ ProjectActionsController::AudioFile ProjectActionsController::exportMp3(const IN
 
     if (mp3Path.isEmpty()) {
         LOGE() << "mp3 path is empty";
-        delete tempFile;
         return AudioFile();
     }
 
@@ -1219,7 +1224,6 @@ ProjectActionsController::AudioFile ProjectActionsController::exportMp3(const IN
 
     if (!exportProjectScenario()->exportScores({ notation }, mp3Path)) {
         LOGE() << "Could not export an mp3";
-        delete tempFile;
         return AudioFile();
     }
 
@@ -1243,7 +1247,7 @@ void ProjectActionsController::showUploadProgressDialog()
 void ProjectActionsController::closeUploadProgressDialog()
 {
     if (interactive()->isOpened(UPLOAD_PROGRESS_URI).val) {
-        interactive()->close(UPLOAD_PROGRESS_URI);
+        interactive()->closeSync(UriQuery(UPLOAD_PROGRESS_URI));
     }
 }
 
@@ -1254,13 +1258,12 @@ Ret ProjectActionsController::uploadProject(const CloudProjectInfo& info, const 
         return false;
     }
 
-    QBuffer* projectData = new QBuffer();
+    auto projectData = std::make_shared<QBuffer>();
     projectData->open(QIODevice::WriteOnly);
 
-    Ret ret = project->writeToDevice(projectData);
+    Ret ret = project->writeToDevice(projectData.get());
     if (!ret) {
         LOGE() << ret.toString();
-        delete projectData;
         return ret;
     }
 
@@ -1272,13 +1275,10 @@ Ret ProjectActionsController::uploadProject(const CloudProjectInfo& info, const 
     // The method must not return until the saving is complete, to prevent the app from being quit prematurely
     QEventLoop eventLoop;
 
-    m_uploadingProjectProgress = museScoreComService()->uploadScore(*projectData, info.name, info.visibility, info.sourceUrl,
+    m_uploadingProjectProgress = museScoreComService()->uploadScore(projectData, info.name, info.visibility, info.sourceUrl,
                                                                     info.revisionId);
-
-    m_uploadingProjectProgress->started().onNotify(this, [this]() {
-        showUploadProgressDialog();
-        LOGD() << "Uploading project started";
-    });
+    showUploadProgressDialog();
+    LOGD() << "Uploading project started";
 
     m_uploadingProjectProgress->progressChanged().onReceive(this, [](int64_t current, int64_t total, const std::string&) {
         if (total > 0) {
@@ -1286,13 +1286,13 @@ Ret ProjectActionsController::uploadProject(const CloudProjectInfo& info, const 
         }
     });
 
-    m_uploadingProjectProgress->finished().onReceive(this, [this, project, projectData, info, audio, openEditUrl, publishMode,
+    m_uploadingProjectProgress->finished().onReceive(this, [this, project, info, audio, openEditUrl, publishMode,
                                                             isFirstSave, &ret, &eventLoop](const ProgressResult& res) {
         DEFER {
+            m_uploadingProjectProgress->progressChanged().disconnect(this);
+            m_uploadingProjectProgress->finished().disconnect(this);
             eventLoop.quit();
         };
-
-        projectData->deleteLater();
 
         ret = res.ret;
 
@@ -1326,7 +1326,7 @@ Ret ProjectActionsController::uploadProject(const CloudProjectInfo& info, const 
         }
 
         if (audio.isValid()) {
-            uploadAudio(audio, newSourceUrl, editUrl, isFirstSave, publishMode);
+            uploadAudioToMuseScoreCom(audio, newSourceUrl, editUrl, isFirstSave, publishMode);
         } else {
             onProjectSuccessfullyUploaded(editUrl, isFirstSave);
 
@@ -1341,14 +1341,11 @@ Ret ProjectActionsController::uploadProject(const CloudProjectInfo& info, const 
     return ret;
 }
 
-void ProjectActionsController::uploadAudio(const AudioFile& audio, const QUrl& sourceUrl, const QUrl& urlToOpen, bool isFirstSave,
-                                           bool publishMode)
+void ProjectActionsController::uploadAudioToMuseScoreCom(const AudioFile& audio, const QUrl& sourceUrl, const QUrl& urlToOpen,
+                                                         bool isFirstSave,
+                                                         bool publishMode)
 {
-    m_uploadingAudioProgress = museScoreComService()->uploadAudio(*audio.device, audio.format, sourceUrl);
-
-    m_uploadingAudioProgress->started().onNotify(this, []() {
-        LOGD() << "Uploading audio started";
-    });
+    m_uploadingAudioProgress = museScoreComService()->uploadAudio(audio.device, audio.format, sourceUrl);
 
     m_uploadingAudioProgress->progressChanged().onReceive(this, [](int64_t current, int64_t total, const std::string&) {
         if (total > 0) {
@@ -1365,11 +1362,12 @@ void ProjectActionsController::uploadAudio(const AudioFile& audio, const QUrl& s
 
         onProjectSuccessfullyUploaded(urlToOpen, isFirstSave);
 
+        m_uploadingAudioProgress->progressChanged().disconnect(this);
+        m_uploadingAudioProgress->finished().disconnect(this);
+
         if (publishMode && (configuration()->alsoShareAudioCom() || configuration()->showAlsoShareAudioComDialog())) {
             alsoShareAudioCom(audio);
         }
-
-        audio.device->deleteLater();
     });
 }
 
@@ -1855,6 +1853,11 @@ void ProjectActionsController::importPdf()
     interactive()->openUrl("https://musescore.com/import");
 }
 
+void ProjectActionsController::importAudioToScore()
+{
+    interactive()->openUrl("https://musescore.com/upload?format=audio2score");
+}
+
 void ProjectActionsController::clearRecentScores()
 {
     recentFilesController()->clearRecentFiles();
@@ -1897,12 +1900,13 @@ void ProjectActionsController::printScore()
 async::Promise<io::path_t> ProjectActionsController::selectScoreOpeningFile() const
 {
     std::string allExt = "*.mscz *.mxl *.musicxml *.xml *.mid *.midi *.kar *.md *.mgu *.sgu *.cap *.capx "
-                         "*.ove *.scw *.bmw *.bww *.gtp *.gp3 *.gp4 *.gp5 *.gpx *.gp *.ptb *.mei *.tef *.mscx *.mscs *.mscz~";
+                         "*.ove *.scw *.bmw *.bww *.gtp *.gp3 *.gp4 *.gp5 *.gpx *.gp *.ptb *.mei *.mnx *.json *.tef *.mscx *.mscs *.mscz~";
 
     std::vector<std::string> filter { muse::trc("project", "All supported files") + " (" + allExt + ")",
                                       muse::trc("project", "MuseScore files") + " (*.mscz)",
                                       muse::trc("project", "MusicXML files") + " (*.mxl *.musicxml *.xml)",
                                       muse::trc("project", "MIDI files") + " (*.mid *.midi *.kar)",
+                                      muse::trc("project", "MNX files (experimental)") + " (*.mnx *.json)",
                                       muse::trc("project", "MuseData files") + " (*.md)",
                                       muse::trc("project", "Capella files") + " (*.cap *.capx)",
                                       muse::trc("project", "BB files (experimental)") + " (*.mgu *.sgu)",
@@ -1916,17 +1920,7 @@ async::Promise<io::path_t> ProjectActionsController::selectScoreOpeningFile() co
                                       muse::trc("project", "MuseScore developer files") + " (*.mscs)",
                                       muse::trc("project", "MuseScore backup files") + " (*.mscz~)" };
 
-    muse::io::path_t defaultDir = configuration()->lastOpenedProjectsPath();
-
-    if (defaultDir.empty()) {
-        defaultDir = configuration()->userProjectsPath();
-    }
-
-    if (defaultDir.empty()) {
-        defaultDir = configuration()->defaultUserProjectsPath();
-    }
-
-    return interactive()->selectOpeningFile(muse::trc("project", "Open"), defaultDir, filter);
+    return interactive()->selectOpeningFile(muse::trc("project", "Open"), configuration()->defaultOpenProjectsPath(), filter);
 }
 
 bool ProjectActionsController::hasSelection() const

@@ -5,7 +5,7 @@
  * MuseScore
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore BVBA and others
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -19,13 +19,13 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-import QtQuick 2.15
-import QtQuick.Controls 2.15
-import QtQuick.Layouts 1.3
+import QtQuick
+import QtQuick.Controls
+import QtQuick.Layouts
 import QtQuick.Window
 
-import Muse.Ui 1.0
-import Muse.UiComponents 1.0
+import Muse.Ui
+import Muse.UiComponents
 
 FocusScope {
     id: root
@@ -78,8 +78,8 @@ FocusScope {
     }
 
     function ensureActiveFocus() {
-        if (Window.window && Window.window.objectName.includes("PopupWindow_QQuickView")) {
-            // See also PopupWindow_QQuickView::eventFilter
+        if (Window.window && Window.window.objectName.includes("_WindowView_QQuickView")) {
+            // See also WindowView::eventFilter
             Window.window.flags &= ~Qt.WindowDoesNotAcceptFocus
             Window.window.requestActivate()
         }
@@ -182,12 +182,14 @@ FocusScope {
 
             text: root.currentText === undefined ? "" : root.currentText
 
-            TextInputModel {
-                id: textInputModel
+            ShortcutOverrideModel {
+                id: shortcutOverrideModel
+                // Left/right should not trigger navigation - override them...
+                directionKeysForOverride: ShortcutOverrideModel.LeftRight
             }
 
             Component.onCompleted: {
-                textInputModel.init()
+                shortcutOverrideModel.init()
             }
 
             Keys.onShortcutOverride: function(event) {
@@ -207,7 +209,7 @@ FocusScope {
                     return;
                 }
 
-                if (textInputModel.isShortcutAllowedOverride(event.key, event.modifiers)) {
+                if (shortcutOverrideModel.isShortcutOverrideAllowed(event.key, event.modifiers)) {
                     event.accepted = true
                 } else {
                     event.accepted = false

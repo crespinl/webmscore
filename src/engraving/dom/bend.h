@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -20,8 +20,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef MU_ENGRAVING_BEND_H
-#define MU_ENGRAVING_BEND_H
+#pragma once
 
 #include "draw/types/font.h"
 
@@ -110,5 +109,4 @@ private:
     FontStyle m_fontStyle = FontStyle::Undefined;
     Spatium m_lineWidth;
 };
-} // namespace mu::engraving
-#endif
+}

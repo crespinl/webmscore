@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -19,8 +19,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-#ifndef MU_NOTATION_NOTATIONVIEWSTATE_H
-#define MU_NOTATION_NOTATIONVIEWSTATE_H
+#pragma once
 
 #include "../inotationviewstate.h"
 #include "async/asyncable.h"
@@ -30,12 +29,12 @@
 
 namespace mu::notation {
 class Notation;
-class NotationViewState : public INotationViewState, public muse::async::Asyncable
+class NotationViewState : public INotationViewState, public muse::async::Asyncable, public muse::Contextable
 {
-    INJECT_STATIC(INotationConfiguration, configuration)
+    muse::GlobalInject<INotationConfiguration> configuration;
 
 public:
-    explicit NotationViewState(Notation* notation);
+    explicit NotationViewState(Notation* notation, const muse::modularity::ContextPtr& ctx);
 
     muse::Ret read(const engraving::MscReader& reader, const muse::io::path_t& pathPrefix = "") override;
     muse::Ret write(engraving::MscWriter& writer, const muse::io::path_t& pathPrefix = "") override;
@@ -43,7 +42,7 @@ public:
     bool isMatrixInited() const override;
     void setMatrixInited(bool inited) override;
 
-    muse::draw::Transform matrix() const override;
+    const muse::draw::Transform& matrix() const override;
     muse::async::Channel<muse::draw::Transform, NotationPaintView*> matrixChanged() const override;
     void setMatrix(const muse::draw::Transform& matrix, NotationPaintView* sender) override;
 
@@ -71,5 +70,3 @@ private:
     muse::async::Notification m_stateChanged;
 };
 }
-
-#endif // MU_NOTATION_NOTATIONVIEWSTATE_H

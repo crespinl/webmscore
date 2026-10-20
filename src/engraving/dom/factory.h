@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -56,6 +56,9 @@ public:
 
     static Arpeggio* createArpeggio(Chord* parent, bool isAccessibleEnabled = true);
     static std::shared_ptr<Arpeggio> makeArpeggio(Chord* parent);
+
+    static ChordBracket* createChordBracket(Chord* parent, bool isAccessibleEnabled = true);
+    static std::shared_ptr<ChordBracket> makeChordBracket(Chord* parent);
 
     static Articulation* createArticulation(ChordRest* parent, bool isAccessibleEnabled = true);
     static std::shared_ptr<Articulation> makeArticulation(ChordRest* parent);
@@ -128,6 +131,9 @@ public:
 
     static Lyrics* createLyrics(ChordRest* parent, bool isAccessibleEnabled = true);
     static Lyrics* copyLyrics(const Lyrics& src);
+
+    static LyricsLine* createLyricsLine(EngravingItem* parent, bool isAccessibleEnabled = true);
+    static LyricsLine* copyLyricsLine(const LyricsLine& src);
 
     static Measure* createMeasure(System* parent, bool isAccessibleEnabled = true);
     static Measure* copyMeasure(const Measure& src);
@@ -259,6 +265,7 @@ public:
     static Vibrato* createVibrato(EngravingItem* parent, bool isAccessibleEnabled = true);
 
     static TextLine* createTextLine(EngravingItem* parent, bool isAccessibleEnabled = true);
+    static std::shared_ptr<TextLine> makeTextLine(EngravingItem* parent);
 
     static Ottava* createOttava(EngravingItem* parent, bool isAccessibleEnabled = true);
 
@@ -275,6 +282,7 @@ public:
     static PalmMute* createPalmMute(EngravingItem* parent, bool isAccessibleEnabled = true);
 
     static WhammyBar* createWhammyBar(EngravingItem* parent, bool isAccessibleEnabled = true);
+    static std::shared_ptr<WhammyBar> makeWhammyBar(Segment* parent);
 
     static Rasgueado* createRasgueado(EngravingItem* parent, bool isAccessibleEnabled = true);
 

@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -26,10 +26,10 @@
 
 #include "modularity/imoduleinterface.h"
 
-#include "audio/audiotypes.h"
+#include "audio/common/audiotypes.h"
 
 namespace mu::iex::audioexport {
-class IAudioExportConfiguration : MODULE_EXPORT_INTERFACE
+class IAudioExportConfiguration : MODULE_GLOBAL_INTERFACE
 {
     INTERFACE_ID(IAudioExportConfiguration)
 
@@ -46,6 +46,16 @@ public:
     virtual const std::vector<int>& availableSampleRates() const = 0;
 
     virtual muse::audio::samples_t exportBufferSize() const = 0;
+
+    virtual muse::audio::AudioSampleFormat exportWavSampleFormat() const = 0;
+    virtual void setExportWavSampleFormat(muse::audio::AudioSampleFormat format) = 0;
+
+    virtual muse::audio::AudioSampleFormat exportFlacSampleFormat() const = 0;
+    virtual void setExportFlacSampleFormat(muse::audio::AudioSampleFormat format) = 0;
+
+    virtual const std::vector<muse::audio::AudioSampleFormat>& availableWavSampleFormats() const = 0;
+    virtual const std::vector<muse::audio::AudioSampleFormat>& availableFlacSampleFormats() const = 0;
+    virtual QString sampleFormatToString(muse::audio::AudioSampleFormat format) const = 0;
 };
 }
 

@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -19,13 +19,14 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-import QtQuick 2.9
-import QtQuick.Controls 2.2
-import QtQuick.Layouts 1.3
 
-import Muse.Ui 1.0
-import Muse.UiComponents 1.0
-import MuseScore.Project 1.0
+pragma ComponentBehavior: Bound
+
+import QtQuick
+
+import Muse.Ui
+import Muse.UiComponents
+import MuseScore.Project
 
 Column {
     id: root
@@ -106,8 +107,6 @@ Column {
             width: parent.childWidth
 
             title: qsTrc("project", "Subtitle")
-
-            defaultText: qsTrc("project", "Subtitle")
 
             navigationPanel: root.navigationPanel
             navigationColumn: 2

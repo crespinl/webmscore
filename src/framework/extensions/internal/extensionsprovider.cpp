@@ -5,7 +5,7 @@
  * MuseScore
  * Music Composition & Notation
  *
- * Copyright (C) 2024 MuseScore BVBA and others
+ * Copyright (C) 2024 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -112,8 +112,8 @@ const Manifest& ExtensionsProvider::manifest(const Uri& uri) const
         return *it;
     }
 
-    static Manifest _dymmy;
-    return _dymmy;
+    static Manifest _dummy;
+    return _dummy;
 }
 
 muse::async::Channel<Manifest> ExtensionsProvider::manifestChanged() const

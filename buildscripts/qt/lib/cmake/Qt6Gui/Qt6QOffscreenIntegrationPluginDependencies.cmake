@@ -10,7 +10,7 @@ if(QT_DISABLE_NO_DEFAULT_PATH_IN_QT_PACKAGES)
 endif()
 
 # note: target_deps example: "Qt6Core\;5.12.0;Qt6Gui\;5.12.0"
-set(__qt_QOffscreenIntegrationPlugin_target_deps "Qt6Core\;6.4.3;Qt6Gui\;6.4.3")
+set(__qt_QOffscreenIntegrationPlugin_target_deps "Qt6Core\;6.10.2;Qt6Gui\;6.10.2")
 set(__qt_QOffscreenIntegrationPlugin_find_dependency_paths "${CMAKE_CURRENT_LIST_DIR}/..;${_qt_cmake_dir}")
 _qt_internal_find_qt_dependencies("QOffscreenIntegrationPlugin" __qt_QOffscreenIntegrationPlugin_target_deps
                                   __qt_QOffscreenIntegrationPlugin_find_dependency_paths)

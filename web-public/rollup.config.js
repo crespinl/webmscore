@@ -49,6 +49,17 @@ const REPLACE_IMPORT_META = {
     },
 }
 
+// In the CommonJS (Node.js) bundle `import.meta.url` is not available, but the
+// emscripten glue needs a valid file url for `createRequire`
+const REPLACE_IMPORT_META_NODE = {
+    resolveImportMeta(property) {
+        if (property === 'url') {
+            return 'require("url").pathToFileURL(__filename).href';
+        }
+        return null;
+    },
+}
+
 const INJECT_WEBPACK_LOCATE_FILE = {
     transform(code) {
         code = code.replace(INJECTION_HINT(0), WEBPACK_LOCATE_FILE)
@@ -96,7 +107,7 @@ export default [
             exports: "default",
             sourcemap: false,
         },
-        plugins: [REPLACE_MEM_FILE, REPLACE_IMPORT_META, BYPASS_EVAL_WARNING],
+        plugins: [REPLACE_MEM_FILE, REPLACE_IMPORT_META_NODE, BYPASS_EVAL_WARNING],
     },
     {
         input: "src/worker.js",

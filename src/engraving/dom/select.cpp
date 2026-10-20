@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -456,13 +456,12 @@ void Selection::clear()
     }
 
     for (EngravingItem* e : m_el) {
+        e->score()->addRefresh(changeSelection(e, false));
         if (e->isSpanner()) {       // TODO: only visible elements should be selectable?
             Spanner* sp = toSpanner(e);
             for (auto s : sp->spannerSegments()) {
                 e->score()->addRefresh(changeSelection(s, false));
             }
-        } else {
-            e->score()->addRefresh(changeSelection(e, false));
         }
     }
     m_el.clear();
@@ -540,6 +539,7 @@ void Selection::appendFiltered(const std::unordered_set<EngravingItem*>& elems)
         // Special handling for grace notes...
         if (elem->isChord() && toChord(elem)->isGrace()) {
             appendChordRest(toChordRest(elem));
+            continue;
         }
 
         appendFiltered(elem);
@@ -800,13 +800,14 @@ void Selection::updateSelectedElements()
     for (Chord* singleNoteChord : singleNoteChords) {
         if (!m_rangeContainsMultiNoteChords || selectionFilter().includeSingleNotes()) {
             appendChordRest(singleNoteChord);
+        } else {
+            // Include elements anchored to the note even if the note itself isn't included...
+            const Note* note = singleNoteChord->notes().front();
+            const std::unordered_set<EngravingItem*> noteAnchored = collectElementsAnchoredToNote(note, true, false);
+            appendFiltered(noteAnchored);
+            const std::unordered_set<EngravingItem*> crAnchored = collectElementsAnchoredToChordRest(singleNoteChord);
+            appendFiltered(crAnchored);
         }
-        // Include elements anchored to the note even if the note itself isn't included...
-        const Note* note = singleNoteChord->notes().front();
-        const std::unordered_set<EngravingItem*> noteAnchored = collectElementsAnchoredToNote(note, true, false);
-        appendFiltered(noteAnchored);
-        const std::unordered_set<EngravingItem*> crAnchored = collectElementsAnchoredToChordRest(singleNoteChord);
-        appendFiltered(crAnchored);
     }
 
     for (Tuplet* tuplet : innerTuplets) {
@@ -1084,14 +1085,24 @@ muse::ByteArray Selection::staffMimeData() const
     SelectionFilter filter = selectionFilter();
     Fraction curTick;
 
-    Fraction ticks  = tickEnd() - tickStart();
+    Fraction ticks = tickEnd() - tickStart();
     int staves = static_cast<int>(staffEnd() - staffStart());
 
-    xml.startElement("StaffList", { { "version", (MScore::testMode ? "2.00" : Constants::MSC_VERSION_STR) },
-                         { "tick", tickStart().toString() },
-                         { "len", ticks.toString() },
-                         { "staff", staffStart() },
-                         { "staves", staves } });
+    XmlWriter::Attributes staffListAttributes = {
+        { "version", (MScore::testMode ? "2.00" : Constants::MSC_VERSION_STR) },
+        { "tick", tickStart().toString() },
+        { "len", ticks.toString() },
+        { "staff", staffStart() },
+        { "staves", staves },
+    };
+
+    // Note: canCopy() ensures that the whole selection has a single time stretch ratio.
+    Fraction timeStretch = score()->staff(staffStart())->timeStretch(tickStart());
+    if (timeStretch != Fraction(1, 1)) {
+        staffListAttributes.push_back({ "timeStretch", timeStretch.toString() });
+    }
+
+    xml.startElement("StaffList", staffListAttributes);
 
     Segment* seg1 = m_startSegment;
     Segment* seg2 = m_endSegment;
@@ -1125,6 +1136,7 @@ muse::ByteArray Selection::staffMimeData() const
     }
 
     xml.endElement();
+    xml.flush();
     return buffer.data();
 }
 
@@ -1155,6 +1167,7 @@ muse::ByteArray Selection::symbolListMimeData() const
         case ElementType::ORNAMENT:
         case ElementType::TAPPING:
         case ElementType::ARPEGGIO:
+        case ElementType::CHORD_BRACKET:
         case ElementType::TREMOLO_SINGLECHORD: {
             // ignore articulations not attached to chords/rest or segment
             if (!e->explicitParent()->isChordRest()) {
@@ -1271,7 +1284,7 @@ muse::ByteArray Selection::symbolListMimeData() const
         numSegs = 0;
         // with figured bass, we need to look for the proper segment
         // not only according to ChordRest elements, but also annotations
-        if (iter->second.e->type() == ElementType::FIGURED_BASS) {
+        if (iter->second.e->isFiguredBass()) {
             bool done = false;
             for (; seg; seg = seg->next1()) {
                 if (seg->isChordRestType()) {
@@ -1284,7 +1297,7 @@ muse::ByteArray Selection::symbolListMimeData() const
                                 break;
                             }
                             // do annotations include any f.b.?
-                            if (el->type() == ElementType::FIGURED_BASS && el->track() == track) {
+                            if (el->isFiguredBass() && el->track() == track) {
                                 numSegs++;                  //yes: it counts as a step
                                 break;
                             }
@@ -1312,6 +1325,7 @@ muse::ByteArray Selection::symbolListMimeData() const
     }
 
     xml.endElement();
+    xml.flush();
     buffer.close();
     return buffer.data();
 }
@@ -1352,7 +1366,7 @@ std::vector<Note*> Selection::noteList(track_idx_t selTrack) const
                         continue;
                     }
                     EngravingItem* e = seg->element(track);
-                    if (e == 0 || e->type() != ElementType::CHORD
+                    if (e == 0 || !e->isChord()
                         || (selTrack != muse::nidx && selTrack != track)) {
                         continue;
                     }
@@ -1375,74 +1389,80 @@ std::vector<Note*> Selection::noteList(track_idx_t selTrack) const
 }
 
 //---------------------------------------------------------
-//   checkStart
-//     return false if element is NOT a tuplet or is start of a tuplet/tremolo
-//     return true  if element is part of a tuplet/tremolo, but not the start
+//   checkStartForPartialCopy
+//     return no error if element is NOT a tuplet or is start of a tuplet/tremolo
+//     return error if element is part of a tuplet/tremolo, but not the start
 //---------------------------------------------------------
 
-static bool checkStart(EngravingItem* e)
+static MsError checkStartForPartialCopy(EngravingItem* e)
 {
-    if (e == 0 || !e->isChordRest()) {
-        return false;
+    if (!e || !e->isChordRest()) {
+        return MsError::MS_NO_ERROR;
     }
-    ChordRest* cr = toChordRest(e);
-    bool rv = false;
+
+    const ChordRest* cr = toChordRest(e);
     if (cr->tuplet()) {
         // check that complete tuplet is selected, all the way up to top level
         Tuplet* tuplet = cr->tuplet();
         while (tuplet) {
             if (tuplet->elements().front() != e) {
-                return true;
+                return MsError::SOURCE_PARTIAL_TUPLET;
             }
             e = tuplet;
             tuplet = tuplet->tuplet();
         }
-    } else if (cr->type() == ElementType::CHORD) {
-        rv = false;
-        Chord* chord = toChord(cr);
-        if (chord->tremoloTwoChord()) {
-            rv = chord->tremoloTwoChord()->chord2() == chord;
+    }
+
+    if (cr->isChord()) {
+        const Chord* chord = toChord(cr);
+        const TremoloTwoChord* ttc = chord ? chord->tremoloTwoChord() : nullptr;
+        if (ttc && ttc->chord2() == chord) {
+            return MsError::SOURCE_PARTIAL_TREMOLO;
         }
     }
-    return rv;
+
+    return MsError::MS_NO_ERROR;
 }
 
 //---------------------------------------------------------
-//   checkEnd
-//     return false if element is NOT a tuplet or is end of a tuplet
-//     return true  if element is part of a tuplet, but not the end
+//   checkEndForPartialCopy
+//     return no error if element is NOT a tuplet or is end of a tuplet/tremolo
+//     return error if element is part of a tuplet/tremolo, but not the end
 //---------------------------------------------------------
 
-static bool checkEnd(EngravingItem* e, const Fraction& endTick)
+static MsError checkEndForPartialCopy(EngravingItem* e, const Fraction& endTick)
 {
-    if (e == 0 || !e->isChordRest()) {
-        return false;
+    if (!e || !e->isChordRest()) {
+        return MsError::MS_NO_ERROR;
     }
-    ChordRest* cr = toChordRest(e);
-    bool rv = false;
+
+    const ChordRest* cr = toChordRest(e);
     if (cr->tuplet()) {
         // check that complete tuplet is selected, all the way up to top level
         Tuplet* tuplet = cr->tuplet();
         while (tuplet) {
             if (tuplet->elements().back() != e) {
-                return true;
+                return MsError::SOURCE_PARTIAL_TUPLET;
             }
             e = tuplet;
             tuplet = tuplet->tuplet();
         }
         // also check that the selection extends to the end of the top-level tuplet
         tuplet = toTuplet(e);
-        if (tuplet->elements().front()->tick() + tuplet->actualTicks() > endTick) {
-            return true;
-        }
-    } else if (cr->type() == ElementType::CHORD) {
-        rv = false;
-        Chord* chord = toChord(cr);
-        if (chord->tremoloTwoChord()) {
-            rv = chord->tremoloTwoChord()->chord1() == chord;
+        if (tuplet->endTick() > endTick) {
+            return MsError::SOURCE_PARTIAL_TUPLET;
         }
     }
-    return rv;
+
+    if (cr->isChord()) {
+        const Chord* chord = toChord(cr);
+        const TremoloTwoChord* ttc = chord ? chord->tremoloTwoChord() : nullptr;
+        if (ttc && ttc->chord1() == chord) {
+            return MsError::SOURCE_PARTIAL_TREMOLO;
+        }
+    }
+
+    return MsError::MS_NO_ERROR;
 }
 
 //---------------------------------------------------------
@@ -1459,6 +1479,7 @@ bool Selection::canCopy() const
     }
 
     Fraction endTick = m_endSegment ? m_endSegment->tick() : m_score->lastSegment()->tick();
+    Fraction timeStretch(1, 0);
 
     for (staff_idx_t staffIdx = m_staffStart; staffIdx != m_staffEnd; ++staffIdx) {
         for (voice_idx_t voice = 0; voice < VOICES; ++voice) {
@@ -1469,8 +1490,12 @@ bool Selection::canCopy() const
 
             // check first cr in track within selection
             ChordRest* check = m_startSegment->nextChordRest(track);
-            if (check && check->tick() < endTick && checkStart(check)) {
-                return false;
+            if (check && check->tick() < endTick) {
+                const MsError err = checkStartForPartialCopy(check);
+                if (err != MsError::MS_NO_ERROR) {
+                    MScore::setError(err);
+                    return false;
+                }
             }
 
             if (!m_endSegment) {
@@ -1486,14 +1511,20 @@ bool Selection::canCopy() const
                 endSegmentSelection = endSegmentSelection->nextCR(track);
             }
 
-            if (checkEnd(endSegmentSelection->element(track), endTick)) {
+            const MsError err = checkEndForPartialCopy(endSegmentSelection->element(track), endTick);
+            if (err != MsError::MS_NO_ERROR) {
+                MScore::setError(err);
                 return false;
             }
         }
 
-        // loop through measures on this staff checking for local time signatures
+        // Check that all selected measures have the same time stretch - allows copy/paste within a local time signature,
+        // but don't yet support it between differing local time signatures.
         for (Measure* m = m_startSegment->measure(); m && m->tick() < endTick; m = m->nextMeasure()) {
-            if (m_score->staff(staffIdx)->isLocalTimeSignature(m->tick())) {
+            Fraction mTimeStretch = m_score->staff(staffIdx)->timeStretch(m->tick());
+            if (!timeStretch.isValid()) {
+                timeStretch = mTimeStretch;
+            } else if (timeStretch != mTimeStretch) {
                 return false;
             }
         }
@@ -1568,22 +1599,31 @@ const std::list<EngravingItem*> Selection::uniqueElements() const
 //    elements show up in the list.
 //---------------------------------------------------------
 
-std::list<Note*> Selection::uniqueNotes(track_idx_t track) const
+std::list<Note*> Selection::uniqueNotes(track_idx_t track, bool tied) const
 {
     std::list<Note*> l;
 
+    auto addNote = [&l](Note* note) {
+        bool alreadyThere = false;
+        for (Note* n : l) {
+            if ((n->links() && n->links()->contains(note)) || n == note) {
+                alreadyThere = true;
+                break;
+            }
+        }
+        if (!alreadyThere) {
+            l.push_back(note);
+        }
+    };
+
     for (Note* nn : noteList(track)) {
+        if (!tied) {
+            addNote(nn);
+            continue;
+        }
+
         for (Note* note : nn->tiedNotes()) {
-            bool alreadyThere = false;
-            for (Note* n : l) {
-                if ((n->links() && n->links()->contains(note)) || n == note) {
-                    alreadyThere = true;
-                    break;
-                }
-            }
-            if (!alreadyThere) {
-                l.push_back(note);
-            }
+            addNote(note);
         }
     }
     return l;

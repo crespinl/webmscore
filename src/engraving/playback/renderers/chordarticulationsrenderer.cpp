@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2022 MuseScore Limited
+ * Copyright (C) 2022 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -56,7 +56,7 @@ const mpe::ArticulationTypeSet& ChordArticulationsRenderer::supportedTypes()
 void ChordArticulationsRenderer::doRender(const EngravingItem* item, const mpe::ArticulationType /*type*/, const RenderingContext& ctx,
                                           mpe::PlaybackEventList& result)
 {
-    IF_ASSERT_FAILED(item->type() == ElementType::CHORD) {
+    IF_ASSERT_FAILED(item->isChord()) {
         return;
     }
 

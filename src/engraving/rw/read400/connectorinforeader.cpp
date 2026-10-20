@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -290,13 +290,13 @@ void ConnectorInfoReader::readAddConnector(ChordRest* item, ConnectorInfoReader*
                     if (ee == spanner) {
                         continue;
                     }
-                    Spanner* ls = static_cast<Spanner*>(ee);
+                    Spanner* ls = toSpanner(ee);
                     ls->setTick2(spanner->tick2());
                     for (EngravingObject* eee : item->linkList()) {
                         ChordRest* cr = toChordRest(eee);
                         if (cr->score() == eee->score() && cr->staffIdx() == ls->staffIdx()) {
                             ls->setTrack2(cr->track());
-                            if (ls->type() == ElementType::SLUR) {
+                            if (ls->isSlur()) {
                                 ls->setEndElement(cr);
                             }
                             break;

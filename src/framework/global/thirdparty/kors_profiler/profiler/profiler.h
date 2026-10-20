@@ -103,10 +103,10 @@ SOFTWARE.
 #define TRACEFUNC_C(info)
 #define BEGIN_STEP_TIME
 #define STEP_TIME
-#define TIMER_START
-#define TIMER_STOP
-#define TIMER_STARTED
-#define TIMER_PRINT
+#define TIMER_START(tag)
+#define TIMER_STOP(tag)
+#define TIMER_STARTED(tag) false
+#define TIMER_PRINT(tag)
 #define PROFILER_CLEAR
 #define PROFILER_PRINT
 

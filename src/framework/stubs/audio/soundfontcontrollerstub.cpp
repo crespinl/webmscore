@@ -5,7 +5,7 @@
  * MuseScore
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore BVBA and others
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -24,6 +24,10 @@
 using namespace muse;
 using namespace muse::audio;
 
-void SoundFontControllerStub::addSoundFont(const synth::SoundFontPath&)
+void SoundFontControllerStub::loadSoundFonts()
+{
+}
+
+void SoundFontControllerStub::addSoundFont(const synth::SoundFontUri&)
 {
 }

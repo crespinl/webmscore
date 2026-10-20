@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -25,6 +25,7 @@
  */
 
 #include "style/style.h"
+#include "../editing/editexcerpt.h"
 
 #include "barline.h"
 #include "engravingitem.h"
@@ -36,7 +37,6 @@
 #include "repeatlist.h"
 #include "score.h"
 #include "segment.h"
-#include "undo.h"
 
 #include "log.h"
 
@@ -62,8 +62,7 @@ static void removeRepeatMarkings(Score* score)
     }
 
     // remove coda/fine labels and jumps
-    std::vector<EngravingItem*> elems;
-    score->scanElements(&elems, collectElements, false);
+    std::vector<EngravingItem*> elems = score->getChildren(false);
     for (auto e : elems) {
         if (e->isMarker() || e->isJump()) {
             score->deleteItem(e);
@@ -92,7 +91,7 @@ static void removeRepeatMarkings(Score* score)
 //    has been unrolled
 //---------------------------------------------------------
 
-static void createExcerpts(MasterScore* cs, const std::list<Excerpt*>& excerpts)
+static void createExcerpts(MasterScore* cs, const std::vector<Excerpt*>& excerpts)
 {
     // borrowed from musescore.cpp endsWith(".pdf")
     for (Excerpt* e : excerpts) {
@@ -128,9 +127,6 @@ MasterScore* MasterScore::unrollRepeats()
     // create a copy of the original score to play with
     MasterScore* score = original->clone();
 
-    // TODO: Give it an appropriate path/filename
-    NOT_IMPLEMENTED;
-
     // figure out repeat structure
     original->setExpandRepeats(true);
 
@@ -140,7 +136,7 @@ MasterScore* MasterScore::unrollRepeats()
     }
 
     // remove excerpts for now (they are re-created after unrolling master score)
-    std::list<Excerpt*> excerpts;
+    std::vector<Excerpt*> excerpts;
     for (Excerpt* e : score->excerpts()) {
         excerpts.push_back(new Excerpt(*e, false));
         score->masterScore()->deleteExcerpt(e);

@@ -4,7 +4,7 @@
 # MuseScore Studio
 # Music Composition & Notation
 #
-# Copyright (C) 2021 MuseScore Limited
+# Copyright (C) 2021 MuseScore Limited and others
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 3 as
@@ -17,16 +17,14 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-declare_module(notation)
 
-set(MODULE_SRC
-    ${CMAKE_CURRENT_LIST_DIR}/notationstubmodule.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/notationstubmodule.h
-    ${CMAKE_CURRENT_LIST_DIR}/instrumentsrepositorystub.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/instrumentsrepositorystub.h
-    ${CMAKE_CURRENT_LIST_DIR}/notationconfigurationstub.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/notationconfigurationstub.h
-    )
+muse_create_module(notation STUB)
 
-set(MODULE_IS_STUB ON)
-setup_module()
+target_sources(notation PRIVATE
+    notationstubmodule.cpp
+    notationstubmodule.h
+    instrumentsrepositorystub.cpp
+    instrumentsrepositorystub.h
+    notationconfigurationstub.cpp
+    notationconfigurationstub.h
+)

@@ -5,7 +5,7 @@
  * MuseScore
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore BVBA and others
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -41,24 +41,4 @@ io::path_t ShortcutsConfigurationStub::shortcutsUserAppDataPath() const
 io::path_t ShortcutsConfigurationStub::shortcutsAppDataPath() const
 {
     return io::path_t();
-}
-
-io::path_t ShortcutsConfigurationStub::midiMappingUserAppDataPath() const
-{
-    return io::path_t();
-}
-
-bool ShortcutsConfigurationStub::advanceToNextNoteOnKeyRelease() const
-{
-    return false;
-}
-
-void ShortcutsConfigurationStub::setAdvanceToNextNoteOnKeyRelease(bool)
-{
-}
-
-async::Channel<bool> ShortcutsConfigurationStub::advanceToNextNoteOnKeyReleaseChanged() const
-{
-    static async::Channel<bool> ch;
-    return ch;
 }

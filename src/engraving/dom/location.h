@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -20,17 +20,16 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef MU_ENGRAVING_POINT_H
-#define MU_ENGRAVING_POINT_H
+#pragma once
 
 #include <climits>
 
-#include "types/propertyvalue.h"
+#include "../types/propertyvalue.h"
 
 namespace mu::engraving {
 class EngravingItem;
 
-enum class Pid;
+enum class Pid : short;
 
 //---------------------------------------------------------
 //   Location
@@ -100,5 +99,4 @@ private:
     bool m_rel = false;
     bool m_isTimeTick = false;
 };
-} // namespace mu::engraving
-#endif
+}

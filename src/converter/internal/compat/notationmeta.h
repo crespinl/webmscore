@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -23,7 +23,6 @@
 #pragma once
 
 #include "notation/inotation.h"
-#include "project/inotationproject.h"
 
 namespace mu::engraving {
 class Score;
@@ -34,10 +33,10 @@ namespace mu::converter {
 class NotationMeta
 {
 public:
-    static muse::RetVal<std::string> metaJson(project::INotationProjectPtr project);
+    static muse::RetVal<std::string> metaJson(notation::INotationPtr notation);
     static muse::RetVal<std::string> metaJson(mu::engraving::Score* score);
-    
-    static QJsonArray tracksJsonArray(project::INotationProjectPtr project);
+
+    static QJsonArray tracksJsonArray(notation::INotationPtr notation);
     static QString title(const mu::engraving::Score* score);
 
 private:

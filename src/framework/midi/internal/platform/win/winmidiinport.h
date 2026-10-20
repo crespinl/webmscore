@@ -5,7 +5,7 @@
  * MuseScore
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore BVBA and others
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -51,7 +51,8 @@ public:
     async::Channel<tick_t, Event> eventReceived() const override;
 
     // internal;
-    void doProcess(uint32_t message, tick_t timing);
+    void doProcess(uint32_t message, tick_t tick);
+    void doProcessLongData(uint8_t* data, size_t size, tick_t tick);
 
 private:
     Ret run();

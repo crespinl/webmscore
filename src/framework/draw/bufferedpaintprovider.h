@@ -5,7 +5,7 @@
  * MuseScore
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore BVBA and others
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -60,6 +60,8 @@ public:
 
     void save() override;
     void restore() override;
+
+    double deviceLogicalDpi() const override;
 
     void setTransform(const Transform& transform) override;
     const Transform& transform() const override;

@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2022 MuseScore Limited
+ * Copyright (C) 2022 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -29,7 +29,7 @@
 #include "types/retval.h"
 
 namespace mu::project {
-class IOpenSaveProjectScenario : MODULE_EXPORT_INTERFACE
+class IOpenSaveProjectScenario : MODULE_CONTEXT_INTERFACE
 {
     INTERFACE_ID(IOpenSaveProjectScenario)
 

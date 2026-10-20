@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -19,8 +19,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-#ifndef MU_PROJECT_PROJECTFILEINFOPROVIDER_H
-#define MU_PROJECT_PROJECTFILEINFOPROVIDER_H
+
+#pragma once
 
 #include "engraving/infrastructure/ifileinfoprovider.h"
 
@@ -31,9 +31,12 @@ namespace mu::project {
 class NotationProject;
 class ProjectFileInfoProvider : public engraving::IFileInfoProvider
 {
-    INJECT(muse::io::IFileSystem, filesystem)
+    muse::GlobalInject<muse::io::IFileSystem> filesystem;
+
 public:
     explicit ProjectFileInfoProvider(NotationProject* project);
+
+    bool saved() const override;
 
     muse::io::path_t path() const override;
     muse::io::path_t fileName(bool includingExtension = true) const override;
@@ -43,10 +46,9 @@ public:
 
     muse::DateTime birthTime() const override;
     muse::DateTime lastModified() const override;
+    bool isNewlyCreated() const override;
 
 private:
     NotationProject* m_project = nullptr;
 };
 }
-
-#endif // MU_PROJECT_PROJECTFILEINFOPROVIDER_H

@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -63,8 +63,6 @@
 #ifdef MUE_BUILD_ENGRAVING_DEVTOOLS
 #include "ui/iinteractiveuriregister.h"
 #include "devtools/engravingelementsprovider.h"
-#include "devtools/engravingelementsmodel.h"
-#include "devtools/corruptscoredevtoolsmodel.h"
 #include "devtools/drawdata/diagnosticdrawprovider.h"
 #endif
 
@@ -133,7 +131,9 @@ void EngravingModule::resolveImports()
 #ifdef MUE_BUILD_ENGRAVING_DEVTOOLS
     auto ir = ioc()->resolve<muse::ui::IInteractiveUriRegister>(moduleName());
     if (ir) {
-        ir->registerQmlUri(Uri("musescore://diagnostics/engraving/elements"), "MuseScore/Engraving/EngravingElementsDialog.qml");
+        ir->registerQmlUri(Uri("musescore://diagnostics/engraving/elements"), "MuseScore.Engraving", "EngravingElementsDialog");
+        ir->registerQmlUri(Uri("musescore://diagnostics/engraving/undostack"), "MuseScore.Engraving", "EngravingUndoStackDialog");
+        ir->registerQmlUri(Uri("musescore://diagnostics/engraving/style"), "MuseScore.Engraving", "EngravingStyleDialog");
     }
 #endif
 }
@@ -145,7 +145,12 @@ void EngravingModule::registerApi()
 
     auto api = ioc()->resolve<muse::api::IApiRegister>(moduleName());
     if (api) {
-        api->regApiCreator(moduleName(), "api.engraving.v1", new muse::api::ApiCreator<apiv1::EngravingApiV1>());
+        api->regApiCreator(moduleName(), "MuseApi.Engraving", new muse::api::ApiCreator<apiv1::EngravingApiV1>());
+
+        //! TODO remove me
+        const char* uri = "MuseApi.Engraving";
+        api->regEnum<apiv1::enums::ElementType>(uri, muse::api::EnumType::String, "Element");
+        api->regEnum<apiv1::enums::TextStyleType>(uri);
     }
 #endif
 }
@@ -158,19 +163,10 @@ void EngravingModule::registerResources()
 void EngravingModule::registerUiTypes()
 {
     MScore::registerUiTypes();
-
-#ifdef MUE_BUILD_ENGRAVING_DEVTOOLS
-    qmlRegisterType<EngravingElementsModel>("MuseScore.Engraving", 1, 0, "EngravingElementsModel");
-    qmlRegisterType<CorruptScoreDevToolsModel>("MuseScore.Engraving", 1, 0, "CorruptScoreDevToolsModel");
-#endif
 }
 
-void EngravingModule::onInit(const IApplication::RunMode& mode)
+void EngravingModule::onInit(const IApplication::RunMode&)
 {
-    if (mode == IApplication::RunMode::AudioPluginRegistration) {
-        return; 
-    }
-
 #ifndef ENGRAVING_NO_INTERNAL
     // Init fonts
     {
@@ -293,7 +289,8 @@ void EngravingModule::onInit(const IApplication::RunMode& mode)
         gpaletteScore->style().set(Sid::musicalTextFont, String(u"Leland Text"));
         IEngravingFontPtr scoreFont = m_engravingfonts->fontByName("Leland");
         gpaletteScore->setEngravingFont(scoreFont);
-        gpaletteScore->setNoteHeadWidth(scoreFont->width(SymId::noteheadBlack, gpaletteScore->style().spatium()) / SPATIUM20);
+        gpaletteScore->setNoteHeadWidth(scoreFont->width(SymId::noteheadBlack,
+                                                         gpaletteScore->style().spatium()) / gpaletteScore->style().defaultSpatium());
 #endif
     }
 

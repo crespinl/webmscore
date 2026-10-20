@@ -5,7 +5,7 @@
  * MuseScore
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore BVBA and others
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -28,6 +28,7 @@
 #include <QColorDialog>
 #include <QGuiApplication>
 #include <QWindow>
+#include <QWidget>
 
 #include "global/async/async.h"
 #include "diagnostics/diagnosticutils.h"
@@ -43,7 +44,7 @@ using namespace muse::ui;
 using namespace muse::async;
 
 InteractiveProvider::InteractiveProvider(const modularity::ContextPtr& iocCtx)
-    : QObject(), Injectable(iocCtx)
+    : QObject(), Contextable(iocCtx)
 {
     connect(qApp, &QGuiApplication::focusWindowChanged, this, [this](QWindow* window) {
         raiseWindowInStack(window);
@@ -332,54 +333,123 @@ void InteractiveProvider::raise(const UriQuery& uri)
     }
 }
 
-void InteractiveProvider::close(const Uri& uri)
+Promise<Ret> InteractiveProvider::close(const Uri& uri)
 {
-    for (const ObjectInfo& obj : allOpenObjects()) {
-        if (obj.query.uri() == uri) {
-            closeObject(obj);
-        }
-    }
+    std::vector<ObjectInfo> objs = collectOpenObjects([&uri](const ObjectInfo& obj) {
+        return obj.query.uri() == uri;
+    });
+
+    return closeObjects(objs);
 }
 
-void InteractiveProvider::close(const UriQuery& uri)
+Promise<Ret> InteractiveProvider::close(const UriQuery& uri)
 {
-    for (const ObjectInfo& obj : allOpenObjects()) {
-        if (obj.query == uri) {
-            closeObject(obj);
-        }
-    }
+    std::vector<ObjectInfo> objs = collectOpenObjects([&uri](const ObjectInfo& obj) {
+        return obj.query == uri;
+    });
+
+    return closeObjects(objs);
 }
 
-void InteractiveProvider::closeAllDialogs()
+Ret InteractiveProvider::closeSync(const UriQuery& uri)
 {
-    for (const ObjectInfo& objectInfo: allOpenObjects()) {
-        UriQuery uriQuery = objectInfo.query;
-        if (muse::diagnostics::isDiagnosticsUri(uriQuery.uri())) {
-            continue;
-        }
-        ContainerMeta openMeta = uriRegister()->meta(uriQuery.uri());
-        if (openMeta.type == ContainerType::QWidgetDialog || openMeta.type == ContainerType::QmlDialog) {
-            closeObject(objectInfo);
-        }
-    }
+    std::vector<ObjectInfo> objs = collectOpenObjects([&uri](const ObjectInfo& obj) {
+        return obj.query == uri;
+    });
+
+    return closeObjectsSync(objs);
 }
 
-void InteractiveProvider::closeObject(const ObjectInfo& obj)
+Ret InteractiveProvider::closeAllDialogsSync()
 {
-    ContainerMeta openMeta = uriRegister()->meta(obj.query.uri());
-    switch (openMeta.type) {
-    case ContainerType::QWidgetDialog: {
-        if (auto window = dynamic_cast<QWidget*>(obj.window)) {
-            window->close();
+    std::vector<ObjectInfo> objs = collectOpenObjects([this](const ObjectInfo& obj) {
+        if (muse::diagnostics::isDiagnosticsUri(obj.query.uri())) {
+            return false;
         }
-    } break;
-    case ContainerType::QmlDialog:
-        closeQml(obj.objectId);
-        break;
-    case ContainerType::PrimaryPage:
-    case ContainerType::Undefined:
-        break;
+        ContainerMeta meta = uriRegister()->meta(obj.query.uri());
+        return meta.type == ContainerType::QWidgetDialog || meta.type == ContainerType::QmlDialog;
+    });
+
+    return closeObjectsSync(objs);
+}
+
+Promise<Ret> InteractiveProvider::closeObjects(const std::vector<ObjectInfo>& objs)
+{
+    return async::make_promise<Ret>([this, objs](auto resolve, auto) {
+        if (objs.empty()) {
+            return resolve(make_ok());
+        }
+
+        auto count = std::make_shared<size_t>(objs.size());
+        auto ret = std::make_shared<Ret>(make_ok());
+
+        for (const ObjectInfo& obj : objs) {
+            const QString objectId = obj.objectId.toString();
+            bool ok = m_onClosedFuncs.try_emplace(objectId, [this, objectId, count, ret, resolve](const Ret& funcRet) {
+                if (!funcRet) {
+                    *ret = funcRet;
+                }
+
+                if (--(*count) == 0) {
+                    (void)resolve(*ret);
+                }
+
+                muse::remove(m_onClosedFuncs, objectId);
+            }).second;
+
+            IF_ASSERT_FAILED(ok) {
+                if (--(*count) == 0) {
+                    (void)resolve(*ret);
+                }
+                continue;
+            }
+
+            ContainerMeta meta = uriRegister()->meta(obj.query.uri());
+
+            switch (meta.type) {
+                case ContainerType::QWidgetDialog: {
+                    if (auto window = dynamic_cast<QWidget*>(obj.window)) {
+                        ok = window->close();
+                    } else {
+                        ok = false;
+                    }
+                } break;
+                case ContainerType::QmlDialog:
+                    closeQml(obj.objectId);
+                    break;
+                case ContainerType::PrimaryPage:
+                case ContainerType::Undefined:
+                    break;
+            }
+
+            if (!ok) {
+                if (auto it = m_onClosedFuncs.find(objectId); it != m_onClosedFuncs.end()) {
+                    it->second(make_ret(Ret::Code::UnknownError));
+                }
+            }
+        }
+
+        return Promise<Ret>::dummy_result();
+    });
+}
+
+Ret InteractiveProvider::closeObjectsSync(const std::vector<ObjectInfo>& objs)
+{
+    if (objs.empty()) {
+        return make_ok();
     }
+
+    QEventLoop loop;
+    Ret ret = make_ok();
+
+    closeObjects(objs).onResolve(this, [&loop, &ret](const Ret& closeRet) {
+        ret = closeRet;
+        loop.quit();
+    });
+
+    loop.exec();
+
+    return ret;
 }
 
 void InteractiveProvider::fillExtData(QmlLaunchData* data, const UriQuery& q, const QVariantMap& params_) const
@@ -387,6 +457,7 @@ void InteractiveProvider::fillExtData(QmlLaunchData* data, const UriQuery& q, co
     static Uri VIEWER_URI = Uri("muse://extensions/viewer");
 
     ContainerMeta meta = uriRegister()->meta(VIEWER_URI);
+    data->setValue("module", meta.qmlModule);
     data->setValue("path", meta.qmlPath);
     data->setValue("type", meta.type);
 
@@ -408,6 +479,7 @@ void InteractiveProvider::fillExtData(QmlLaunchData* data, const UriQuery& q, co
 void InteractiveProvider::fillData(QmlLaunchData* data, const Uri& uri, const QVariantMap& params) const
 {
     ContainerMeta meta = uriRegister()->meta(uri);
+    data->setValue("module", meta.qmlModule);
     data->setValue("path", meta.qmlPath);
     data->setValue("type", meta.type);
     data->setValue("uri", QString::fromStdString(uri.toString()));
@@ -487,7 +559,21 @@ QWindow* InteractiveProvider::topWindow() const
         ASSERT_X("Window must have a parent!");
     }
 
-    return qobject_cast<QWindow*>(last.window);
+    if (!last.window->isWidgetType()) {
+        QWindow* qwindow = qobject_cast<QWindow*>(last.window);
+        IF_ASSERT_FAILED(qwindow) {
+            return mainWin;
+        }
+        return qwindow;
+    }
+
+    // QWidget
+    QWidget* qwidget = qobject_cast<QWidget*>(last.window);
+    QWindow* qwindow = qwidget->windowHandle();
+    IF_ASSERT_FAILED(qwindow) {
+        return mainWin;
+    }
+    return qwindow;
 }
 
 bool InteractiveProvider::topWindowIsWidget() const
@@ -555,6 +641,17 @@ RetVal<Val> InteractiveProvider::toRetVal(const QVariant& jsrv) const
     return rv;
 }
 
+RetVal<bool> InteractiveProvider::isOpened(const QString& objectId) const
+{
+    for (const ObjectInfo& objectInfo: allOpenObjects()) {
+        if (objectInfo.objectId == objectId) {
+            return RetVal<bool>::make_ok(true);
+        }
+    }
+
+    return RetVal<bool>::make_ok(false);
+}
+
 RetVal<InteractiveProvider::OpenData> InteractiveProvider::openExtensionDialog(const UriQuery& q, const QVariantMap& params)
 {
     QmlLaunchData data;
@@ -592,11 +689,23 @@ RetVal<InteractiveProvider::OpenData> InteractiveProvider::openWidgetDialog(cons
     //! NOTE Will be deleted with the dialog
     WidgetDialogAdapter* adapter = new WidgetDialogAdapter(dialog);
     adapter->onShow([this, objectId, dialog]() {
+        if (isOpened(objectId).val) {
+            LOGE() << "Dialog is already opened: " << objectId << ", ignoring this show event";
+            return;
+        }
+
         async::Async::call(this, [this, objectId, dialog]() {
+            QQmlEngine::setObjectOwnership(dialog, QQmlEngine::CppOwnership);
+            QQmlEngine::setObjectOwnership(dialog->windowHandle(), QQmlEngine::CppOwnership);
             onOpen(ContainerType::QWidgetDialog, objectId, dialog->window());
         });
     })
     .onHide([this, objectId, dialog]() {
+        if (!isOpened(objectId).val) {
+            LOGE() << "Dialog is not opened: " << objectId << ", ignoring this hide event";
+            return;
+        }
+
         QDialog::DialogCode dialogCode = static_cast<QDialog::DialogCode>(dialog->result());
         Ret::Code errorCode = dialogCode == QDialog::Accepted ? Ret::Code::Ok : Ret::Code::Cancel;
 
@@ -727,6 +836,13 @@ void InteractiveProvider::onClose(const QString& objectId, const QVariant& jsrv)
     if (inStack) {
         notifyAboutCurrentUriChanged();
     }
+
+    Async::call(this, [this, objectId, rv]() {
+        auto onClosedIt = m_onClosedFuncs.find(objectId);
+        if (onClosedIt != m_onClosedFuncs.end()) {
+            onClosedIt->second(rv.ret);
+        }
+    });
 }
 
 std::vector<InteractiveProvider::ObjectInfo> InteractiveProvider::allOpenObjects() const
@@ -735,6 +851,18 @@ std::vector<InteractiveProvider::ObjectInfo> InteractiveProvider::allOpenObjects
 
     result.insert(result.end(), m_stack.cbegin(), m_stack.cend());
     result.insert(result.end(), m_floatingObjects.cbegin(), m_floatingObjects.cend());
+
+    return result;
+}
+
+std::vector<InteractiveProvider::ObjectInfo> InteractiveProvider::collectOpenObjects(std::function<bool(const ObjectInfo&)> accepted) const
+{
+    std::vector<ObjectInfo> result;
+    for (const ObjectInfo& obj : allOpenObjects()) {
+        if (accepted(obj)) {
+            result.push_back(obj);
+        }
+    }
 
     return result;
 }

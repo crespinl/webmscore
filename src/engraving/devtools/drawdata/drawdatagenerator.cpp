@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2023 MuseScore Limited
+ * Copyright (C) 2023 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -25,6 +25,7 @@
 #include "global/io/fileinfo.h"
 
 #include "draw/bufferedpaintprovider.h"
+#include "draw/painter.h"
 #include "draw/utils/drawdatarw.h"
 
 #include "engraving/compat/scoreaccess.h"
@@ -52,7 +53,7 @@ using namespace mu::engraving;
 static const std::vector<std::string> FILES_FILTER = { "*.mscz", "*.mscx", "*.gp", "*.gpx", "*.gp4", "*.gp5" };
 
 DrawDataGenerator::DrawDataGenerator(const muse::modularity::ContextPtr& iocCtx)
-    : muse::Injectable(iocCtx)
+    : muse::Contextable(iocCtx)
 {
 }
 
@@ -123,7 +124,7 @@ DrawDataPtr DrawDataGenerator::genDrawData(const muse::io::path_t& scorePath, co
     {
         TRACEFUNC_C("Paint");
         Painter painter(pd, "DrawData");
-        rendering::IScoreRenderer::PaintOptions option;
+        rendering::IScoreRenderer::ScorePaintOptions option;
         //option.fromPage = 0;
         //option.toPage = 0;
         option.isMultiPage = true;
@@ -170,7 +171,7 @@ Pixmap DrawDataGenerator::genImage(const muse::io::path_t& scorePath) const
     {
         Painter painter(&image, "DrawData");
 
-        rendering::IScoreRenderer::PaintOptions opt;
+        rendering::IScoreRenderer::ScorePaintOptions opt;
         opt.fromPage = 0;
         opt.toPage = 0;
         opt.deviceDpi = DrawData::CANVAS_DPI;
@@ -206,8 +207,7 @@ bool DrawDataGenerator::loadScore(mu::engraving::MasterScore* score, const muse:
         }
 
         MscLoader scoreReader;
-        SettingsCompat settingsCompat;
-        Ret ret = scoreReader.loadMscz(score, reader, settingsCompat, true);
+        Ret ret = scoreReader.loadMscz(score, reader, nullptr, true);
         if (!ret) {
             LOGE() << "failed read file: " << path;
             return false;

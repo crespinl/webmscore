@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -124,13 +124,13 @@ static QString recognizeComposer(const mu::engraving::Score* score)
     return rightmostText ? rightmostText->plainText().toQString() : QString();
 }
 
-RetVal<std::string> NotationMeta::metaJson(INotationProjectPtr project)
+RetVal<std::string> NotationMeta::metaJson(notation::INotationPtr notation)
 {
-    IF_ASSERT_FAILED(project) {
+    IF_ASSERT_FAILED(notation) {
         return make_ret(Ret::Code::UnknownError);
     }
 
-    mu::engraving::Score* score = project->masterNotation()->notation()->elements()->msScore();
+    mu::engraving::Score* score = notation->elements()->msScore();
     RetVal<std::string> result = metaJson(score);
     if (!result.ret) {
         return result;
@@ -138,7 +138,7 @@ RetVal<std::string> NotationMeta::metaJson(INotationProjectPtr project)
 
     QJsonDocument doc = QJsonDocument::fromJson(QByteArray::fromStdString(result.val));
     QJsonObject json = doc.object();
-    json["tracks"] = tracksJsonArray(project);
+    json["tracks"] = tracksJsonArray(notation);
     result.val = QJsonDocument(json).toJson().toStdString();
 
     return result;
@@ -175,7 +175,7 @@ RetVal<std::string> NotationMeta::metaJson(mu::engraving::Score* score)
     json["parts"] =  partsJsonArray(score);
     json["pageFormat"] = pageFormatJson(score->style());
     json["textFramesData"] =  typeDataJson(score);
-    json["tracks"] = QJsonArray(); // loaded in metaJson(project)
+    json["tracks"] = QJsonArray(); // loaded in metaJson(notation)
     json["excerpts"] = excerptsJsonArray(score);
 
     RetVal<std::string> result;
@@ -331,18 +331,15 @@ QJsonObject NotationMeta::pageFormatJson(const mu::engraving::MStyle& style)
     return format;
 }
 
-static void findTextByType(void* data, mu::engraving::EngravingItem* element)
+static void findTextByType(TextStyleType textStyleType, QStringList& strings, mu::engraving::EngravingItem* element)
 {
     if (!element->isTextBase()) {
         return;
     }
 
     const mu::engraving::TextBase* text = toTextBase(element);
-    auto* typeStringsData = static_cast<std::pair<TextStyleType, QStringList*>*>(data);
-    if (text->textStyleType() == typeStringsData->first) {
-        QStringList* titleStrings = typeStringsData->second;
-        Q_ASSERT(titleStrings);
-        titleStrings->append(text->plainText());
+    if (text->textStyleType() == textStyleType) {
+        strings.append(text->plainText());
     }
 }
 
@@ -359,9 +356,8 @@ QJsonObject NotationMeta::typeDataJson(mu::engraving::Score* score)
     for (const auto& nameType : namesTypesList) {
         QJsonArray typeData;
         QStringList typeTextStrings;
-        std::pair<TextStyleType, QStringList*> extendedTitleData = std::make_pair(nameType.second, &typeTextStrings);
-        score->scanElements(&extendedTitleData, findTextByType);
-        for (auto typeStr : typeTextStrings) {
+        score->scanElements([&](EngravingItem* item) { findTextByType(nameType.second, typeTextStrings, item); });
+        for (const auto& typeStr : std::as_const(typeTextStrings)) {
             typeData.append(typeStr);
         }
         typesData.insert(nameType.first, typeData);
@@ -370,10 +366,15 @@ QJsonObject NotationMeta::typeDataJson(mu::engraving::Score* score)
     return typesData;
 }
 
-QJsonArray NotationMeta::tracksJsonArray(INotationProjectPtr project)
+QJsonArray NotationMeta::tracksJsonArray(notation::INotationPtr notation)
 {
     QJsonArray jsonTracksArray;
 
+    if (!notation) {
+        return jsonTracksArray;
+    }
+
+    INotationProject* project = notation->project();
     if (!project) {
         return jsonTracksArray;
     }

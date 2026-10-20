@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -120,7 +120,7 @@ static ElementStyle tapTextStyle;
 
 TappingText::TappingText(Tapping* parent)
     : TextBase(ElementType::TAPPING_TEXT, parent, TextStyleType::HAMMER_ON_PULL_OFF,
-               ElementFlag::MOVABLE | ElementFlag::GENERATED)
+               ElementFlag::MOVABLE | ElementFlag::GENERATED | ElementFlag::ON_STAFF)
 {
     initElementStyle(&tapTextStyle);
 }
@@ -130,12 +130,12 @@ TappingText::TappingText(const TappingText& t)
 {
 }
 
-Color TappingText::curColor() const
+Color TappingText::curColor(const rendering::PaintOptions& opt) const
 {
     if (parentItem()) {
-        return parentItem()->curColor();
+        return parentItem()->curColor(opt);
     }
 
-    return EngravingItem::curColor();
+    return EngravingItem::curColor(opt);
 }
 }

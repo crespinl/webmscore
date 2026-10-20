@@ -5,7 +5,7 @@
  * MuseScore
  * Music Composition & Notation
  *
- * Copyright (C) 2025 MuseScore BVBA and others
+ * Copyright (C) 2025 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -100,6 +100,7 @@ static const std::unordered_map<ArticulationType, QString> ARTICULATION_TYPE_NAM
     { ArticulationType::Diminuendo, "Diminuendo" },
     { ArticulationType::DiscreteGlissando, "DiscreteGlissando" },
     { ArticulationType::ContinuousGlissando, "ContinuousGlissando" },
+    { ArticulationType::Breath, "Breath" },
     { ArticulationType::Legato, "Legato" },
     { ArticulationType::Pedal, "Pedal" },
     { ArticulationType::Arpeggio, "Arpeggio" },

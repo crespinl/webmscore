@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -23,9 +23,10 @@
 
 #include <cmath>
 
+#include "../editing/elementeditdata.h"
+
 #include "chord.h"
 #include "hook.h"
-
 #include "tremolosinglechord.h"
 
 #include "log.h"
@@ -88,14 +89,14 @@ void Stem::startEdit(EditData& ed)
     eed->pushProperty(Pid::USER_LEN);
 }
 
-void Stem::startEditDrag(EditData& ed)
+void Stem::startDragGrip(EditData& ed)
 {
-    EngravingItem::startEditDrag(ed);
+    EngravingItem::startDragGrip(ed);
     ElementEditDataPtr eed = ed.getData(this);
     eed->pushProperty(Pid::USER_LEN);
 }
 
-void Stem::editDrag(EditData& ed)
+void Stem::dragGrip(EditData& ed)
 {
     double yDelta = up() ? -ed.delta.y() : ed.delta.y();
     m_userLength += Spatium::fromMM(yDelta, spatium());
@@ -108,7 +109,7 @@ void Stem::editDrag(EditData& ed)
 
 void Stem::reset()
 {
-    undoChangeProperty(Pid::USER_LEN, Spatium(0.0));
+    undoChangeProperty(Pid::USER_LEN, 0.0_sp);
     EngravingItem::reset();
 }
 
@@ -187,7 +188,7 @@ PropertyValue Stem::propertyDefault(Pid id) const
 {
     switch (id) {
     case Pid::USER_LEN:
-        return 0.0;
+        return 0.0_sp;
     case Pid::STEM_DIRECTION:
         return PropertyValue::fromValue<DirectionV>(DirectionV::AUTO);
     default:

@@ -5,7 +5,7 @@
  * MuseScore
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore BVBA and others
+ * Copyright (C) 2025 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -21,32 +21,21 @@
  */
 #include "updatemodule.h"
 
-#include <QQmlEngine>
-
 #include "modularity/ioc.h"
 
-#include "framework/ui/iinteractiveuriregister.h"
-#include "framework/ui/iuiengine.h"
-#include "framework/ui/iuiactionsregister.h"
+#include "ui/iinteractiveuriregister.h"
+#include "ui/iuiactionsregister.h"
 
 #include "internal/updateconfiguration.h"
-#include "internal/updatescenario.h"
 #include "internal/updateactioncontroller.h"
 #include "internal/updateuiactions.h"
+
+#include "internal/appupdatescenario.h"
 #include "internal/appupdateservice.h"
-
-#include "view/updatemodel.h"
-
-#include "diagnostics/idiagnosticspathsregister.h"
 
 using namespace muse::update;
 using namespace muse::modularity;
 using namespace muse::ui;
-
-static void update_init_qrc()
-{
-    Q_INIT_RESOURCE(update);
-}
 
 std::string UpdateModule::moduleName() const
 {
@@ -55,14 +44,14 @@ std::string UpdateModule::moduleName() const
 
 void UpdateModule::registerExports()
 {
-    m_scenario = std::make_shared<UpdateScenario>(iocContext());
-    m_configuration = std::make_shared<UpdateConfiguration>(iocContext());
-    m_actionController = std::make_shared<UpdateActionController>(iocContext());
+    m_appUpdateScenario = std::make_shared<AppUpdateScenario>(iocContext());
     m_appUpdateService = std::make_shared<AppUpdateService>(iocContext());
+    m_actionController = std::make_shared<UpdateActionController>(iocContext());
+    m_configuration = std::make_shared<UpdateConfiguration>(iocContext());
 
-    ioc()->registerExport<IUpdateScenario>(moduleName(), m_scenario);
-    ioc()->registerExport<IUpdateConfiguration>(moduleName(), m_configuration);
+    ioc()->registerExport<IAppUpdateScenario>(moduleName(), m_appUpdateScenario);
     ioc()->registerExport<IAppUpdateService>(moduleName(), m_appUpdateService);
+    ioc()->registerExport<IUpdateConfiguration>(moduleName(), m_configuration);
 }
 
 void UpdateModule::resolveImports()
@@ -74,29 +63,13 @@ void UpdateModule::resolveImports()
 
     auto ir = ioc()->resolve<IInteractiveUriRegister>(moduleName());
     if (ir) {
-        ir->registerQmlUri(Uri("muse://update/appreleaseinfo"), "Muse/Update/AppReleaseInfoDialog.qml");
-        ir->registerQmlUri(Uri("muse://update"), "Muse/Update/UpdateProgressDialog.qml");
+        ir->registerQmlUri(Uri("muse://update/appreleaseinfo"), "Muse.Update", "AppReleaseInfoDialog");
+        ir->registerQmlUri(Uri("muse://update/app"), "Muse.Update", "AppUpdateProgressDialog");
     }
 }
 
-void UpdateModule::registerResources()
+void UpdateModule::onInit(const IApplication::RunMode&)
 {
-    update_init_qrc();
-}
-
-void UpdateModule::registerUiTypes()
-{
-    qmlRegisterType<UpdateModel>("Muse.Update", 1, 0, "UpdateModel");
-
-    ioc()->resolve<IUiEngine>(moduleName())->addSourceImportPath(muse_update_QML_IMPORT);
-}
-
-void UpdateModule::onInit(const IApplication::RunMode& mode)
-{
-    if (mode != IApplication::RunMode::GuiApp) {
-        return;
-    }
-
     m_configuration->init();
     m_appUpdateService->init();
     m_actionController->init();

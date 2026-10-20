@@ -5,7 +5,7 @@
  * MuseScore
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore BVBA and others
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -20,8 +20,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef MUSE_UICOMPONENTS_UICOMPONENTSMODULE_H
-#define MUSE_UICOMPONENTS_UICOMPONENTSMODULE_H
+#pragma once
 
 #include "modularity/imodulesetup.h"
 
@@ -29,14 +28,8 @@ namespace muse::uicomponents {
 class UiComponentsModule : public modularity::IModuleSetup
 {
 public:
-
     std::string moduleName() const override;
 
-    void registerExports() override;
     void resolveImports() override;
-    void registerResources() override;
-    void registerUiTypes() override;
 };
 }
-
-#endif // MUSE_UICOMPONENTS_UICOMPONENTSMODULE_H

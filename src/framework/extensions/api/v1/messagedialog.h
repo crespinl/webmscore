@@ -5,7 +5,7 @@
  * MuseScore
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore BVBA and others
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -19,8 +19,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-#ifndef MUSE_EXTENSIONS_APIV1_MESSAGEDIALOG_H
-#define MUSE_EXTENSIONS_APIV1_MESSAGEDIALOG_H
+
+#pragma once
 
 #include <QObject>
 #include <QString>
@@ -30,18 +30,17 @@
 #include "global/async/asyncable.h"
 
 namespace muse::extensions::apiv1 {
-class StandardButton
-{
-    Q_GADGET
-public:
-    enum Button {
-        Ok = static_cast<int>(IInteractive::Button::Ok),
-        Cancel = static_cast<int>(IInteractive::Button::Cancel),
-    };
-    Q_ENUM(Button)
-};
+namespace StandardButton {
+Q_NAMESPACE
 
-class MessageDialog : public QObject, public Injectable, public muse::async::Asyncable
+enum Button {
+    Ok = static_cast<int>(IInteractive::Button::Ok),
+    Cancel = static_cast<int>(IInteractive::Button::Cancel),
+};
+Q_ENUM_NS(Button)
+}
+
+class MessageDialog : public QObject, public Contextable, public muse::async::Asyncable
 {
     Q_OBJECT
     Q_PROPERTY(QString title READ title WRITE setTitle NOTIFY titleChanged FINAL)
@@ -50,7 +49,7 @@ class MessageDialog : public QObject, public Injectable, public muse::async::Asy
     Q_PROPERTY(QVariantList standardButtons READ standardButtons WRITE setStandardButtons NOTIFY standardButtonsChanged FINAL)
     Q_PROPERTY(bool visible READ visible WRITE setVisible NOTIFY visibleChanged FINAL)
 
-    Inject<IInteractive> interactive = { this };
+    ContextInject<IInteractive> interactive = { this };
 
 public:
 
@@ -95,5 +94,3 @@ private:
     QVariantList m_standardButtons;
 };
 }
-
-#endif // MUSE_EXTENSIONS_APIV1_MESSAGEDIALOG_H

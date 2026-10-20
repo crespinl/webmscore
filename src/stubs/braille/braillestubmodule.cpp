@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2023 MuseScore Limited
+ * Copyright (C) 2023 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -21,37 +21,19 @@
  */
 #include "braillestubmodule.h"
 
-#include <QQmlEngine>
-
 #include "modularity/ioc.h"
-#include "ui/iuiengine.h"
 
 #include "brailleconfigurationstub.h"
 
 using namespace muse;
 using namespace mu::braille;
 
-static void braille_init_qrc()
-{
-    Q_INIT_RESOURCE(braille);
-}
-
 std::string BrailleModule::moduleName() const
 {
     return "braille";
 }
 
-void BrailleModule::registerResources()
-{
-    braille_init_qrc();
-}
-
 void BrailleModule::registerExports()
 {
     ioc()->registerExport<IBrailleConfiguration>(moduleName(), new BrailleConfigurationStub());
-}
-
-void BrailleModule::registerUiTypes()
-{
-    ioc()->resolve<muse::ui::IUiEngine>(moduleName())->addSourceImportPath(braille_QML_IMPORT);
 }

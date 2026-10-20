@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -34,9 +34,9 @@ class Read460 : public rw::IReader
 {
 public:
 
-    muse::Ret readScore(Score* score, XmlReader& e, rw::ReadInOutData* data) override;
+    muse::Ret readScoreFile(Score* score, XmlReader& e, rw::ReadInOutData* data) override;
 
-    static bool readScore410(Score* score, XmlReader& e, ReadContext& ctx);
+    static bool readScoreTag(Score* score, XmlReader& e, ReadContext& ctx);
 
     bool pasteStaff(XmlReader& e, Segment* dst, staff_idx_t dstStaff, Fraction scale) override;
     void pasteSymbols(XmlReader& e, ChordRest* dst) override;

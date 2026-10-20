@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -19,13 +19,15 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+
+pragma ComponentBehavior: Bound
+
 import QtQuick
-import QtQuick.Layouts
 
 import Muse.UiComponents
 import Muse.Ui
 
-import MuseScore.CommonScene
+import MuseScore.NotationScene
 import MuseScore.Playback
 
 Item {
@@ -66,10 +68,11 @@ Item {
         delegate: FlatButton {
             id: btn
 
+            required property MenuItem item
+            required property int index
+
             width: 30
             height: width
-
-            property var item: Boolean(model) ? model.itemRole : null
 
             icon: Boolean(item) ? item.icon : IconCode.NONE
 
@@ -84,7 +87,7 @@ Item {
 
             navigation.panel: root.navPanel
             navigation.name: toolTipTitle
-            navigation.order: model.index
+            navigation.order: index
             accessible.name: (item.checkable ? (item.checked ? item.title + "  " + qsTrc("global", "On") :
                                                                item.title + "  " + qsTrc("global", "Off")) : item.title)
 

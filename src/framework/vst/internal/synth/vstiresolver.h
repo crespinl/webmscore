@@ -5,7 +5,7 @@
  * MuseScore
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore BVBA and others
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -24,24 +24,24 @@
 #define MUSE_VST_VSTIRESOLVER_H
 
 #include "modularity/ioc.h"
-#include "audio/worker/isynthresolver.h"
+#include "audio/engine/isynthresolver.h"
 
 #include "../../ivstinstancesregister.h"
 #include "../../ivstmodulesrepository.h"
 #include "vstsynthesiser.h"
 
 namespace muse::vst {
-class VstiResolver : public audio::synth::ISynthResolver::IResolver, public Injectable
+class VstiResolver : public audio::synth::ISynthResolver::IResolver, public Contextable
 {
-    Inject<IVstModulesRepository> pluginModulesRepo = { this };
-    Inject<IVstInstancesRegister> instancesRegister = { this };
+    ContextInject<IVstModulesRepository> pluginModulesRepo = { this };
+    ContextInject<IVstInstancesRegister> instancesRegister = { this };
 public:
 
     VstiResolver(const modularity::ContextPtr& iocCtx)
-        : Injectable(iocCtx) {}
+        : Contextable(iocCtx) {}
 
-    muse::audio::synth::ISynthesizerPtr resolveSynth(const muse::audio::TrackId trackId,
-                                                     const muse::audio::AudioInputParams& params) const override;
+    muse::audio::synth::ISynthesizerPtr resolveSynth(const audio::TrackId trackId, const audio::AudioInputParams& params,
+                                                     const audio::OutputSpec& outputSpec) const override;
     bool hasCompatibleResources(const muse::audio::PlaybackSetupData& setup) const override;
     muse::audio::AudioResourceMetaList resolveResources() const override;
     muse::audio::SoundPresetList resolveSoundPresets(const muse::audio::AudioResourceMeta& resourceMeta) const override;
@@ -49,7 +49,7 @@ public:
     void clearSources() override;
 
 private:
-    VstSynthPtr createSynth(const muse::audio::TrackId trackId, const muse::audio::AudioInputParams& params) const;
+    VstSynthPtr createSynth(const audio::TrackId trackId, const audio::AudioInputParams& params, const audio::OutputSpec& outputSpec) const;
 };
 }
 

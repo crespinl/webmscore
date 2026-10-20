@@ -5,7 +5,7 @@
  * MuseScore
  * Music Composition & Notation
  *
- * Copyright (C) 2025 MuseScore BVBA and others
+ * Copyright (C) 2025 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -31,21 +31,21 @@
 #include "global/iprocess.h"
 #include "global/iglobalconfiguration.h"
 #include "actions/iactionsdispatcher.h"
-#include "multiinstances/imultiinstancesprovider.h"
+#include "multiwindows/imultiwindowsprovider.h"
 
 namespace mu::musesounds {
-class MuseSamplerCheckUpdateScenario : public IMuseSamplerCheckUpdateScenario, public muse::Injectable, public muse::async::Asyncable
+class MuseSamplerCheckUpdateScenario : public IMuseSamplerCheckUpdateScenario, public muse::Contextable, public muse::async::Asyncable
 {
-    Inject<IMuseSamplerCheckUpdateService> service = { this };
-    Inject<muse::IInteractive> interactive = { this };
-    Inject<muse::IProcess> process = { this };
-    Inject<muse::IGlobalConfiguration> globalConfiguration = { this };
-    Inject<muse::actions::IActionsDispatcher> dispatcher = { this };
-    Inject<muse::mi::IMultiInstancesProvider> multiInstancesProvider = { this };
+    muse::GlobalInject<muse::mi::IMultiWindowsProvider> multiwindowsProvider;
+    muse::GlobalInject<muse::IGlobalConfiguration> globalConfiguration;
+    muse::GlobalInject<muse::IProcess> process;
+    muse::ContextInject<IMuseSamplerCheckUpdateService> service = { this };
+    muse::ContextInject<muse::IInteractive> interactive = { this };
+    muse::ContextInject<muse::actions::IActionsDispatcher> dispatcher = { this };
 
 public:
     MuseSamplerCheckUpdateScenario(const muse::modularity::ContextPtr& iocCtx)
-        : Injectable(iocCtx) {}
+        : muse::Contextable(iocCtx) {}
 
     bool alreadyChecked() const override;
     void checkAndShowUpdateIfNeed() override;

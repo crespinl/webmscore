@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -19,8 +19,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-#ifndef MU_NOTATION_MASTERNOTATION_H
-#define MU_NOTATION_MASTERNOTATION_H
+#pragma once
 
 #include <memory>
 
@@ -42,6 +41,8 @@ class MasterNotation : public IMasterNotation, public Notation, public std::enab
 {
 public:
     ~MasterNotation();
+
+    project::INotationProject* project() const override;
 
     muse::Ret setupNewScore(engraving::MasterScore* score, const ScoreCreateOptions& options) override;
     void applyOptions(engraving::MasterScore* score, const ScoreCreateOptions& options, bool createdFromTemplate = false) override;
@@ -72,9 +73,8 @@ public:
     void initNotationSoloMuteState(const INotationPtr notation) override;
 
 private:
-
     friend class project::NotationProject;
-    explicit MasterNotation(const muse::modularity::ContextPtr& iocCtx);
+    explicit MasterNotation(project::INotationProject* project, const muse::modularity::ContextPtr& iocCtx);
 
     void initAfterSettingScore(const engraving::MasterScore* score);
 
@@ -93,6 +93,8 @@ private:
 
     void markScoreAsNeedToSave();
 
+    project::INotationProject* m_project = nullptr;
+
     ExcerptNotationList m_excerpts;
     muse::async::Notification m_excerptsChanged;
     INotationPlaybackPtr m_notationPlayback = nullptr;
@@ -109,5 +111,3 @@ private:
 
 using MasterNotationPtr = std::shared_ptr<MasterNotation>;
 }
-
-#endif // MU_NOTATION_MASTERNOTATION_H

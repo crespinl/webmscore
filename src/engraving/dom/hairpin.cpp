@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -26,6 +26,7 @@
 
 #include "draw/types/transform.h"
 
+#include "../editing/elementeditdata.h"
 #include "types/typesconv.h"
 
 #include "dynamic.h"
@@ -33,6 +34,7 @@
 #include "score.h"
 #include "segment.h"
 #include "system.h"
+#include "text.h"
 
 #include "log.h"
 
@@ -51,15 +53,18 @@ static const ElementStyle hairpinStyle {
     { Sid::hairpinFontStyle,                   Pid::BEGIN_FONT_STYLE },
     { Sid::hairpinText,                        Pid::BEGIN_TEXT },
     { Sid::hairpinTextAlign,                   Pid::BEGIN_TEXT_ALIGN },
+    { Sid::hairpinPosition,                    Pid::BEGIN_TEXT_POSITION },
     { Sid::hairpinFontFace,                    Pid::CONTINUE_FONT_FACE },
     { Sid::hairpinFontSize,                    Pid::CONTINUE_FONT_SIZE },
     { Sid::hairpinFontStyle,                   Pid::CONTINUE_FONT_STYLE },
     { Sid::hairpinText,                        Pid::CONTINUE_TEXT },
     { Sid::hairpinTextAlign,                   Pid::CONTINUE_TEXT_ALIGN },
+    { Sid::hairpinPosition,                    Pid::CONTINUE_TEXT_POSITION },
     { Sid::hairpinFontFace,                    Pid::END_FONT_FACE },
     { Sid::hairpinFontSize,                    Pid::END_FONT_SIZE },
     { Sid::hairpinFontStyle,                   Pid::END_FONT_STYLE },
     { Sid::hairpinTextAlign,                   Pid::END_TEXT_ALIGN },
+    { Sid::hairpinPosition,                    Pid::END_TEXT_POSITION },
     { Sid::hairpinLineWidth,                   Pid::LINE_WIDTH },
     { Sid::hairpinHeight,                      Pid::HAIRPIN_HEIGHT },
     { Sid::hairpinContHeight,                  Pid::HAIRPIN_CONT_HEIGHT },
@@ -68,6 +73,20 @@ static const ElementStyle hairpinStyle {
     { Sid::hairpinLineDashLineLen,             Pid::DASH_LINE_LEN },
     { Sid::hairpinLineDashGapLen,              Pid::DASH_GAP_LEN },
     { Sid::hairpinFontSpatiumDependent,        Pid::TEXT_SIZE_SPATIUM_DEPENDENT, },
+    { Sid::hairpinEndLineArrowHeight,          Pid::END_LINE_ARROW_HEIGHT },
+    { Sid::hairpinEndLineArrowWidth,           Pid::END_LINE_ARROW_WIDTH },
+    { Sid::hairpinBeginLineArrowHeight,        Pid::BEGIN_LINE_ARROW_HEIGHT },
+    { Sid::hairpinBeginLineArrowWidth,         Pid::BEGIN_LINE_ARROW_WIDTH },
+    { Sid::hairpinEndFilledArrowHeight,        Pid::END_FILLED_ARROW_HEIGHT },
+    { Sid::hairpinEndFilledArrowWidth,         Pid::END_FILLED_ARROW_WIDTH },
+    { Sid::hairpinBeginFilledArrowHeight,      Pid::BEGIN_FILLED_ARROW_HEIGHT },
+    { Sid::hairpinBeginFilledArrowWidth,       Pid::BEGIN_FILLED_ARROW_WIDTH },
+    { Sid::hairpinMusicalSymbolSize,           Pid::BEGIN_TEXT_MUSIC_SYMBOLS_SIZE },
+    { Sid::hairpinMusicalSymbolSize,           Pid::CONTINUE_TEXT_MUSIC_SYMBOLS_SIZE },
+    { Sid::hairpinMusicalSymbolSize,           Pid::END_TEXT_MUSIC_SYMBOLS_SIZE },
+    { Sid::dummyMusicalSymbolsScale,           Pid::BEGIN_TEXT_MUSICAL_SYMBOLS_SCALE },
+    { Sid::dummyMusicalSymbolsScale,           Pid::CONTINUE_TEXT_MUSICAL_SYMBOLS_SCALE },
+    { Sid::dummyMusicalSymbolsScale,           Pid::END_TEXT_MUSICAL_SYMBOLS_SCALE },
 };
 
 //---------------------------------------------------------
@@ -77,6 +96,8 @@ static const ElementStyle hairpinStyle {
 HairpinSegment::HairpinSegment(Hairpin* sp, System* parent)
     : TextLineBaseSegment(ElementType::HAIRPIN_SEGMENT, sp, parent, ElementFlag::MOVABLE | ElementFlag::ON_STAFF)
 {
+    m_text->setTextStyleType(propertyDefault(Pid::TEXT_STYLE).value<TextStyleType>());
+    m_endText->setTextStyleType(propertyDefault(Pid::TEXT_STYLE).value<TextStyleType>());
 }
 
 bool HairpinSegment::acceptDrop(EditData& data) const
@@ -193,12 +214,12 @@ std::unique_ptr<ElementGroup> HairpinSegment::getDragGroup(std::function<bool(co
 }
 
 //---------------------------------------------------------
-//   startEditDrag
+//   startDragGrip
 //---------------------------------------------------------
 
-void HairpinSegment::startEditDrag(EditData& ed)
+void HairpinSegment::startDragGrip(EditData& ed)
 {
-    TextLineBaseSegment::startEditDrag(ed);
+    TextLineBaseSegment::startDragGrip(ed);
     ElementEditDataPtr eed = ed.getData(this);
 
     eed->pushProperty(Pid::HAIRPIN_HEIGHT);
@@ -206,10 +227,10 @@ void HairpinSegment::startEditDrag(EditData& ed)
 }
 
 //---------------------------------------------------------
-//   editDrag
+//   dragGrip
 //---------------------------------------------------------
 
-void HairpinSegment::editDrag(EditData& ed)
+void HairpinSegment::dragGrip(EditData& ed)
 {
     if (ed.curGrip == Grip::APERTURE) {
         double newHeight = hairpin()->hairpinHeight().val() + ed.delta.y() / spatium() / .5;
@@ -219,14 +240,14 @@ void HairpinSegment::editDrag(EditData& ed)
         hairpin()->setHairpinHeight(Spatium(newHeight));
         triggerLayout();
     }
-    TextLineBaseSegment::editDrag(ed);
+    TextLineBaseSegment::dragGrip(ed);
 }
 
 //---------------------------------------------------------
 //   propertyDelegate
 //---------------------------------------------------------
 
-EngravingItem* HairpinSegment::propertyDelegate(Pid pid)
+EngravingObject* HairpinSegment::propertyDelegate(Pid pid) const
 {
     if (pid == Pid::HAIRPIN_TYPE
         || pid == Pid::VELO_CHANGE
@@ -302,7 +323,8 @@ EngravingItem* HairpinSegment::findElementToSnapBefore(bool ignoreInvisible) con
     auto intervals = score()->spannerMap().findOverlapping(startTick.ticks(), startTick.ticks());
     for (auto interval : intervals) {
         Spanner* spanner = interval.value;
-        bool isValidHairpin = spanner->isHairpin() && !spanner->segmentsEmpty() && spanner->visible() && spanner != thisHairpin;
+        bool isValidHairpin = spanner->isHairpin() && !spanner->segmentsEmpty() && spanner != thisHairpin
+                              && (spanner->addToSkyline() || !ignoreInvisible);
         if (!isValidHairpin) {
             continue;
         }
@@ -319,21 +341,21 @@ EngravingItem* HairpinSegment::findElementToSnapBefore(bool ignoreInvisible) con
     return nullptr;
 }
 
-EngravingItem* HairpinSegment::findElementToSnapAfter(bool ignoreInvisible) const
+EngravingItem* HairpinSegment::findElementToSnapAfter(bool ignoreInvisible, bool requirePlayable) const
 {
     // Note: we don't need to look for a hairpin after.
     // It is the next hairpin which looks for a hairpin before.
-    return findEndDynamicOrExpression(ignoreInvisible);
+    return findEndDynamicOrExpression(ignoreInvisible, requirePlayable);
 }
 
-void HairpinSegment::endEditDrag(EditData& ed)
+void HairpinSegment::endDragGrip(EditData& ed)
 {
     if (ed.isHairpinDragCreatedFromDynamic) {
         undoResetProperty(Pid::OFFSET);
         undoResetProperty(Pid::OFFSET2);
     }
 
-    LineSegment::endEditDrag(ed);
+    LineSegment::endDragGrip(ed);
 }
 
 TextBase* HairpinSegment::findStartDynamicOrExpression(bool ignoreInvisible) const
@@ -359,7 +381,7 @@ TextBase* HairpinSegment::findStartDynamicOrExpression(bool ignoreInvisible) con
             if (!item->isDynamic() && !item->isExpression()) {
                 continue;
             }
-            if (ignoreInvisible && !item->visible()) {
+            if (ignoreInvisible && !item->addToSkyline()) {
                 continue;
             }
             bool endsMatch = item->track() == hairpin()->track()
@@ -390,7 +412,7 @@ TextBase* HairpinSegment::findStartDynamicOrExpression(bool ignoreInvisible) con
     return dynamicsAndExpr.back();
 }
 
-TextBase* HairpinSegment::findEndDynamicOrExpression(bool ignoreInvisible) const
+TextBase* HairpinSegment::findEndDynamicOrExpression(bool ignoreInvisible, bool requirePlayable) const
 {
     Fraction refTick = hairpin()->tick2();
     Measure* measure = score()->tick2measure(refTick - Fraction::eps());
@@ -413,7 +435,10 @@ TextBase* HairpinSegment::findEndDynamicOrExpression(bool ignoreInvisible) const
             if (!item->isDynamic() && !item->isExpression()) {
                 continue;
             }
-            if (ignoreInvisible && !item->visible()) {
+            if (ignoreInvisible && !item->addToSkyline()) {
+                continue;
+            }
+            if (requirePlayable && (!item->isDynamic() || !toDynamic(item)->playDynamic())) {
                 continue;
             }
             bool endsMatch = item->track() == hairpin()->track()
@@ -726,7 +751,7 @@ PropertyValue Hairpin::propertyDefault(Pid id) const
 
     case Pid::BEGIN_HOOK_HEIGHT:
     case Pid::END_HOOK_HEIGHT:
-        return Spatium(1.9);
+        return 1.9_sp;
 
     case Pid::LINE_VISIBLE:
         return true;
@@ -756,6 +781,9 @@ PropertyValue Hairpin::propertyDefault(Pid id) const
         return true;
     case Pid::SNAP_AFTER:
         return true;
+
+    case Pid::TEXT_STYLE:
+        return TextStyleType::HAIRPIN;
 
     default:
         return TextLineBase::propertyDefault(id);

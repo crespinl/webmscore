@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -351,7 +351,7 @@ GuitarPro::ReadNoteResult GuitarPro4::readNote(int string, int staffIdx, Note* n
                 // no transition
             } else if (transition == 1) {
                 //TODO: Add a 'slide' guitar effect when implemented
-                //TODO-ws				note->setSlideNote(gn);
+                //TODO-ws               note->setSlideNote(gn);
             } else if (transition == 2 && fretNumber >= 0 && fretNumber <= 255 && fretNumber != gn->fret()) {
             } else if (transition == 3) {
                 // TODO:
@@ -439,7 +439,7 @@ GuitarPro::ReadNoteResult GuitarPro4::readNote(int string, int staffIdx, Note* n
     int pitch = staff->part()->instrument()->stringData()->getPitch(string, fretNumber, nullptr);
     note->setFret(fretNumber);
     note->setString(string);
-    note->setPitch(std::min(pitch, 127));
+    note->setPitch(std::min(pitch, mu::engraving::MAX_PITCH));
 
     if (modMask2 & 0x10) {
         int type = readUInt8();          // harmonic kind
@@ -723,6 +723,11 @@ bool GuitarPro4::read(IODevice* io)
         }
         int midiPort     = readInt() - 1;
         int midiChannel  = readInt() - 1;
+        if (midiChannel < 0 || midiChannel >= static_cast<int>(channelDefaults.size())) {
+            LOGE() << "midiChannel " << midiChannel << " out of range 0-" << channelDefaults.size();
+            return false;
+        }
+
         /*int midiChannel2 =*/ readInt();     // - 1;
         int frets        = readInt();
 
@@ -889,7 +894,7 @@ bool GuitarPro4::read(IODevice* io)
                 if (beatBits & BEAT_LYRICS) {
                     lyrics = Factory::createLyrics(score->dummy()->chord());
                     auto str = readDelphiString();
-                    //TODO-ws					str.erase(std::remove_if(str.begin(), str.end(), [](char c){return c == '_'; }), str.end());
+                    //TODO-ws                   str.erase(std::remove_if(str.begin(), str.end(), [](char c){return c == '_'; }), str.end());
                     lyrics->setPlainText(str);
                 }
                 gpLyrics.beatCounter++;

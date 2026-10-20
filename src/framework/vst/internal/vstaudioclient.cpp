@@ -5,7 +5,7 @@
  * MuseScore
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore BVBA and others
+ * Copyright (C) 2025 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -27,7 +27,9 @@ using namespace muse;
 using namespace muse::vst;
 using namespace muse::mpe;
 using namespace muse::audio;
+using namespace muse::audio::engine;
 using namespace muse::audioplugins;
+using namespace muse::midiremote;
 
 static size_t noteEventKey(int pitch, int channel)
 {
@@ -36,17 +38,42 @@ static size_t noteEventKey(int pitch, int channel)
     return h1 ^ (h2 << 1);
 }
 
-VstAudioClient::~VstAudioClient()
+static std::optional<TransportEvent> mmcToTransportEvent(const IMMCDecoderPtr& decoder, const MMCMessage& msg)
 {
-    if (!m_pluginComponent) {
-        return;
+    switch (msg.command) {
+    case MMCCommand::Play:
+        return TransportEvent::play();
+    case MMCCommand::Pause:
+        return TransportEvent::pause();
+    case MMCCommand::Stop:
+        return TransportEvent::stop();
+    case MMCCommand::Locate: {
+        const std::optional<double> pos = decoder->locateToSeconds(msg);
+        if (pos.has_value()) {
+            return TransportEvent::seek(pos.value());
+        }
+    } break;
+    default: break;
     }
 
-    m_pluginComponent->setActive(false);
-    m_pluginComponent->terminate();
+    return std::nullopt;
 }
 
-void VstAudioClient::init(AudioPluginType type, IVstPluginInstancePtr instance, audioch_t audioChannelsCount)
+VstAudioClient::VstAudioClient(const modularity::ContextPtr& iocCtx)
+    : muse::Contextable(iocCtx)
+{
+    m_processContext.state = 0;
+}
+
+VstAudioClient::~VstAudioClient()
+{
+    // Do not call setActive(false) or terminate() here.
+    // The component lifecycle is managed by VstPluginInstance,
+    // which defers cleanup to the main thread so that any open
+    // editor view is destroyed first (required by ZENOLOGY).
+}
+
+void VstAudioClient::init(AudioPluginType type, IVstPluginInstancePtr instance)
 {
     IF_ASSERT_FAILED(instance && type != AudioPluginType::Undefined) {
         return;
@@ -54,7 +81,12 @@ void VstAudioClient::init(AudioPluginType type, IVstPluginInstancePtr instance, 
 
     m_type = type;
     m_pluginPtr = std::move(instance);
-    m_audioChannelsCount = audioChannelsCount;
+
+    if (mmcDecoderFactory()) {
+        m_mmcDecoder = mmcDecoderFactory()->makeDecoder();
+    }
+
+    transportEventsDispatcher(); // Force resolution outside audio callback
 }
 
 void VstAudioClient::loadSupportedParams()
@@ -70,7 +102,8 @@ void VstAudioClient::loadSupportedParams()
         return;
     }
 
-    int paramCount = controller->getParameterCount();
+    const int paramCount = controller->getParameterCount();
+    m_pluginParamInfoMap.reserve(static_cast<size_t>(paramCount));
 
     for (int i = 0; i < paramCount; ++i) {
         PluginParamInfo info;
@@ -90,6 +123,55 @@ void VstAudioClient::setIsActive(const bool isActive)
     }
 }
 
+void VstAudioClient::setIsPlaying(const bool newPlaying)
+{
+    constexpr uint32_t playingFlag = static_cast<uint32_t>(VstProcessContext::kPlaying);
+    const bool playing = (m_processContext.state & playingFlag) != 0;
+    if (playing == newPlaying) {
+        return;
+    }
+
+    if (newPlaying) {
+        m_processContext.state |= playingFlag;
+    } else {
+        m_processContext.state &= ~playingFlag;
+    }
+
+    m_needUpdateState = m_isActive;
+}
+
+void VstAudioClient::setOutputSpec(const audio::OutputSpec& spec)
+{
+    if (m_outputSpec == spec) {
+        return;
+    }
+
+    m_processData.numSamples = static_cast<Steinberg::int32>(spec.samplesPerChannel);
+    m_outputSpec = spec;
+    m_needUnprepareProcessData = true;
+    m_needUpdateState = false;
+
+    updateProcessSetup();
+}
+
+void VstAudioClient::setProcessMode(VstProcessMode mode)
+{
+    if (m_processMode == mode) {
+        return;
+    }
+
+    m_processMode = mode;
+    m_needUnprepareProcessData = true;
+    m_needUpdateState = false;
+
+    updateProcessSetup();
+}
+
+void VstAudioClient::setVolumeGain(const muse::audio::gain_t newVolumeGain)
+{
+    m_volumeGain = newVolumeGain;
+}
+
 bool VstAudioClient::handleEvent(const VstEvent& event)
 {
     ensureActivity();
@@ -102,7 +184,7 @@ bool VstAudioClient::handleEvent(const VstEvent& event)
         m_playingNotes.erase(key);
     }
 
-    if (m_eventList.addEvent(const_cast<VstEvent&>(event)) == Steinberg::kResultTrue) {
+    if (m_inputEvents.addEvent(const_cast<VstEvent&>(event)) == Steinberg::kResultTrue) {
         return true;
     }
 
@@ -119,58 +201,6 @@ bool VstAudioClient::handleParamChange(const ParamChangeEvent& param)
     return true;
 }
 
-void VstAudioClient::setVolumeGain(const muse::audio::gain_t newVolumeGain)
-{
-    m_volumeGain = newVolumeGain;
-}
-
-muse::audio::samples_t VstAudioClient::process(float* output, muse::audio::samples_t samplesPerChannel,
-                                               muse::audio::msecs_t playbackPosition)
-{
-    IAudioProcessorPtr processor = pluginProcessor();
-    if (!processor || !output) {
-        return 0;
-    }
-
-    if (!m_isActive) {
-        return 0;
-    }
-
-    //! NOTE: From the VST3 documentation:
-    //!
-    //! Note that the ProcessData->numSamples
-    //! which indicates how many samples are used in a process call can change from call to call,
-    //! but never bigger than the maxSamplesPerBlock
-    m_processData.numSamples = samplesPerChannel;
-
-    m_processContext.projectTimeSamples = (playbackPosition / 1000000.f) * m_samplesInfo.sampleRate;
-
-    if (samplesPerChannel > m_samplesInfo.maxSamplesPerBlock) {
-        setMaxSamplesPerBlock(samplesPerChannel);
-    }
-
-    if (m_type == AudioPluginType::Fx) {
-        extractInputSamples(samplesPerChannel, output);
-    }
-
-    if (processor->process(m_processData) != Steinberg::kResultOk) {
-        return 0;
-    }
-
-    if (m_type == AudioPluginType::Instrument) {
-        m_eventList.clear();
-        m_paramChanges.clearQueue();
-
-        if (!fillOutputBufferInstrument(samplesPerChannel, output)) {
-            return 0;
-        }
-    } else if (!fillOutputBufferFx(samplesPerChannel, output)) {
-        return 0;
-    }
-
-    return samplesPerChannel;
-}
-
 void VstAudioClient::flushSound()
 {
     if (m_playingNotes.empty() && m_playingParams.empty()) {
@@ -179,8 +209,8 @@ void VstAudioClient::flushSound()
 
     flushBuffers();
 
-    m_eventList.clear();
-    m_paramChanges.clearQueue();
+    m_inputEvents.clear();
+    m_inputParamChanges.clearQueue();
 
     for (const auto& pair : m_playingNotes) {
         const VstEvent& noteOn = pair.second;
@@ -197,7 +227,7 @@ void VstAudioClient::flushSound()
         noteOff.noteOff.tuning = noteOn.noteOn.tuning;
         noteOff.noteOff.velocity = noteOn.noteOn.velocity;
 
-        m_eventList.addEvent(noteOff);
+        m_inputEvents.addEvent(noteOff);
     }
 
     for (PluginParamId id : m_playingParams) {
@@ -217,33 +247,55 @@ void VstAudioClient::flushSound()
     m_playingParams.clear();
 }
 
-samples_t VstAudioClient::maxSamplesPerBlock() const
+audio::samples_t VstAudioClient::process(float* output, samples_t samplesPerChannel,
+                                         samples_t playbackPositionSamples)
 {
-    return m_samplesInfo.maxSamplesPerBlock;
-}
-
-void VstAudioClient::setMaxSamplesPerBlock(samples_t samples)
-{
-    if (m_samplesInfo.maxSamplesPerBlock == samples) {
-        return;
+    IAudioProcessorPtr processor = pluginProcessor();
+    if (!processor || !output) {
+        return 0;
     }
 
-    m_processData.numSamples = static_cast<Steinberg::int32>(samples);
-    m_samplesInfo.maxSamplesPerBlock = samples;
-    m_needUnprepareProcessData = true;
-
-    updateProcessSetup();
-}
-
-void VstAudioClient::setSampleRate(unsigned int sampleRate)
-{
-    if (m_samplesInfo.sampleRate == sampleRate) {
-        return;
+    if (!m_isActive) {
+        return 0;
     }
 
-    m_samplesInfo.sampleRate = sampleRate;
+    //! NOTE: From the VST3 documentation:
+    //!
+    //! Note that the ProcessData->numSamples
+    //! which indicates how many samples are used in a process call can change from call to call,
+    //! but never bigger than the maxSamplesPerBlock
+    m_processData.numSamples = samplesPerChannel;
 
-    updateProcessSetup();
+    m_processContext.projectTimeSamples = playbackPositionSamples;
+
+    if (samplesPerChannel > m_outputSpec.samplesPerChannel) {
+        OutputSpec newSpec = m_outputSpec;
+        newSpec.samplesPerChannel = samplesPerChannel;
+        setOutputSpec(newSpec);
+    }
+
+    if (m_type == AudioPluginType::Fx) {
+        extractInputSamples(samplesPerChannel, output);
+    }
+
+    if (processor->process(m_processData) != Steinberg::kResultOk) {
+        return 0;
+    }
+
+    m_needUpdateState = false;
+
+    if (m_type == AudioPluginType::Instrument) {
+        m_inputEvents.clear();
+        m_inputParamChanges.clearQueue();
+
+        fillOutputBufferInstrument(samplesPerChannel, output);
+    } else {
+        fillOutputBufferFx(samplesPerChannel, output);
+    }
+
+    processOutputEvents();
+
+    return samplesPerChannel;
 }
 
 ParamsMapping VstAudioClient::paramsMapping(const std::set<Steinberg::Vst::CtrlNumber>& controllers) const
@@ -299,10 +351,10 @@ void VstAudioClient::setUpProcessData()
         return;
     }
 
-    m_processContext.sampleRate = m_samplesInfo.sampleRate;
-
-    m_processData.inputEvents = &m_eventList;
-    m_processData.inputParameterChanges = &m_paramChanges;
+    m_processContext.sampleRate = m_outputSpec.sampleRate;
+    m_processData.inputEvents = &m_inputEvents;
+    m_processData.inputParameterChanges = &m_inputParamChanges;
+    m_processData.outputEvents = &m_outputEvents;
     m_processData.processContext = &m_processContext;
 
     if (m_needUnprepareProcessData) {
@@ -311,7 +363,7 @@ void VstAudioClient::setUpProcessData()
     }
 
     if (!m_processData.outputs || !m_processData.inputs) {
-        m_processData.prepare(*component, m_samplesInfo.maxSamplesPerBlock, Steinberg::Vst::kSample32);
+        m_processData.prepare(*component, m_outputSpec.samplesPerChannel, Steinberg::Vst::kSample32);
     }
 
     if (!m_activeOutputBusses.empty() && !m_activeInputBusses.empty()) {
@@ -367,7 +419,7 @@ void VstAudioClient::setUpProcessData()
 
 void VstAudioClient::updateProcessSetup()
 {
-    if (!m_samplesInfo.isValid()) {
+    if (!m_outputSpec.isValid()) {
         return;
     }
 
@@ -379,10 +431,10 @@ void VstAudioClient::updateProcessSetup()
     disableActivity();
 
     VstProcessSetup setup;
-    setup.processMode = Steinberg::Vst::kRealtime;
+    setup.processMode = m_processMode;
     setup.symbolicSampleSize = Steinberg::Vst::kSample32;
-    setup.maxSamplesPerBlock = m_samplesInfo.maxSamplesPerBlock;
-    setup.sampleRate = m_samplesInfo.sampleRate;
+    setup.maxSamplesPerBlock = m_outputSpec.samplesPerChannel;
+    setup.sampleRate = m_outputSpec.sampleRate;
 
     if (processor->setupProcessing(setup) != Steinberg::kResultOk) {
         return;
@@ -403,7 +455,7 @@ void VstAudioClient::extractInputSamples(samples_t sampleCount, const float* sou
     Steinberg::Vst::AudioBusBuffers& bus = m_processData.inputs[0];
 
     for (samples_t sampleIndex = 0; sampleIndex < sampleCount; ++sampleIndex) {
-        size_t offset = sampleIndex * m_audioChannelsCount;
+        size_t offset = sampleIndex * m_outputSpec.audioChannelCount;
 
         for (audioch_t audioChannelIndex = 0; audioChannelIndex < bus.numChannels; ++audioChannelIndex) {
             bus.channelBuffers32[audioChannelIndex][sampleIndex] = sourceBuffer[offset + audioChannelIndex];
@@ -411,60 +463,86 @@ void VstAudioClient::extractInputSamples(samples_t sampleCount, const float* sou
     }
 }
 
-bool VstAudioClient::fillOutputBufferInstrument(samples_t sampleCount, float* output)
+void VstAudioClient::fillOutputBufferInstrument(samples_t sampleCount, float* output)
 {
     if (!m_processData.outputs) {
-        return false;
+        return;
     }
-
-    bool isSilence = true;
 
     for (const int busIndex : m_activeOutputBusses) {
         Steinberg::Vst::AudioBusBuffers bus = m_processData.outputs[busIndex];
 
         for (samples_t sampleIndex = 0; sampleIndex < sampleCount; ++sampleIndex) {
-            size_t offset = sampleIndex * m_audioChannelsCount;
+            size_t offset = sampleIndex * m_outputSpec.audioChannelCount;
 
             for (audioch_t audioChannelIndex = 0; audioChannelIndex < bus.numChannels; ++audioChannelIndex) {
                 float sample = bus.channelBuffers32[audioChannelIndex][sampleIndex];
                 output[offset + audioChannelIndex] += sample * m_volumeGain;
-
-                if (isSilence && sample != 0.f) {
-                    isSilence = false;
-                }
             }
         }
     }
-
-    return !isSilence;
 }
 
-bool VstAudioClient::fillOutputBufferFx(samples_t sampleCount, float* output)
+void VstAudioClient::fillOutputBufferFx(samples_t sampleCount, float* output)
 {
     if (!m_processData.outputs) {
-        return false;
+        return;
     }
-
-    bool isSilence = true;
 
     for (const int busIndex : m_activeOutputBusses) {
         Steinberg::Vst::AudioBusBuffers bus = m_processData.outputs[busIndex];
 
         for (samples_t sampleIndex = 0; sampleIndex < sampleCount; ++sampleIndex) {
-            size_t offset = sampleIndex * m_audioChannelsCount;
+            size_t offset = sampleIndex * m_outputSpec.audioChannelCount;
 
             for (audioch_t audioChannelIndex = 0; audioChannelIndex < bus.numChannels; ++audioChannelIndex) {
                 float sample = bus.channelBuffers32[audioChannelIndex][sampleIndex];
                 output[offset + audioChannelIndex] = sample * m_volumeGain;
-
-                if (isSilence && sample != 0.f) {
-                    isSilence = false;
-                }
             }
         }
     }
+}
 
-    return !isSilence;
+void VstAudioClient::processOutputEvents()
+{
+    if (!m_mmcDecoder || !transportEventsDispatcher()) {
+        return;
+    }
+
+    const int32_t count = m_outputEvents.getEventCount();
+    if (count == 0) {
+        return;
+    }
+
+    TransportEvents events;
+
+    for (int32_t i = 0; i < count; ++i) {
+        VstEvent vstEvent;
+        if (m_outputEvents.getEvent(i, vstEvent) != Steinberg::kResultOk) {
+            continue;
+        }
+
+        if (vstEvent.type != Steinberg::Vst::Event::kDataEvent
+            || vstEvent.data.type != Steinberg::Vst::DataEvent::kMidiSysEx) {
+            continue;
+        }
+
+        std::optional<MMCMessage> msg = m_mmcDecoder->decode(vstEvent.data.bytes, vstEvent.data.size);
+        if (!msg.has_value()) {
+            continue;
+        }
+
+        std::optional<TransportEvent> event = mmcToTransportEvent(m_mmcDecoder, msg.value());
+        if (event.has_value()) {
+            events.push_back(event.value());
+        }
+    }
+
+    m_outputEvents.clear();
+
+    if (!events.empty()) {
+        transportEventsDispatcher()->dispatch(events);
+    }
 }
 
 void VstAudioClient::ensureActivity()
@@ -505,6 +583,11 @@ void VstAudioClient::disableActivity()
         return;
     }
 
+    if (m_needUpdateState) {
+        processor->process(m_processData);
+        m_needUpdateState = false;
+    }
+
     processor->setProcessing(false);
     component->setActive(false);
 
@@ -537,7 +620,7 @@ void VstAudioClient::flushBuffers()
 void VstAudioClient::addParamChange(const ParamChangeEvent& param)
 {
     Steinberg::int32 dummyIdx = 0;
-    Steinberg::Vst::IParamValueQueue* queue = m_paramChanges.addParameterData(param.paramId, dummyIdx);
+    Steinberg::Vst::IParamValueQueue* queue = m_inputParamChanges.addParameterData(param.paramId, dummyIdx);
     if (queue) {
         queue->addPoint(0, param.value, dummyIdx);
     }

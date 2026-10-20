@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2023 MuseScore Limited
+ * Copyright (C) 2023 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -31,10 +31,10 @@ class LayoutConfiguration;
 class MarkerLayout
 {
 public:
-    static void layoutMarker(const Marker* item, Marker::LayoutData* ldata, LayoutContext& ctx);
+    static void layoutMarker(Marker* item, Marker::LayoutData* ldata, LayoutContext& ctx);
 
 private:
-    static void doLayoutMarker(const Marker* item, Marker::LayoutData* ldata, LayoutContext& ctx);
+    static void doLayoutMarker(Marker* item, Marker::LayoutData* ldata, LayoutContext& ctx);
     static double computeCustomTextOffset(const Marker* item, Marker::LayoutData* ldata, LayoutContext& ctx);
 };
 } // namespace mu::engraving::rendering::score

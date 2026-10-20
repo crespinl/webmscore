@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -36,14 +36,6 @@ namespace mu::engraving {
 class Staff;
 class Score;
 class InstrumentTemplate;
-
-//---------------------------------------------------------
-//   PreferSharpFlat
-//---------------------------------------------------------
-
-enum class PreferSharpFlat : char {
-    NONE, SHARPS, FLATS, AUTO
-};
 
 //---------------------------------------------------------
 //   @@ Part
@@ -105,11 +97,11 @@ public:
     String instrumentName(const Fraction& tick = { -1, 1 }) const;
     String instrumentId(const Fraction& tick = { -1, 1 }) const;
 
-    const std::list<StaffName>& longNames(const Fraction& tick = { -1, 1 }) const { return instrument(tick)->longNames(); }
-    const std::list<StaffName>& shortNames(const Fraction& tick = { -1, 1 }) const { return instrument(tick)->shortNames(); }
+    const StaffNameList& longNames(const Fraction& tick = { -1, 1 }) const { return instrument(tick)->longNames(); }
+    const StaffNameList& shortNames(const Fraction& tick = { -1, 1 }) const { return instrument(tick)->shortNames(); }
 
-    void setLongNames(std::list<StaffName>& s,  const Fraction& tick = { -1, 1 });
-    void setShortNames(std::list<StaffName>& s, const Fraction& tick = { -1, 1 });
+    void setLongNames(const StaffNameList& s,  const Fraction& tick = { -1, 1 });
+    void setShortNames(const StaffNameList& s, const Fraction& tick = { -1, 1 });
 
     void setLongName(const String& s);
     void setShortName(const String& s);

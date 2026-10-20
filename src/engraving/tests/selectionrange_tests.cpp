@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2025 MuseScore Limited
+ * Copyright (C) 2025 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -22,16 +22,15 @@
 
 #include <gtest/gtest.h>
 
-#include "dom/chord.h"
-#include "dom/masterscore.h"
-#include "dom/measure.h"
-#include "dom/note.h"
-#include "dom/segment.h"
+#include "engraving/dom/chord.h"
+#include "engraving/dom/masterscore.h"
+#include "engraving/dom/measure.h"
+#include "engraving/dom/note.h"
+#include "engraving/dom/segment.h"
 
 #include "utils/scorerw.h"
 #include "utils/scorecomp.h"
 
-using namespace mu;
 using namespace mu::engraving;
 
 static const String SELRANGE_DATA_DIR("selectionrange_data/");
@@ -97,7 +96,7 @@ TEST_F(Engraving_SelectionRangeTests, selRangeAndSpanners)
 
         // Setup: Find all the spanners in this measure...
         std::unordered_set<const Spanner*> spannersInMeasure;
-        auto spanners = spannerMap.findContained(measure->tick().ticks(), Fraction(measure->tick() + measure->ticks()).ticks());
+        auto spanners = spannerMap.findContained(measure->tick().ticks(), measure->endTick().ticks());
         for (auto i : spanners) {
             const Spanner* sp = i.value;
             spannersInMeasure.emplace(sp);
@@ -327,4 +326,56 @@ TEST_F(Engraving_SelectionRangeTests, deletePartialNestedTuplets)
 
     EXPECT_TRUE(ScoreComp::saveCompareScore(score, String(u"selectionrangedelete06_partialnestedtuplets.mscx"),
                                             SELRANGE_DATA_DIR + String(u"selectionrangedelete06_partialnestedtuplets-ref.mscx")));
+}
+
+TEST_F(Engraving_SelectionRangeTests, deleteSelectionListElements)
+{
+    MasterScore* score = ScoreRW::readScore(SELRANGE_DATA_DIR + u"list-delete-crash.mscx");
+    EXPECT_TRUE(score);
+
+    std::vector<EngravingItem*> notes;
+    std::vector<EngravingItem*> harmonies;
+    std::vector<EngravingItem*> rests;
+
+    auto collectAndCheckCount = [&](size_t noteCount, size_t harmonyCount, size_t restCount) {
+        notes.clear();
+        harmonies.clear();
+        rests.clear();
+
+        score->scanElements([&](EngravingItem* item) {
+            if (item->isNote()) {
+                notes.push_back(item);
+            } else if (item->isHarmony()) {
+                harmonies.push_back(item);
+            } else if (item->isRest()) {
+                rests.push_back(item);
+            }
+        });
+
+        EXPECT_EQ(noteCount, notes.size());
+        EXPECT_EQ(harmonyCount, harmonies.size());
+        EXPECT_EQ(restCount, rests.size());
+    };
+
+    collectAndCheckCount(4, 2, 33);
+
+    score->select(notes.front(), SelectType::SINGLE);
+    score->select(notes.back(), SelectType::RANGE);
+    score->deselect(harmonies.front());
+    score->selection().setState(SelState::LIST);
+
+    EXPECT_EQ(13, score->selection().elements().size());
+    EXPECT_EQ(13, score->selection().uniqueElements().size());
+
+    score->startCmd(TranslatableString::untranslatable("Selection range delete tests"));
+    score->cmdDeleteSelection();
+    score->endCmd();
+
+    collectAndCheckCount(0, 2, 36);
+
+    score->undoRedo(true, nullptr);
+
+    collectAndCheckCount(4, 2, 33);
+
+    delete score;
 }

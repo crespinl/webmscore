@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -61,6 +61,7 @@ class Bracket;
 class Breath;
 
 class Chord;
+class ChordBracket;
 class ChordRest;
 class ChordLine;
 class Clef;
@@ -103,6 +104,7 @@ class LetRing;
 class LineSegment;
 class Location;
 class Lyrics;
+class LyricsLine;
 
 class Marker;
 class MeasureBase;
@@ -205,6 +207,7 @@ public:
     static void read(MMRestRange* r, XmlReader& xml, ReadContext& ctx);
     static void read(ActionIcon* i, XmlReader& xml, ReadContext& ctx);
     static void read(Arpeggio* a, XmlReader& xml, ReadContext& ctx);
+    static void read(ChordBracket* b, XmlReader& e, ReadContext& ctx);
     static void read(Articulation* a, XmlReader& xml, ReadContext& ctx);
     static void read(Audio* a, XmlReader& xml, ReadContext& ctx);
 
@@ -261,6 +264,7 @@ public:
     static void read(LineSegment* l, XmlReader& xml, ReadContext& ctx);
     static void read(Location* l, XmlReader& xml, ReadContext& ctx);
     static void read(Lyrics* l, XmlReader& xml, ReadContext& ctx);
+    static void read(LyricsLine* l, XmlReader& xml, ReadContext& ctx);
 
     static void read(Marker* m, XmlReader& xml, ReadContext& ctx);
     static void read(MeasureNumber* n, XmlReader& xml, ReadContext& ctx);
@@ -346,6 +350,7 @@ public:
     static bool readTextProperties(TextBase* t, XmlReader& xml, ReadContext& ctx);
 
     static bool readProperties(Ambitus* a, XmlReader& xml, ReadContext& ctx);
+    static bool readProperties(Arpeggio* a, XmlReader& xml, ReadContext& ctx);
     static bool readProperties(Articulation* a, XmlReader& xml, ReadContext& ctx);
     static bool readProperties(BSymbol* sym, XmlReader& xml, ReadContext& ctx);
     static bool readProperties(Chord* ch, XmlReader& xml, ReadContext& ctx);
@@ -388,6 +393,7 @@ public:
     static void readSpanner(XmlReader& e, ReadContext& ctx, Score* current, track_idx_t track);
 
     static void readSystemLocks(Score* score, XmlReader& e);
+    static void readSystemDividers(Score* score, XmlReader& e, ReadContext& ctx);
 
     static void readItemEID(EngravingObject* item, XmlReader& xml);
     static void readItemLink(EngravingItem* item, XmlReader& xml, ReadContext& ctx);
@@ -402,5 +408,9 @@ private:
     static void readSystemLock(Score* score, XmlReader& e);
 
     static void readHopoText(HammerOnPullOffSegment* hopoSeg, XmlReader& xml, ReadContext& ctx, int idx);
+
+    static void lineBreakFromTag(String& str);
+
+    static void readNoteParenGroup(Chord* ch, XmlReader& e, ReadContext& ctx);
 };
 }

@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -26,7 +26,8 @@
 #include "engraving/dom/drumset.h"
 #include "engraving/dom/part.h"
 #include "engraving/dom/masterscore.h"
-#include "engraving/dom/undo.h"
+
+#include "engraving/editing/editpart.h"
 
 using namespace mu::engraving::apiv1;
 
@@ -104,13 +105,70 @@ QVariantList StringData::stringList() const
 }
 
 //---------------------------------------------------------
+//   Drumset setters
+//   These allow modifying a cloned drumset before passing
+//   it to Score::replaceDrumset(). The Drumset obtained
+//   from an Instrument is read-only; Instrument::cloneDrumset()
+//   returns a writable copy that can be modified with these
+//   setters and then applied to the score.
+//---------------------------------------------------------
+
+void Drumset::setName(int pitch, const QString& name)
+{
+    IF_ASSERT_FAILED(pitch >= 0 && pitch < DRUM_INSTRUMENTS) {
+        return;
+    }
+    m_drumset->drum(pitch).name = name;
+}
+
+void Drumset::setNoteHead(int pitch, int noteHead)
+{
+    IF_ASSERT_FAILED(pitch >= 0 && pitch < DRUM_INSTRUMENTS) {
+        return;
+    }
+    m_drumset->drum(pitch).notehead = mu::engraving::NoteHeadGroup(noteHead);
+}
+
+void Drumset::setLine(int pitch, int line)
+{
+    IF_ASSERT_FAILED(pitch >= 0 && pitch < DRUM_INSTRUMENTS) {
+        return;
+    }
+    m_drumset->drum(pitch).line = line;
+}
+
+void Drumset::setVoice(int pitch, int voice)
+{
+    IF_ASSERT_FAILED(pitch >= 0 && pitch < DRUM_INSTRUMENTS) {
+        return;
+    }
+    m_drumset->drum(pitch).voice = voice;
+}
+
+void Drumset::setStemDirection(int pitch, int stemDirection)
+{
+    IF_ASSERT_FAILED(pitch >= 0 && pitch < DRUM_INSTRUMENTS) {
+        return;
+    }
+    m_drumset->drum(pitch).stemDirection = mu::engraving::DirectionV(stemDirection);
+}
+
+void Drumset::setShortcut(int pitch, const QString& shortcut)
+{
+    IF_ASSERT_FAILED(pitch >= 0 && pitch < DRUM_INSTRUMENTS) {
+        return;
+    }
+    m_drumset->drum(pitch).shortcut = shortcut;
+}
+
+//---------------------------------------------------------
 //   Drumset::variants
 //---------------------------------------------------------
 
 QVariantList Drumset::variants(int pitch)
 {
     QVariantList drumInstrumentVariantList;
-    for (DrumInstrumentVariant div : m_drumset->variants(pitch)) {
+    for (const DrumInstrumentVariant& div : m_drumset->variants(pitch)) {
         QVariantMap pluginDivData;
         pluginDivData["pitch"] = div.pitch;
         pluginDivData["tremolo"] = int(div.tremolo);
@@ -159,8 +217,8 @@ Channel* ChannelListProperty::at(QQmlListProperty<Channel>* l, qsizetype i)
 
 QString Instrument::longName() const
 {
-    const std::list<mu::engraving::StaffName>& names = instrument()->longNames();
-    return names.empty() ? u"" : names.front().name();
+    const StaffNameList& names = instrument()->longNames();
+    return names.empty() ? QString() : names.front().name().toQString();
 }
 
 //---------------------------------------------------------
@@ -169,13 +227,23 @@ QString Instrument::longName() const
 
 QString Instrument::shortName() const
 {
-    const std::list<mu::engraving::StaffName>& names = instrument()->shortNames();
-    return names.empty() ? u"" : names.front().name();
+    const StaffNameList& names = instrument()->shortNames();
+    return names.empty() ? QString() : names.front().name().toQString();
 }
 
 //---------------------------------------------------------
 //   Instrument::channels
 //---------------------------------------------------------
+
+Drumset* Instrument::cloneDrumset()
+{
+    const mu::engraving::Drumset* ds = instrument()->drumset();
+    if (!ds) {
+        return nullptr;
+    }
+
+    return new Drumset(new mu::engraving::Drumset(*ds), true, this);
+}
 
 ChannelListProperty Instrument::channels()
 {

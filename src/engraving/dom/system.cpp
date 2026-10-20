@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -133,8 +133,6 @@ System::~System()
     if (m_staffVisibilityIndicator) {
         delete m_staffVisibilityIndicator;
     }
-    delete m_systemDividerLeft;
-    delete m_systemDividerRight;
 }
 
 #ifndef ENGRAVING_NO_ACCESSIBILITY
@@ -218,12 +216,10 @@ void System::removeLastMeasure()
 
 Box* System::vbox() const
 {
-    if (!m_ml.empty()) {
-        if (m_ml[0]->isVBox() || m_ml[0]->isTBox() || m_ml[0]->isFBox()) {
-            return toBox(m_ml[0]);
-        }
+    if (!m_ml.empty() && m_ml.front()->isVBoxBase()) {
+        return toBox(m_ml.front());
     }
-    return 0;
+    return nullptr;
 }
 
 //---------------------------------------------------------
@@ -541,7 +537,7 @@ void System::add(EngravingItem* el)
     case ElementType::SYSTEM_DIVIDER:
     {
         SystemDivider* sd = toSystemDivider(el);
-        if (sd->dividerType() == SystemDivider::Type::LEFT) {
+        if (sd->dividerType() == SystemDividerType::LEFT) {
             m_systemDividerLeft = sd;
         } else {
             m_systemDividerRight = sd;
@@ -704,34 +700,34 @@ MeasureBase* System::nextMeasure(const MeasureBase* m) const
 //   scanElements
 //---------------------------------------------------------
 
-void System::scanElements(void* data, void (* func)(void*, EngravingItem*), bool all)
+void System::scanElements(std::function<void(EngravingItem*)> func)
 {
     if (vbox()) {
         return;
     }
     for (Bracket* b : m_brackets) {
-        func(data, b);
+        func(b);
     }
 
     if (m_systemDividerLeft) {
-        func(data, m_systemDividerLeft);
+        func(m_systemDividerLeft);
     }
     if (m_systemDividerRight) {
-        func(data, m_systemDividerRight);
+        func(m_systemDividerRight);
     }
 
     if (m_staffVisibilityIndicator) {
-        func(data, m_staffVisibilityIndicator);
+        func(m_staffVisibilityIndicator);
     }
 
     for (auto i : m_lockIndicators) {
-        func(data, i);
+        func(i);
     }
 
     for (const SysStaff* st : m_staves) {
-        if (all || st->show()) {
+        if (st->show()) {
             for (InstrumentName* t : st->instrumentNames) {
-                func(data, t);
+                func(t);
             }
         }
     }
@@ -760,8 +756,9 @@ void System::scanElements(void* data, void (* func)(void*, EngravingItem*), bool
             }
             v = v1 || v2;       // hide spanner if both chords are hidden
         }
-        if (all || (score()->staff(staffIdx)->show() && m_staves[staffIdx]->show() && v) || spanner->isVolta() || spanner->systemFlag()) {
-            ss->scanElements(data, func, all);
+        if ((score()->staff(staffIdx)->show() && m_staves[staffIdx]->show() && v) || spanner->isVolta()
+            || spanner->systemFlag()) {
+            ss->scanElements(func);
         }
     }
 }
@@ -1040,7 +1037,7 @@ double System::firstNoteRestSegmentX(bool leading) const
     double margin = style().styleMM(Sid::headerToLineStartDistance);
     for (const MeasureBase* mb : measures()) {
         if (mb->isMeasure()) {
-            const Measure* measure = static_cast<const Measure*>(mb);
+            const Measure* measure = toMeasure(mb);
             margin = measure->firstNoteRestSegmentX(leading);
             break;
         }
@@ -1077,7 +1074,7 @@ ChordRest* System::lastChordRest(track_idx_t track) const
 {
     for (auto measureBaseIter = measures().rbegin(); measureBaseIter != measures().rend(); measureBaseIter++) {
         if ((*measureBaseIter)->isMeasure()) {
-            const Measure* measure = static_cast<const Measure*>(*measureBaseIter);
+            const Measure* measure = toMeasure(*measureBaseIter);
             return measure->lastChordRest(track);
         }
     }
@@ -1095,7 +1092,7 @@ ChordRest* System::firstChordRest(track_idx_t track) const
         if (!mb->isMeasure()) {
             continue;
         }
-        const Measure* measure = static_cast<const Measure*>(mb);
+        const Measure* measure = toMeasure(mb);
         return measure->firstChordRest(track);
     }
     return nullptr;

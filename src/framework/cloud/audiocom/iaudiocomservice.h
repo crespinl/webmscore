@@ -5,7 +5,7 @@
  * MuseScore
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore BVBA and others
+ * Copyright (C) 2025 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -19,8 +19,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-#ifndef MUSE_CLOUD_IAUDIOCOMSERVICE_H
-#define MUSE_CLOUD_IAUDIOCOMSERVICE_H
+
+#pragma once
 
 #include "modularity/imoduleinterface.h"
 #include "progress.h"
@@ -30,8 +30,10 @@
 class QIODevice;
 class QString;
 
+using DevicePtr = std::shared_ptr<QIODevice>;
+
 namespace muse::cloud {
-class IAudioComService : MODULE_EXPORT_INTERFACE
+class IAudioComService : MODULE_CONTEXT_INTERFACE
 {
     INTERFACE_ID(IAudioComService)
 
@@ -42,11 +44,9 @@ public:
 
     virtual QUrl projectManagerUrl() const = 0;
 
-    virtual ProgressPtr uploadAudio(QIODevice& audioData, const QString& audioFormat, const QString& title, const QUrl& existingUrl,
+    virtual ProgressPtr uploadAudio(DevicePtr audioData, const QString& audioFormat, const QString& title, const QUrl& existingUrl,
                                     Visibility visibility = Visibility::Private, bool replaceExisting = false) = 0;
 
     virtual CloudInfo cloudInfo() const = 0;
 };
 }
-
-#endif // MUSE_CLOUD_IAUDIOCOMSERVICE_H

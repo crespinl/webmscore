@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2024 MuseScore Limited
+ * Copyright (C) 2024 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -21,8 +21,6 @@
  */
 #include "musesoundsmodule.h"
 
-#include <QQmlEngine>
-
 #include "modularity/ioc.h"
 #include "framework/ui/iinteractiveuriregister.h"
 
@@ -34,15 +32,8 @@
 #include "internal/musesamplercheckupdateservice.h"
 #include "internal/musesamplercheckupdatescenario.h"
 
-#include "view/musesoundslistmodel.h"
-
 using namespace mu::musesounds;
 using namespace muse;
-
-static void musesounds_init_qrc()
-{
-    Q_INIT_RESOURCE(musesounds);
-}
 
 std::string MuseSoundsModule::moduleName() const
 {
@@ -73,26 +64,12 @@ void MuseSoundsModule::resolveImports()
 {
     auto ir = ioc()->resolve<ui::IInteractiveUriRegister>(moduleName());
     if (ir) {
-        ir->registerQmlUri(Uri("musescore://musesounds/musesoundsreleaseinfo"), "MuseScore/MuseSounds/MuseSoundsReleaseInfoDialog.qml");
+        ir->registerQmlUri(Uri("musescore://musesounds/musesoundsreleaseinfo"), "MuseScore.MuseSounds", "MuseSoundsReleaseInfoDialog");
     }
 }
 
-void MuseSoundsModule::registerResources()
+void MuseSoundsModule::onInit(const IApplication::RunMode&)
 {
-    musesounds_init_qrc();
-}
-
-void MuseSoundsModule::registerUiTypes()
-{
-    qmlRegisterType<MuseSoundsListModel>("MuseScore.MuseSounds", 1, 0, "MuseSoundsListModel");
-}
-
-void MuseSoundsModule::onInit(const IApplication::RunMode& mode)
-{
-    if (mode != IApplication::RunMode::GuiApp) {
-        return;
-    }
-
     m_configuration->init();
     m_repository->init();
 }

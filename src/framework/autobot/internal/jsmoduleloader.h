@@ -5,7 +5,7 @@
  * MuseScore
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore BVBA and others
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -32,13 +32,14 @@
 
 namespace muse::autobot {
 class ScriptEngine;
-class JsModuleLoader : public QObject, public Injectable
+class JsModuleLoader : public QObject, public Contextable
 {
     Q_OBJECT
     Q_PROPERTY(QJSValue exports READ exports WRITE setExports)
 
-    Inject<IAutobotConfiguration> configuration = { this };
-    Inject<io::IFileSystem> fileSystem = { this };
+    GlobalInject<IAutobotConfiguration> configuration;
+    GlobalInject<io::IFileSystem> fileSystem;
+
 public:
     explicit JsModuleLoader(const modularity::ContextPtr& iocCtx, QObject* parent = 0);
 

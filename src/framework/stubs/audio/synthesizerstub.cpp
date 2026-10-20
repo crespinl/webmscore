@@ -5,7 +5,7 @@
  * MuseScore
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore BVBA and others
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -30,7 +30,7 @@ SynthesizerStub::SynthesizerStub(const AudioSourceParams& params)
 {
 }
 
-void SynthesizerStub::setSampleRate(unsigned int)
+void SynthesizerStub::setOutputSpec(const OutputSpec&)
 {
 }
 
@@ -119,6 +119,11 @@ bool SynthesizerStub::isActive() const
 
 void SynthesizerStub::setIsActive(bool)
 {
+}
+
+bool SynthesizerStub::hasPendingChunks() const
+{
+    return false;
 }
 
 void SynthesizerStub::processInput()

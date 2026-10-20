@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -46,14 +46,14 @@ static const ElementStyle sectionBreakStyle {
 //---------------------------------------------------------
 
 LayoutBreak::LayoutBreak(MeasureBase* parent)
-    : EngravingItem(ElementType::LAYOUT_BREAK, parent, ElementFlag::SYSTEM | ElementFlag::HAS_TAG)
+    : EngravingItem(ElementType::LAYOUT_BREAK, parent, ElementFlag::SYSTEM)
 {
     m_pause = 0.;
     m_startWithLongNames = false;
     m_startWithMeasureOne = false;
     m_firstSystemIndentation = false;
     m_showCourtesy = false;
-    m_layoutBreakType = LayoutBreakType(propertyDefault(Pid::LAYOUT_BREAK).toInt());
+    m_layoutBreakType = LayoutBreakType::PAGE;
 
     initElementStyle(&sectionBreakStyle);
 
@@ -111,7 +111,7 @@ void LayoutBreak::setLayoutBreakType(LayoutBreakType val)
 
 bool LayoutBreak::acceptDrop(EditData& data) const
 {
-    return data.dropElement->type() == ElementType::LAYOUT_BREAK
+    return data.dropElement->isLayoutBreak()
            && toLayoutBreak(data.dropElement)->layoutBreakType() != layoutBreakType();
 }
 
@@ -259,9 +259,7 @@ void LayoutBreak::removed()
 Font LayoutBreak::font() const
 {
     Font font(configuration()->iconsFontFamily(), Font::Type::Icon);
-    static constexpr double STANDARD_POINT_SIZE = 12.0;
-    double scaling = spatium() / SPATIUM20;
-    font.setPointSizeF(STANDARD_POINT_SIZE * scaling);
+    font.setPointSizeF(UI_ICONS_DEFAULT_FONT_SIZE * magS());
     return font;
 }
 }

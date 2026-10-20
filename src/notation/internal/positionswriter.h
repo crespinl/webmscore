@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -20,15 +20,14 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef MU_NOTATION_POSITIONSWRITER_H
-#define MU_NOTATION_POSITIONSWRITER_H
+#pragma once
 
 #include "modularity/ioc.h"
 #include "importexport/imagesexport/iimagesexportconfiguration.h"
 #include "project/inotationwriter.h"
 
-namespace muse::deprecated {
-class XmlWriter;
+namespace muse {
+class XmlStreamWriter;
 }
 
 namespace mu::engraving {
@@ -36,9 +35,9 @@ class Score;
 }
 
 namespace mu::notation {
-class PositionsWriter : public project::INotationWriter
+class PositionsWriter : public project::INotationWriter, public muse::Contextable
 {
-    INJECT(iex::imagesexport::IImagesExportConfiguration, imagesExportConfiguration)
+    muse::GlobalInject<iex::imagesexport::IImagesExportConfiguration> imagesExportConfiguration;
 
 public:
     enum class ElementType {
@@ -46,8 +45,8 @@ public:
         MEASURE
     };
 
-    explicit PositionsWriter() = default;
-    explicit PositionsWriter(ElementType elementType);
+    explicit PositionsWriter(const muse::modularity::ContextPtr& ctx);
+    explicit PositionsWriter(ElementType elementType, const muse::modularity::ContextPtr& ctx);
 
     std::vector<UnitType> supportedUnitTypes() const override;
     bool supportsUnitType(UnitType unitType) const override;
@@ -59,14 +58,12 @@ private:
     qreal pngDpiResolution() const;
     QHash<void*, int> elementIds(const mu::engraving::Score* score) const;
 
-    void writeElementsPositions(muse::deprecated::XmlWriter& writer, const mu::engraving::Score* score) const;
-    void writeSegmentsPositions(muse::deprecated::XmlWriter& writer, const mu::engraving::Score* score) const;
-    void writeMeasuresPositions(muse::deprecated::XmlWriter& writer, const mu::engraving::Score* score) const;
+    void writeElementsPositions(muse::XmlStreamWriter& writer, const mu::engraving::Score* score) const;
+    void writeSegmentsPositions(muse::XmlStreamWriter& writer, const mu::engraving::Score* score) const;
+    void writeMeasuresPositions(muse::XmlStreamWriter& writer, const mu::engraving::Score* score) const;
 
-    void writeEventsPositions(muse::deprecated::XmlWriter& writer, const mu::engraving::Score* score) const;
+    void writeEventsPositions(muse::XmlStreamWriter& writer, const mu::engraving::Score* score) const;
 
     ElementType m_elementType = ElementType::SEGMENT;
 };
 }
-
-#endif // MU_NOTATION_POSITIONSWRITER_H

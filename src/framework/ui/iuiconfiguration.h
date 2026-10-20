@@ -5,7 +5,7 @@
  * MuseScore
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore BVBA and others
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -39,7 +39,7 @@ class QByteArray;
 class QWindow;
 
 namespace muse::ui {
-class IUiConfiguration : MODULE_EXPORT_INTERFACE
+class IUiConfiguration : MODULE_GLOBAL_INTERFACE
 {
     INTERFACE_ID(IUiConfiguration)
 

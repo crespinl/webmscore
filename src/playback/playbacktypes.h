@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -20,12 +20,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef MU_PLAYBACK_PLAYBACKTYPES_H
-#define MU_PLAYBACK_PLAYBACKTYPES_H
+#pragma once
 
 #include <QTime>
 
-#include "audio/audiotypes.h"
+#include "audio/common/audiotypes.h"
 
 namespace mu::playback {
 static constexpr muse::audio::aux_channel_idx_t AUX_CHANNEL_NUM = 2;
@@ -124,5 +123,3 @@ enum OnlineSoundsShowProgressBarMode {
     Never,
 };
 }
-
-#endif // MU_PLAYBACK_PLAYBACKTYPES_H

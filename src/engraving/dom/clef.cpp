@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -29,7 +29,9 @@
 
 #include "translation.h"
 
-#include "types/typesconv.h"
+#include "../editing/undo.h"
+#include "../editing/editproperty.h"
+#include "../types/typesconv.h"
 
 #include "ambitus.h"
 #include "factory.h"
@@ -37,9 +39,6 @@
 #include "score.h"
 #include "segment.h"
 #include "staff.h"
-#include "undo.h"
-
-#include "log.h"
 
 using namespace mu;
 using namespace mu::engraving;
@@ -109,7 +108,7 @@ Clef::Clef(Segment* parent)
 
 double Clef::mag() const
 {
-    double mag = staff() ? staff()->staffMag(tick()) : 1.0;
+    double mag = staff() ? staff()->staffMag(this) : 1.0;
     if (m_isSmall) {
         mag *= style().styleD(Sid::smallClefMag);
     }
@@ -122,8 +121,7 @@ double Clef::mag() const
 
 bool Clef::acceptDrop(EditData& data) const
 {
-    return data.dropElement->type() == ElementType::CLEF
-           || (/*!generated() &&*/ data.dropElement->type() == ElementType::AMBITUS);
+    return data.dropElement->isClef() || (/*!generated() &&*/ data.dropElement->isAmbitus());
 }
 
 //---------------------------------------------------------
@@ -319,11 +317,14 @@ bool Clef::setProperty(Pid propertyId, const PropertyValue& v)
     case Pid::SMALL:
         setSmall(v.toBool());
         break;
-    case Pid::CLEF_TO_BARLINE_POS:
-        if (v.value<ClefToBarlinePosition>() != m_clefToBarlinePosition && !m_isHeader) {
-            changeClefToBarlinePos(v.value<ClefToBarlinePosition>());
+    case Pid::CLEF_TO_BARLINE_POS: {
+        const auto newClefToBlPos = v.value<ClefToBarlinePosition>();
+
+        if (newClefToBlPos != m_clefToBarlinePosition && !m_isHeader) {
+            changeClefToBarlinePos(newClefToBlPos);
         }
         break;
+    }
     case Pid::IS_HEADER:
         m_isHeader = v.toBool();
         break;
@@ -349,7 +350,7 @@ void Clef::changeClefToBarlinePos(ClefToBarlinePosition newPos)
 
     staff_idx_t nStaves = score()->nstaves();
     for (staff_idx_t staffIndex = 0; staffIndex < nStaves; ++staffIndex) {
-        Clef* clef = static_cast<Clef*>(seg->elementAt(staffIndex * VOICES));
+        Clef* clef = toClef(seg->element(staffIndex * VOICES));
         if (clef) {
             clef->m_clefToBarlinePosition = newPos;
         }

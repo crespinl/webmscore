@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2023 MuseScore Limited
+ * Copyright (C) 2023 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -20,6 +20,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #pragma once
+
+#include <stack>
+#include <vector>
 
 #include "layoutcontext.h"
 #include "dom/harmony.h"
@@ -62,14 +65,16 @@ private:
     };
 
     static PointF calculateBoundingRect(const Harmony* item, Harmony::LayoutData* ldata, const LayoutContext& ctx);
-    static void layoutModifierParentheses(const Harmony* item);
+    static void layoutModifierParentheses(const Harmony* item, const LayoutContext& ctx);
 
     static void render(Harmony* item, Harmony::LayoutData* ldata, const LayoutContext& ctx);
+    static void doRenderSingleHarmony(Harmony* item, Harmony::LayoutData* ldata, HarmonyRenderCtx& harmonyCtx, int rootTpc, int bassTpc,
+                                      const LayoutContext& ctx);
     static void renderSingleHarmony(Harmony* item, Harmony::LayoutData* ldata, HarmonyRenderCtx& harmonyCtx, const LayoutContext& ctx);
     static void renderRomanNumeral(Harmony* item, Harmony::LayoutData* ldata);
     static void render(Harmony* item, Harmony::LayoutData* ldata, const String& str, HarmonyRenderCtx& harmonyCtx);
     static void render(Harmony* item, Harmony::LayoutData* ldata, SymId sym, HarmonyRenderCtx& harmonyCtx, const LayoutContext& ctx);
-    static void render(Harmony* item, Harmony::LayoutData* ldata, const std::list<RenderActionPtr>& renderList,
+    static void render(Harmony* item, Harmony::LayoutData* ldata, const std::vector<RenderActionPtr>& renderList,
                        HarmonyRenderCtx& harmonyCtx, const LayoutContext& ctx, int tpc,
                        NoteSpellingType noteSpelling = NoteSpellingType::STANDARD, NoteCaseType noteCase = NoteCaseType::AUTO,
                        double noteMag = 1.0);

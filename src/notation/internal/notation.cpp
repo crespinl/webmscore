@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -26,6 +26,9 @@
 
 #include "engraving/dom/masterscore.h"
 
+#include "imasternotation.h"
+
+#include "masternotation.h"
 #include "notationpainting.h"
 #include "notationviewstate.h"
 #include "notationsolomutestate.h"
@@ -45,11 +48,12 @@
 using namespace mu::notation;
 using namespace mu::engraving;
 
-Notation::Notation(const muse::modularity::ContextPtr& iocCtx, mu::engraving::Score* score)
-    : muse::Injectable(iocCtx)
+Notation::Notation(MasterNotation* master, const muse::modularity::ContextPtr& iocCtx, mu::engraving::Score* score)
+    : muse::Contextable(iocCtx)
+    , m_masterNotation(master)
 {
-    m_painting = std::make_shared<NotationPainting>(this);
-    m_viewState = std::make_shared<NotationViewState>(this);
+    m_painting = std::make_shared<NotationPainting>(this, iocCtx);
+    m_viewState = std::make_shared<NotationViewState>(this, iocCtx);
     m_soloMuteState = std::make_shared<NotationSoloMuteState>();
     m_undoStack = std::make_shared<NotationUndoStack>(this, m_notationChanged);
     //m_interaction = std::make_shared<NotationInteraction>(this, m_undoStack);
@@ -117,6 +121,16 @@ Notation::~Notation()
     //! NOTE: The master score will be deleted later from ~EngravingProject()
     //! Its excerpts will be deleted directly in ~MasterScore()
     m_score = nullptr;
+}
+
+mu::project::INotationProject* Notation::project() const
+{
+    return m_masterNotation ? m_masterNotation->project() : nullptr;
+}
+
+IMasterNotationPtr Notation::masterNotation() const
+{
+    return m_masterNotation ? m_masterNotation->shared_from_this() : nullptr;
 }
 
 void Notation::setScore(Score* score)

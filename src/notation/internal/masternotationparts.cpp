@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -25,8 +25,9 @@
 #include "engraving/dom/masterscore.h"
 #include "engraving/dom/scoreorder.h"
 #include "engraving/dom/excerpt.h"
-#include "engraving/dom/undo.h"
 #include "engraving/dom/utils.h"
+#include "engraving/editing/editexcerpt.h"
+#include "engraving/editing/transpose.h"
 
 #include "log.h"
 
@@ -201,7 +202,7 @@ void MasterNotationParts::replaceInstrument(const InstrumentKey& instrumentKey, 
     }
 
     // this also transposes all linked parts
-    score()->transpositionChanged(part, Part::MAIN_INSTRUMENT_TICK, oldTranspose);
+    engraving::Transpose::transpositionChanged(score(), part, Part::MAIN_INSTRUMENT_TICK, oldTranspose);
 
     if (isMainInstrument) {
         if (mu::engraving::Excerpt* excerpt = findExcerpt(part->id())) {

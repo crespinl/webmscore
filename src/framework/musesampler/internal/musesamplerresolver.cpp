@@ -5,7 +5,7 @@
  * MuseScore
  * Music Composition & Notation
  *
- * Copyright (C) 2025 MuseScore BVBA and others
+ * Copyright (C) 2025 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -80,6 +80,8 @@ InstrumentInfo findInstrument(MuseSamplerLibHandlerPtr libHandler, const AudioRe
 
 void MuseSamplerResolver::init()
 {
+    TRACEFUNC;
+
     const io::path_t libraryPath = configuration()->libraryPath();
     if (io::isAbsolute(libraryPath) && !io::FileInfo::exists(libraryPath)) {
         LOGI() << "MuseSampler library not found: " << libraryPath;
@@ -130,6 +132,15 @@ void MuseSamplerResolver::init()
     LOGI() << "MuseSampler successfully inited: " << libraryPath << ", version: " << m_samplerVersion.toString();
 }
 
+void MuseSamplerResolver::deinit()
+{
+    TRACEFUNC;
+
+    if (m_libHandler) {
+        m_libHandler->deinit();
+    }
+}
+
 bool MuseSamplerResolver::reloadAllInstruments()
 {
     if (!m_libHandler) {
@@ -144,7 +155,8 @@ int MuseSamplerResolver::buildNumber() const
     return m_samplerBuildNumber;
 }
 
-ISynthesizerPtr MuseSamplerResolver::resolveSynth(const TrackId /*trackId*/, const AudioInputParams& params) const
+ISynthesizerPtr MuseSamplerResolver::resolveSynth(const TrackId /*trackId*/, const AudioInputParams& params,
+                                                  const audio::OutputSpec&) const
 {
     const InstrumentInfo instrument = findInstrument(m_libHandler, params.resourceMeta);
     if (instrument.isValid()) {
@@ -181,10 +193,6 @@ AudioResourceMetaList MuseSamplerResolver::resolveResources() const
         const String instrumentSoundId = String::fromUtf8(m_libHandler->getMpeSoundId(instrument));
         const String vendorName = String::fromUtf8(m_libHandler->getInstrumentVendorName(instrument));
         const bool isOnline = m_libHandler->isOnlineInstrument(instrument);
-
-        if (instrumentSoundId.empty()) {
-            LOGE() << "MISSING INSTRUMENT ID for: " << internalName;
-        }
 
         String instrumentPackName = String::fromUtf8(m_libHandler->getInstrumentPackName(instrument));
         if (instrumentPackName.empty()) {

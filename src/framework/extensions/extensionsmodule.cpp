@@ -5,7 +5,7 @@
  * MuseScore
  * Music Composition & Notation
  *
- * Copyright (C) 2024 MuseScore BVBA and others
+ * Copyright (C) 2024 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -21,11 +21,8 @@
  */
 #include "extensionsmodule.h"
 
-#include <QQmlEngine>
-
 #include "modularity/ioc.h"
 
-#include "ui/iuiactionsregister.h"
 #include "ui/iinteractiveuriregister.h"
 
 #include "internal/extensionsprovider.h"
@@ -33,32 +30,17 @@
 #include "internal/extensionsactioncontroller.h"
 #include "internal/extensioninstaller.h"
 #include "internal/extensionsexecpointsregister.h"
-#include "internal/extensionsuiactions.h"
-
-#include "view/extensionbuilder.h"
-#include "view/extensionsuiengine.h"
-#include "view/extensionslistmodel.h"
-#include "view/extensionstoolbarmodel.h"
+#include "internal/extensionsuiengine.h"
 
 #include "api/v1/extapiv1.h"
-
-#include "devtools/devextensionslistmodel.h"
-#include "devtools/apidumpmodel.h"
 
 #include "muse_framework_config.h"
 #ifdef MUSE_MODULE_DIAGNOSTICS
 #include "diagnostics/idiagnosticspathsregister.h"
 #endif
 
-#include "log.h"
-
 using namespace muse::extensions;
 using namespace muse::modularity;
-
-static void extensions_init_qrc()
-{
-    Q_INIT_RESOURCE(extensions);
-}
 
 std::string ExtensionsModule::moduleName() const
 {
@@ -69,41 +51,21 @@ void ExtensionsModule::registerExports()
 {
     m_configuration = std::make_shared<ExtensionsConfiguration>(iocContext());
     m_provider = std::make_shared<ExtensionsProvider>(iocContext());
-    m_actionController = std::make_shared<ExtensionsActionController>(iocContext());
     m_execPointsRegister = std::make_shared<ExtensionsExecPointsRegister>();
 
     ioc()->registerExport<IExtensionsProvider>(moduleName(), m_provider);
     ioc()->registerExport<IExtensionsConfiguration>(moduleName(), m_configuration);
     ioc()->registerExport<IExtensionsUiEngine>(moduleName(), new ExtensionsUiEngine(iocContext()));
-    ioc()->registerExport<IExtensionInstaller>(moduleName(), new ExtensionInstaller());
+    ioc()->registerExport<IExtensionInstaller>(moduleName(), new ExtensionInstaller(iocContext()));
     ioc()->registerExport<IExtensionsExecPointsRegister>(moduleName(), m_execPointsRegister);
-}
-
-void ExtensionsModule::registerResources()
-{
-    extensions_init_qrc();
-}
-
-void ExtensionsModule::registerUiTypes()
-{
-    qmlRegisterType<ExtensionsListModel>("Muse.Extensions", 1, 0, "ExtensionsListModel");
-    qmlRegisterType<ExtensionBuilder>("Muse.Extensions", 1, 0, "ExtensionBuilder");
-    qmlRegisterType<DevExtensionsListModel>("Muse.Extensions", 1, 0, "DevExtensionsListModel");
-    qmlRegisterType<ApiDumpModel>("Muse.Extensions", 1, 0, "ApiDumpModel");
-    qmlRegisterType<ExtensionsToolBarModel>("Muse.Extensions", 1, 0, "ExtensionsToolBarModel");
 }
 
 void ExtensionsModule::resolveImports()
 {
     auto ir = ioc()->resolve<ui::IInteractiveUriRegister>(moduleName());
     if (ir) {
-        ir->registerQmlUri(Uri("muse://extensions/viewer"), "Muse/Extensions/ExtensionViewerDialog.qml");
-        ir->registerQmlUri(Uri("muse://extensions/apidump"), "Muse/Extensions/ExtensionsApiDumpDialog.qml");
-    }
-
-    auto ar = ioc()->resolve<ui::IUiActionsRegister>(moduleName());
-    if (ar) {
-        ar->reg(std::make_shared<ExtensionsUiActions>(iocContext()));
+        ir->registerQmlUri(Uri("muse://extensions/viewer"), "Muse.Extensions", "ExtensionViewerDialog");
+        ir->registerQmlUri(Uri("muse://extensions/apidump"), "Muse.Extensions", "ExtensionsApiDumpDialog");
     }
 
     m_execPointsRegister->reg(moduleName(), { EXEC_DISABLED, TranslatableString("extensions", "Disabled") });
@@ -115,14 +77,9 @@ void ExtensionsModule::registerApi()
     apiv1::ExtApiV1::registerQmlTypes();
 }
 
-void ExtensionsModule::onInit(const IApplication::RunMode& mode)
+void ExtensionsModule::onInit(const IApplication::RunMode&)
 {
-    if (mode == IApplication::RunMode::AudioPluginRegistration) {
-        return;
-    }
-
     m_configuration->init();
-    m_actionController->init();
     m_provider->reloadExtensions();
 
 #ifdef MUSE_MODULE_DIAGNOSTICS
@@ -134,4 +91,20 @@ void ExtensionsModule::onInit(const IApplication::RunMode& mode)
         pr->reg("plugins (legacy): userPath", m_configuration->pluginsUserPath());
     }
 #endif
+}
+
+// Context
+IContextSetup* ExtensionsModule::newContext(const muse::modularity::ContextPtr& ctx) const
+{
+    return new ExtensionsContext(ctx);
+}
+
+void ExtensionsContext::registerExports()
+{
+    m_actionController = std::make_shared<ExtensionsActionController>(iocContext());
+}
+
+void ExtensionsContext::onInit(const IApplication::RunMode&)
+{
+    m_actionController->init();
 }

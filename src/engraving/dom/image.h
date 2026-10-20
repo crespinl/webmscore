@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -20,8 +20,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef MU_ENGRAVING_IMAGE_H
-#define MU_ENGRAVING_IMAGE_H
+#pragma once
 
 #include "bsymbol.h"
 
@@ -44,12 +43,12 @@ enum class ImageType : char {
 //   @@ Image
 //---------------------------------------------------------
 
-class Image final : public BSymbol, public muse::Injectable
+class Image final : public BSymbol, public muse::Contextable
 {
     OBJECT_ALLOCATOR(engraving, Image)
     DECLARE_CLASSOF(ElementType::IMAGE)
 
-    muse::Inject<muse::draw::IImageProvider> imageProvider = { this };
+    muse::GlobalInject<muse::draw::IImageProvider> imageProvider;
 
 public:
     Image(EngravingItem* parent);
@@ -113,8 +112,8 @@ public:
 private:
 
     bool isEditable() const override { return true; }
-    void startEditDrag(EditData&) override;
-    void editDrag(EditData& ed) override;
+    void startDragGrip(EditData&) override;
+    void dragGrip(EditData& ed) override;
     std::vector<LineF> gripAnchorLines(Grip) const override { return std::vector<LineF>(); }
 
     ImageStoreItem* m_storeItem = nullptr;
@@ -131,5 +130,4 @@ private:
 
     ImageType m_imageType = ImageType::NONE;
 };
-} // namespace mu::engraving
-#endif
+}

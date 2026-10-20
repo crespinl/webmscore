@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -29,12 +29,15 @@
 #include "iprojectconfiguration.h"
 
 namespace mu::project {
-class ProjectMigrator : public IProjectMigrator
+class ProjectMigrator : public IProjectMigrator, public muse::Contextable
 {
-    INJECT(IProjectConfiguration, configuration)
-    INJECT(muse::IInteractive, interactive)
+    muse::GlobalInject<IProjectConfiguration> configuration;
+    muse::ContextInject<muse::IInteractive> interactive = { this };
 public:
-    ProjectMigrator() = default;
+    ProjectMigrator(const muse::modularity::ContextPtr& iocCtx)
+        : muse::Contextable(iocCtx)
+    {
+    }
 
     muse::Ret migrateEngravingProjectIfNeed(engraving::EngravingProjectPtr project) override;
 

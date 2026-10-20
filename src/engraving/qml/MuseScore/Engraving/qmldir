@@ -1,3 +1,0 @@
-module MuseScore.Engraving
-EngravingElementsDialog 1.0 EngravingElementsDialog.qml
-EngravingElementsPanel 1.0 EngravingElementsPanel.qml

@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -30,15 +30,15 @@
 #include "imidiconfiguration.h"
 
 namespace mu::iex::midi {
-class NotationMidiWriter : public project::INotationWriter, public muse::Injectable
+class NotationMidiWriter : public project::INotationWriter, public muse::Contextable
 {
-    muse::Inject<notation::INotationConfiguration> notationConfiguration = { this };
-    muse::Inject<IMidiImportExportConfiguration> midiImportExportConfiguration = { this };
+    muse::GlobalInject<notation::INotationConfiguration> notationConfiguration;
+    muse::GlobalInject<IMidiImportExportConfiguration> midiImportExportConfiguration;
 
 public:
 
     NotationMidiWriter(const muse::modularity::ContextPtr& iocCtx)
-        : muse::Injectable(iocCtx) {}
+        : muse::Contextable(iocCtx) {}
 
     std::vector<UnitType> supportedUnitTypes() const override;
     bool supportsUnitType(UnitType unitType) const override;

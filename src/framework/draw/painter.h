@@ -5,7 +5,7 @@
  * MuseScore
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore BVBA and others
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -93,6 +93,8 @@ public:
     void save();
     void restore();
 
+    double deviceLogicalDpi() const;
+
     // drawing
     void fillPath(const PainterPath& path, const Brush& brush);
     void drawPath(const PainterPath& path);
@@ -131,16 +133,7 @@ public:
 
     void drawText(const RectF& rect, int flags, const String& text);
 
-    //! NOTE workaround for https://musescore.org/en/node/284218
-    //! and https://musescore.org/en/node/281601
-    //! only needed for certain artificially emboldened fonts
-    //! see https://musescore.org/en/node/281601#comment-900261
-    //! in Qt 5.12.x this workaround should be no more necessary if
-    //! env variable QT_MAX_CACHED_GLYPH_SIZE is set to 1.
-    //! The workaround works badly if the text is at the same time
-    //! bold and underlined or struck out.
-    //! (moved from TextBase::drawTextWorkaround)
-    void drawTextWorkaround(Font& f, const PointF pos, const String& text);
+    void drawTextWorkaround(const PointF& pos, const String& text);
 
     void drawSymbol(const PointF& point, char32_t ucs4Code);
 
@@ -181,6 +174,8 @@ private:
     const State& state() const;
     void updateViewTransform();
     void updateMatrix();
+
+    void applyFontSizeScaling();
 
     bool endTarget(bool endDraw);
 

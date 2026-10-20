@@ -57,7 +57,7 @@ set_target_properties(Qt6::QOffscreenIntegrationPlugin PROPERTIES
   QT_MODULE "Gui"
   QT_PLUGIN_CLASS_NAME "QOffscreenIntegrationPlugin"
   QT_PLUGIN_TYPE "platforms"
-  _qt_package_version "6.4.3"
+  _qt_package_version "6.10.2"
 )
 
 # Create imported target Qt6::QOffscreenIntegrationPlugin_init

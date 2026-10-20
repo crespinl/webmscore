@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -54,16 +54,11 @@ class Beam final : public BeamBase
 public:
     ~Beam();
 
-    // Score Tree functions
-    EngravingObject* scanParent() const override;
-
     Beam* clone() const override { return new Beam(*this); }
-    PointF pagePos() const override;      ///< position in page coordinates
-    PointF canvasPos() const override;    ///< position in page coordinates
 
     bool isEditable() const override { return true; }
     void startEdit(EditData&) override;
-    void editDrag(EditData&) override;
+    void dragGrip(EditData&) override;
 
     Fraction tick() const override;
     Fraction rtick() const override;

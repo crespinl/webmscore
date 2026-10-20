@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -37,6 +37,7 @@
 #include "bracket.h"
 #include "breath.h"
 #include "chord.h"
+#include "chordbracket.h"
 #include "chordline.h"
 #include "capo.h"
 #include "deadslapped.h"
@@ -162,6 +163,7 @@ EngravingItem* Factory::doCreateItem(ElementType type, EngravingItem* parent)
     case ElementType::BAR_LINE:          return new BarLine(parent->isSegment() ? toSegment(parent) : dummy->segment());
     case ElementType::SYSTEM_DIVIDER:    return new SystemDivider(parent->isSystem() ? toSystem(parent) : dummy->system());
     case ElementType::ARPEGGIO:          return new Arpeggio(parent->isChord() ? toChord(parent) : dummy->chord());
+    case ElementType::CHORD_BRACKET:     return new ChordBracket(parent->isChord() ? toChord(parent) : dummy->chord());
     case ElementType::BREATH:            return new Breath(parent->isSegment() ? toSegment(parent) : dummy->segment());
     case ElementType::GLISSANDO:         return new Glissando(parent);
     case ElementType::BRACKET:           return new Bracket(parent);
@@ -222,6 +224,7 @@ EngravingItem* Factory::doCreateItem(ElementType type, EngravingItem* parent)
     case ElementType::GUITAR_BEND:       return new GuitarBend(parent->isNote() ? toNote(parent) : dummy->note());
     case ElementType::TREMOLOBAR:        return new TremoloBar(parent);
     case ElementType::LYRICS:            return new Lyrics(parent->isChordRest() ? toChordRest(parent) : dummy->chord());
+    case ElementType::LYRICSLINE:        return new LyricsLine(parent);
     case ElementType::FIGURED_BASS:      return new FiguredBass(parent->isSegment() ? toSegment(parent) : dummy->segment());
     case ElementType::STEM:              return new Stem(parent->isChord() ? toChord(parent) : dummy->chord());
     case ElementType::SLUR:              return new Slur(parent);
@@ -247,7 +250,6 @@ EngravingItem* Factory::doCreateItem(ElementType type, EngravingItem* parent)
     case ElementType::PARTIAL_LYRICSLINE: return new PartialLyricsLine(parent);
     case ElementType::PARENTHESIS:       return new Parenthesis(parent);
 
-    case ElementType::LYRICSLINE:
     case ElementType::TEXTLINE_BASE:
     case ElementType::TEXTLINE_SEGMENT:
     case ElementType::GLISSANDO_SEGMENT:
@@ -349,6 +351,9 @@ MAKE_ITEM_IMPL(Ambitus, Segment)
 CREATE_ITEM_IMPL(Arpeggio, ElementType::ARPEGGIO, Chord, isAccessibleEnabled)
 MAKE_ITEM_IMPL(Arpeggio, Chord)
 
+CREATE_ITEM_IMPL(ChordBracket, ElementType::CHORD_BRACKET, Chord, isAccessibleEnabled)
+MAKE_ITEM_IMPL(ChordBracket, Chord)
+
 CREATE_ITEM_IMPL(Articulation, ElementType::ARTICULATION, ChordRest, isAccessibleEnabled)
 MAKE_ITEM_IMPL(Articulation, ChordRest)
 
@@ -445,6 +450,9 @@ MAKE_ITEM_IMPL(LayoutBreak, MeasureBase)
 
 CREATE_ITEM_IMPL(Lyrics, ElementType::LYRICS, ChordRest, isAccessibleEnabled)
 COPY_ITEM_IMPL(Lyrics)
+
+CREATE_ITEM_IMPL(LyricsLine, ElementType::LYRICSLINE, EngravingItem, isAccessibleEnabled)
+COPY_ITEM_IMPL(LyricsLine)
 
 CREATE_ITEM_IMPL(Measure, ElementType::MEASURE, System, isAccessibleEnabled)
 COPY_ITEM_IMPL(Measure)
@@ -695,6 +703,7 @@ TripletFeel* Factory::createTripletFeel(Segment * parent, TripletFeelType type, 
 CREATE_ITEM_IMPL(Vibrato, ElementType::VIBRATO, EngravingItem, isAccessibleEnabled)
 
 CREATE_ITEM_IMPL(TextLine, ElementType::TEXTLINE, EngravingItem, isAccessibleEnabled)
+MAKE_ITEM_IMPL(TextLine, EngravingItem);
 
 CREATE_ITEM_IMPL(Ottava, ElementType::OTTAVA, EngravingItem, isAccessibleEnabled)
 
@@ -717,6 +726,7 @@ CREATE_ITEM_IMPL(GradualTempoChange, ElementType::GRADUAL_TEMPO_CHANGE, Engravin
 CREATE_ITEM_IMPL(PalmMute, ElementType::PALM_MUTE, EngravingItem, isAccessibleEnabled)
 
 CREATE_ITEM_IMPL(WhammyBar, ElementType::WHAMMY_BAR, EngravingItem, isAccessibleEnabled)
+MAKE_ITEM_IMPL(WhammyBar, Segment)
 
 CREATE_ITEM_IMPL(Rasgueado, ElementType::RASGUEADO, EngravingItem, isAccessibleEnabled)
 

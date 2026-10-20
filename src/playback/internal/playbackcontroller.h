@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2025 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -19,8 +19,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-#ifndef MU_PLAYBACK_PLAYBACKCONTROLLER_H
-#define MU_PLAYBACK_PLAYBACKCONTROLLER_H
+
+#pragma once
 
 #include "modularity/ioc.h"
 #include "async/asyncable.h"
@@ -33,8 +33,7 @@
 #include "notation/inotationplayback.h"
 #include "audio/main/iplayer.h"
 #include "audio/main/iplayback.h"
-#include "audio/iaudioconfiguration.h"
-#include "audio/audiotypes.h"
+#include "audio/common/audiotypes.h"
 #include "iinteractive.h"
 #include "tours/itoursservice.h"
 
@@ -46,21 +45,21 @@
 
 namespace mu::playback {
 // class OnlineSoundsController;
-class PlaybackController : public IPlaybackController, public muse::actions::Actionable, public muse::async::Asyncable
+class PlaybackController : public IPlaybackController, public muse::actions::Actionable, public muse::async::Asyncable,
+    public muse::Contextable
 {
-    INJECT_STATIC(muse::actions::IActionsDispatcher, dispatcher)
-    INJECT_STATIC(context::IGlobalContext, globalContext)
-    INJECT_STATIC(IPlaybackConfiguration, configuration)
-    INJECT_STATIC(notation::INotationConfiguration, notationConfiguration)
-    INJECT_STATIC(muse::audio::IPlayback, playback)
-    INJECT_STATIC(muse::audio::IAudioConfiguration, audioConfiguration)
-    INJECT_STATIC(ISoundProfilesRepository, profilesRepo)
-    INJECT_STATIC(muse::IInteractive, interactive)
-    INJECT_STATIC(muse::tours::IToursService, tours)
+    muse::GlobalInject<IPlaybackConfiguration> configuration;
+    muse::GlobalInject<notation::INotationConfiguration> notationConfiguration;
+    muse::ContextInject<muse::actions::IActionsDispatcher> dispatcher = { this };
+    muse::ContextInject<context::IGlobalContext> globalContext = { this };
+    muse::ContextInject<muse::audio::IPlayback> playback = { this };
+    muse::ContextInject<ISoundProfilesRepository> profilesRepo = { this };
+    muse::ContextInject<muse::IInteractive> interactive = { this };
+    muse::ContextInject<muse::tours::IToursService> tours = { this };
 
 public:
-    PlaybackController();
-    ~PlaybackController();
+    PlaybackController(const muse::modularity::ContextPtr& iocCtx);
+    ~PlaybackController() override;
 
     void init();
 
@@ -89,9 +88,8 @@ public:
     muse::async::Promise<muse::audio::SoundPresetList> availableSoundPresets(
         const engraving::InstrumentTrackId& instrumentTrackId) const override;
 
-    notation::INotationSoloMuteState::SoloMuteState trackSoloMuteState(const engraving::InstrumentTrackId& trackId) const override;
-    void setTrackSoloMuteState(const engraving::InstrumentTrackId& trackId,
-                               const notation::INotationSoloMuteState::SoloMuteState& state) override;
+    const SoloMuteState& trackSoloMuteState(const engraving::InstrumentTrackId& trackId) const override;
+    void setTrackSoloMuteState(const engraving::InstrumentTrackId& trackId, const SoloMuteState& state) override;
 
     void playElements(const std::vector<const notation::EngravingItem*>& elements,
                       const PlayParams& params = PlayParams(), bool isMidi = false) override;
@@ -107,10 +105,10 @@ public:
     bool actionChecked(const muse::actions::ActionCode& actionCode) const override;
     muse::async::Channel<muse::actions::ActionCode> actionCheckedChanged() const override;
 
-    QTime totalPlayTime() const override;
+    muse::secs_t totalPlayTime() const override;
     muse::async::Notification totalPlayTimeChanged() const override;
 
-    notation::Tempo currentTempo() const override;
+    const notation::Tempo& currentTempo() const override;
     muse::async::Notification currentTempoChanged() const override;
 
     notation::MeasureBeat currentBeat() const override;
@@ -124,6 +122,8 @@ public:
     void applyProfile(const SoundProfileName& profileName) override;
 
     void setNotation(notation::INotationPtr notation) override;
+    void setMasterNotation(notation::IMasterNotationPtr masterNotation);
+
     void setIsExportingAudio(bool exporting) override;
 
     bool canReceiveAction(const muse::actions::ActionCode& code) const override;
@@ -170,6 +170,7 @@ private:
     void addSoundFlagsIfNeed(const std::vector<engraving::EngravingItem*>& selection);
 
     void togglePlay(bool showErrors = true);
+    void playFromSelection(bool showErrors = true);
     void rewind(const muse::actions::ActionData& args);
     void play();
     void pause(bool select = false);
@@ -177,7 +178,6 @@ private:
     void resume();
 
     muse::audio::secs_t playbackStartSecs() const;
-    muse::audio::secs_t playbackEndSecs() const;
 
     notation::InstrumentTrackIdSet instrumentTrackIdSetForRangePlayback() const;
 
@@ -223,8 +223,6 @@ private:
 
     void setTrackActivity(const engraving::InstrumentTrackId& instrumentTrackId, const bool isActive);
     muse::audio::AudioOutputParams trackOutputParams(const engraving::InstrumentTrackId& instrumentTrackId) const;
-    engraving::InstrumentTrackIdSet availableInstrumentTracks() const;
-    void removeNonExistingTracks();
     void removeTrack(const engraving::InstrumentTrackId& instrumentTrackId);
 
     void onTrackNewlyAdded(const engraving::InstrumentTrackId& instrumentTrackId);
@@ -253,6 +251,8 @@ private:
 
     muse::async::Channel<muse::audio::aux_channel_idx_t, std::string> m_auxChannelNameChanged;
 
+    muse::async::Asyncable m_seqAsyncReceiver; //! HACK - see PlaybackController::setupSequenceTracks
+
     InstrumentTrackIdMap m_instrumentTrackIdMap;
     AuxTrackIdMap m_auxTrackIdMap;
 
@@ -268,5 +268,3 @@ private:
     bool m_measureInputLag = false;
 };
 }
-
-#endif // MU_PLAYBACK_PLAYBACKCONTROLLER_H

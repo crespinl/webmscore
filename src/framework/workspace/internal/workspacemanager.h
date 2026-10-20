@@ -5,7 +5,7 @@
  * MuseScore
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore BVBA and others
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -34,16 +34,16 @@
 #include "iworkspacemanager.h"
 
 namespace muse::workspace {
-class WorkspaceManager : public IWorkspaceManager, public Injectable, public async::Asyncable
+class WorkspaceManager : public IWorkspaceManager, public Contextable, public async::Asyncable
 {
-    Inject<io::IFileSystem> fileSystem = { this };
-    Inject<IInteractive> interactive = { this };
-    Inject<IWorkspaceConfiguration> configuration = { this };
+    GlobalInject<io::IFileSystem> fileSystem;
+    GlobalInject<IWorkspaceConfiguration> configuration;
+    ContextInject<IInteractive> interactive = { this };
 
 public:
 
     WorkspaceManager(const modularity::ContextPtr& iocCtx)
-        : Injectable(iocCtx) {}
+        : Contextable(iocCtx) {}
 
     void init();
     void deinit();

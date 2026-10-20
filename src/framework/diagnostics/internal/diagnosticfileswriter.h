@@ -5,7 +5,7 @@
  * MuseScore
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore BVBA and others
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -34,14 +34,14 @@ class ZipWriter;
 }
 
 namespace muse::diagnostics {
-class DiagnosticFilesWriter : public Injectable
+class DiagnosticFilesWriter : public Contextable
 {
-    Inject<io::IFileSystem> fileSystem = { this };
-    Inject<IGlobalConfiguration> globalConfiguration = { this };
+    GlobalInject<io::IFileSystem> fileSystem;
+    GlobalInject<IGlobalConfiguration> globalConfiguration;
 
 public:
     DiagnosticFilesWriter(const modularity::ContextPtr& iocCtx)
-        : Injectable(iocCtx) {}
+        : Contextable(iocCtx) {}
 
     muse::Ret writeDiagnosticFiles(const muse::io::path_t& destinationZipPath);
 

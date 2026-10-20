@@ -5,7 +5,7 @@
  * MuseScore
  * Music Composition & Notation
  *
- * Copyright (C) 2025 MuseScore BVBA and others
+ * Copyright (C) 2025 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -151,6 +151,7 @@ enum ms_NoteArticulation2 : uint64_t
     ms_NoteArticulation2_PlopRough = 1LL << 10,
     ms_NoteArticulation2_DoitRough = 1LL << 11,
     ms_NoteArticulation2_ScoopRough = 1LL << 12,
+    ms_NoteArticulation2_BreathMark = 1LL << 13,
 };
 
 // added in v0.6
@@ -258,6 +259,8 @@ typedef struct ms_PitchBendInfo
     int _offset_cents;
     ms_PitchBendType _type;
 } ms_PitchBendInfo;
+
+static constexpr int MAX_PITCH_BEND_RANGE_CENTS = 1200;
 
 typedef struct ms_VibratoInfo
 {
@@ -396,6 +399,7 @@ typedef enum ms_RenderingState
     ms_RenderingState_ErrorFileIO,
     ms_RenderingState_ErrorTimeOut,
     ms_RenderingState_ErrorLimitReached,
+    ms_RenderingState_OutOfRange,
 } ms_RenderingState;
 
 typedef struct ms_RenderRangeInfo
@@ -435,6 +439,15 @@ typedef void (* ms_MuseSampler_set_rendering_state_changed_callback)(ms_MuseSamp
 
 // added in v0.104
 typedef ms_RenderRangeInfo2 (* ms_RenderProgressInfo2_get_next)(ms_RenderingRangeList range_list);
+// ------------------------------------------------------------
+
+// added in v0.105
+typedef ms_Result (* ms_init_2)();
+typedef ms_Result (* ms_deinit)();
+
+typedef void (* ms_MuseSampler_set_lazy_render)(ms_MuseSampler ms, bool enabled);
+typedef void (* ms_MuseSampler_set_rendering_state_changed_callback_2)(ms_MuseSampler ms, ms_rendering_state_changed_callback callback,
+                                                                       void* user_data);
 // ------------------------------------------------------------
 
 namespace muse::musesampler {

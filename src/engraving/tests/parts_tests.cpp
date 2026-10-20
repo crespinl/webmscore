@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -46,7 +46,6 @@
 #include "utils/scorecomp.h"
 #include "utils/testutils.h"
 
-using namespace mu;
 using namespace mu::engraving;
 
 static const String PARTS_DATA_DIR("parts_data/");
@@ -97,13 +96,9 @@ TEST_F(Engraving_PartsTests, voicesExcerpt)
     // create first part
     //
     std::vector<Part*> parts;
-    std::multimap<track_idx_t, track_idx_t> trackList;
+
     parts.push_back(masterScore->parts().at(0));
     Score* nscore = masterScore->createScore();
-
-    trackList.insert({ 1, 0 });
-    trackList.insert({ 2, 1 });
-    trackList.insert({ 4, 4 });
 
     Excerpt* ex = new Excerpt(masterScore);
     ex->setExcerptScore(nscore);
@@ -111,9 +106,9 @@ TEST_F(Engraving_PartsTests, voicesExcerpt)
     masterScore->excerpts().push_back(ex);
     ex->setName(parts.front()->longName());
     ex->setParts(parts);
-    ex->setTracksMapping(trackList);
     Excerpt::createExcerpt(ex);
     EXPECT_TRUE(nscore);
+    ex->setVoiceVisible(nscore->staff(0), 0, false);
 
     //nscore->setName(parts.front()->partName());
 
@@ -124,18 +119,17 @@ TEST_F(Engraving_PartsTests, voicesExcerpt)
     parts.push_back(masterScore->parts().at(1));
     nscore = masterScore->createScore();
 
-    trackList.clear();
-    trackList.insert({ 11, 0 });
-
     ex = new Excerpt(masterScore);
     ex->setExcerptScore(nscore);
     nscore->setExcerpt(ex);
     masterScore->excerpts().push_back(ex);
     ex->setName(parts.front()->longName());
     ex->setParts(parts);
-    ex->setTracksMapping(trackList);
     Excerpt::createExcerpt(ex);
     EXPECT_TRUE(nscore);
+    ex->setVoiceVisible(nscore->staff(0), 0, false);
+    ex->setVoiceVisible(nscore->staff(0), 1, false);
+    ex->setVoiceVisible(nscore->staff(0), 2, false);
 
     //
     // create second part
@@ -144,18 +138,17 @@ TEST_F(Engraving_PartsTests, voicesExcerpt)
     parts.push_back(masterScore->parts().at(1));
     nscore = masterScore->createScore();
 
-    trackList.clear();
-    trackList.insert({ 8, 0 });
-
     ex = new Excerpt(masterScore);
     ex->setExcerptScore(nscore);
     nscore->setExcerpt(ex);
     masterScore->excerpts().push_back(ex);
     ex->setName(parts.front()->longName());
     ex->setParts(parts);
-    ex->setTracksMapping(trackList);
     Excerpt::createExcerpt(ex);
     EXPECT_TRUE(nscore);
+    ex->setVoiceVisible(nscore->staff(0), 1, false);
+    ex->setVoiceVisible(nscore->staff(0), 2, false);
+    ex->setVoiceVisible(nscore->staff(0), 3, false);
 
     //nscore->setName(parts.front()->partName());
 
@@ -198,9 +191,6 @@ void Engraving_PartsTests::testPartCreation(const String& test)
 
 TEST_F(Engraving_PartsTests, appendMeasure)
 {
-    bool use302 = MScore::useRead302InTestMode;
-    MScore::useRead302InTestMode = false;
-
     MasterScore* score = ScoreRW::readScore(PARTS_DATA_DIR + u"part-all.mscx");
     ASSERT_TRUE(score);
 
@@ -216,7 +206,6 @@ TEST_F(Engraving_PartsTests, appendMeasure)
 
     EXPECT_TRUE(ScoreComp::saveCompareScore(score, u"part-all-uappendmeasures.mscx", PARTS_DATA_DIR + u"part-all-uappendmeasures.mscx"));
     delete score;
-    MScore::useRead302InTestMode = use302;
 }
 
 //---------------------------------------------------------
@@ -225,9 +214,6 @@ TEST_F(Engraving_PartsTests, appendMeasure)
 
 TEST_F(Engraving_PartsTests, insertMeasure)
 {
-    bool use302 = MScore::useRead302InTestMode;
-    MScore::useRead302InTestMode = false;
-
     MasterScore* score = ScoreRW::readScore(PARTS_DATA_DIR + u"part-all.mscx");
     ASSERT_TRUE(score);
 
@@ -244,8 +230,6 @@ TEST_F(Engraving_PartsTests, insertMeasure)
 
     EXPECT_TRUE(ScoreComp::saveCompareScore(score, u"part-all-uinsertmeasures.mscx", PARTS_DATA_DIR + u"part-all-uinsertmeasures.mscx"));
     delete score;
-
-    MScore::useRead302InTestMode = use302;
 }
 
 //---------------------------------------------------------
@@ -325,12 +309,33 @@ TEST_F(Engraving_PartsTests, createPart1)
     testPartCreation(u"part-empty");
 }
 
+TEST_F(Engraving_PartsTests, createEmptyPart)
+{
+    String sourceFileName = u"part-empty";
+    MasterScore* score = ScoreRW::readScore(PARTS_DATA_DIR + sourceFileName + u".mscx");
+    ASSERT_TRUE(score);
+    EXPECT_TRUE(ScoreComp::saveCompareScore(score, sourceFileName + u"-1.mscx", PARTS_DATA_DIR + sourceFileName + u".mscx"));
+
+    TestUtils::createEmptyPart(score);
+
+    // Check that measures have correct ticks set
+    for (Excerpt* excerpt : score->excerpts()) {
+        Score* excerptScore = excerpt->excerptScore();
+        EXPECT_TRUE(excerptScore);
+        for (MeasureBase* mb = excerptScore->first(); mb; mb = mb->next()) {
+            if (mb->isMeasure()) {
+                EXPECT_GT(mb->ticks(), Fraction(0, 1));
+            }
+            if (mb->prev()) {
+                EXPECT_EQ(mb->prev()->endTick(), mb->tick());
+            }
+        }
+    }
+}
+
 TEST_F(Engraving_PartsTests, createPart2)
 {
-    bool use302 = MScore::useRead302InTestMode;
-    MScore::useRead302InTestMode = false;
     testPartCreation(u"part-all");
-    MScore::useRead302InTestMode = use302;
 }
 
 TEST_F(Engraving_PartsTests, createPart3)
@@ -555,7 +560,7 @@ MasterScore* Engraving_PartsTests::doRemoveFingering()
     Note* note   = chord->upNote();
     EngravingItem* fingering = 0;
     for (EngravingItem* e : note->el()) {
-        if (e->type() == ElementType::FINGERING) {
+        if (e->isFingering()) {
             fingering = e;
             break;
         }
@@ -689,7 +694,7 @@ MasterScore* Engraving_PartsTests::doRemoveSymbol()
     Note* note   = chord->upNote();
     EngravingItem* se = 0;
     for (EngravingItem* e : note->el()) {
-        if (e->type() == ElementType::SYMBOL) {
+        if (e->isSymbol()) {
             se = e;
             break;
         }
@@ -823,7 +828,7 @@ MasterScore* Engraving_PartsTests::doRemoveChordline()
 
     EngravingItem* se = 0;
     for (EngravingItem* e : chord->el()) {
-        if (e->type() == ElementType::CHORDLINE) {
+        if (e->isChordLine()) {
             se = e;
             break;
         }
@@ -1082,7 +1087,7 @@ MasterScore* Engraving_PartsTests::doRemoveImage()
     Note* note   = chord->upNote();
     EngravingItem* fingering = 0;
     for (EngravingItem* e : note->el()) {
-        if (e->type() == ElementType::IMAGE) {
+        if (e->isImage()) {
             fingering = e;
             break;
         }
@@ -1161,7 +1166,7 @@ TEST_F(Engraving_PartsTests, partExclusion)
             continue;
         }
         for (Segment& segment : toMeasure(mb)->segments()) {
-            EngravingItem* item = segment.elementAt(0);
+            EngravingItem* item = segment.element(0);
             if (item && item->isClef() && !item->generated()) {
                 itemsToExclude.push_back(item);
             }
@@ -1227,7 +1232,7 @@ TEST_F(Engraving_PartsTests, partPropertyLinking)
     EXPECT_TRUE(testItem);
 
     testItem->undoChangeProperty(Pid::PLACEMENT, PropertyValue::fromValue(PlacementV::ABOVE), PropertyFlags::NOSTYLE);
-    testItem->undoChangeProperty(Pid::DYNAMICS_SIZE, PropertyValue::fromValue(1.2), PropertyFlags::NOSTYLE);
+    testItem->undoChangeProperty(Pid::MUSICAL_SYMBOLS_SCALE, PropertyValue::fromValue(1.2), PropertyFlags::NOSTYLE);
     EXPECT_FALSE(testItem->isPositionLinkedToMaster());
     EXPECT_FALSE(testItem->isAppearanceLinkedToMaster());
 
@@ -1242,12 +1247,7 @@ TEST_F(Engraving_PartsTests, partPropertyLinking)
 
 TEST_F(Engraving_PartsTests, partSpanners)
 {
-    bool useRead302 = MScore::useRead302InTestMode;
-    MScore::useRead302InTestMode = false;
-
     testPartCreation(u"part-spanners");
-
-    MScore::useRead302InTestMode = useRead302;
 }
 
 TEST_F(Engraving_PartsTests, partTies) {
@@ -1293,9 +1293,6 @@ TEST_F(Engraving_PartsTests, partVisibleTracks) {
 }
 
 TEST_F(Engraving_PartsTests, inputFromParts) {
-    bool useRead302 = MScore::useRead302InTestMode;
-    MScore::useRead302InTestMode = false;
-
     // Enter notes *in parts* and check that they are correctly cloned to the score.
 
     Score* score = ScoreRW::readScore(PARTS_DATA_DIR + u"input-from-parts.mscz");
@@ -1329,7 +1326,7 @@ TEST_F(Engraving_PartsTests, inputFromParts) {
     flutePart->setNoteRest(partSegment, voice, NoteVal(60), Fraction(1, 1));
     Segment* scoreSegment = score->tick2segment(partSegment->tick(), true, SegmentType::ChordRest);
     EXPECT_TRUE(scoreSegment);
-    Chord* chord = toChord(scoreSegment->elementAt(staff2track(fluteStaff) + voice));
+    Chord* chord = toChord(scoreSegment->element(staff2track(fluteStaff) + voice));
     EXPECT_TRUE(chord);
 
     voice = 2;
@@ -1338,7 +1335,7 @@ TEST_F(Engraving_PartsTests, inputFromParts) {
     oboePart->setNoteRest(partSegment, voice, NoteVal(60), Fraction(1, 1));
     scoreSegment = score->tick2segment(partSegment->tick(), true, SegmentType::ChordRest);
     EXPECT_TRUE(scoreSegment);
-    chord = toChord(scoreSegment->elementAt(staff2track(oboeStaff) + voice));
+    chord = toChord(scoreSegment->element(staff2track(oboeStaff) + voice));
     EXPECT_TRUE(chord);
 
     voice = 1;
@@ -1347,7 +1344,7 @@ TEST_F(Engraving_PartsTests, inputFromParts) {
     clarinetPart->setNoteRest(partSegment, voice, NoteVal(60), Fraction(1, 1));
     scoreSegment = score->tick2segment(partSegment->tick(), true, SegmentType::ChordRest);
     EXPECT_TRUE(scoreSegment);
-    chord = toChord(scoreSegment->elementAt(staff2track(clarinetStaff) + voice));
+    chord = toChord(scoreSegment->element(staff2track(clarinetStaff) + voice));
     EXPECT_TRUE(chord);
 
     voice = 0;
@@ -1357,10 +1354,8 @@ TEST_F(Engraving_PartsTests, inputFromParts) {
     bassoonPart->setNoteRest(partSegment, voice, NoteVal(60), Fraction(1, 1));
     scoreSegment = score->tick2segment(partSegment->tick(), true, SegmentType::ChordRest);
     EXPECT_TRUE(scoreSegment);
-    chord = toChord(scoreSegment->elementAt(staff2track(bassoonStaff) + voice));
+    chord = toChord(scoreSegment->element(staff2track(bassoonStaff) + voice));
     EXPECT_TRUE(chord);
-
-    MScore::useRead302InTestMode = useRead302;
 }
 
 //---------------------------------------------------------

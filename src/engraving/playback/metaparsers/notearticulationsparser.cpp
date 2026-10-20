@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -59,7 +59,7 @@ void NoteArticulationsParser::buildNoteArticulationMap(const Note* note, const R
 
 void NoteArticulationsParser::doParse(const EngravingItem* item, const RenderingContext& ctx, mpe::ArticulationMap& result)
 {
-    IF_ASSERT_FAILED(item->type() == ElementType::NOTE) {
+    IF_ASSERT_FAILED(item->isNote()) {
         return;
     }
 
@@ -131,11 +131,14 @@ ArticulationType NoteArticulationsParser::articulationTypeByNoteheadGroup(const 
     }
 }
 
-void NoteArticulationsParser::parsePlayingTechnique(const RenderingContext& ctx, mpe::ArticulationMap& result)
+void NoteArticulationsParser::parsePlayingTechnique(const RenderingContext& ctx, mpe::ArticulationMap& result, bool sustainAllowed)
 {
-    int chordPosTickWithOffset = ctx.nominalPositionStartTick + ctx.positionTickOffset;
-
+    const int chordPosTickWithOffset = ctx.nominalPositionStartTick + ctx.positionTickOffset;
     const std::pair<timestamp_t, PlayingTechniqueType> tech = ctx.playbackCtx->playingTechnique(ctx.score, chordPosTickWithOffset);
+    if (tech.second == PlayingTechniqueType::HandbellsLV && !sustainAllowed) {
+        return;
+    }
+
     const mpe::ArticulationType articulationType = articulationFromPlayTechType(tech.second);
     if (articulationType == ArticulationType::Standard || articulationType == ArticulationType::Undefined) {
         return;
@@ -166,7 +169,7 @@ void NoteArticulationsParser::parsePlayingTechnique(const RenderingContext& ctx,
 
 void NoteArticulationsParser::parseGhostNote(const Note* note, const RenderingContext& ctx, mpe::ArticulationMap& result)
 {
-    if (!note->ghost() && !note->bothParentheses()) {
+    if (!note->ghost() && !note->parenthesisInfo()) {
         return;
     }
 

@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -23,6 +23,9 @@
 
 #include <QJsonDocument>
 #include <QJsonObject>
+
+#include "engraving/infrastructure/mscreader.h"
+#include "engraving/infrastructure/mscwriter.h"
 
 #include "notation.h"
 
@@ -68,7 +71,8 @@ static QString viewModeToString(ViewMode m)
     return "";
 }
 
-NotationViewState::NotationViewState(Notation* notation)
+NotationViewState::NotationViewState(Notation* notation, const modularity::ContextPtr& ctx)
+    : muse::Contextable(ctx)
 {
     notation->openChanged().onNotify(this, [this, notation]() {
         if (!notation->isOpen()) {
@@ -113,7 +117,7 @@ void NotationViewState::setMatrixInited(bool inited)
     m_isMatrixInited = inited;
 }
 
-Transform NotationViewState::matrix() const
+const Transform& NotationViewState::matrix() const
 {
     return m_matrix;
 }

@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2023 MuseScore Limited
+ * Copyright (C) 2023 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -114,7 +114,6 @@ void TremoloLayout::layoutOneNoteTremolo(TremoloSingleChord* item, const LayoutC
         x = ChordLayout::centerX(item->chord());
     }
 
-    double staveOffset = item->staffOffsetY();
     bool up = item->chord()->up();
     int upValue = up ? -1 : 1;
     double mag = item->chord()->intrinsicMag();
@@ -144,12 +143,11 @@ void TremoloLayout::layoutOneNoteTremolo(TremoloSingleChord* item, const LayoutC
     yOffset -= item->isBuzzRoll() && up ? 0.5 * spatium : 0.0;
     yOffset -= up ? 0.0 : item->minHeight() * spatium / mag;
     yOffset *= upValue;
-    yOffset += staveOffset;
     y += yOffset;
 
     if (up) {
         double height = item->isBuzzRoll() ? 0 : item->minHeight();
-        double staveHeight = (((item->staff()->lines(item->tick()) - 1) - height) * spatium / mag) + staveOffset;
+        double staveHeight = (((item->staff()->lines(item->tick()) - 1) - height) * spatium / mag);
         y = std::min(y, staveHeight);
     } else {
         y = std::max(y, 0.0);
@@ -239,7 +237,6 @@ void TremoloLayout::layoutTwoNotesTremolo(TremoloTwoChord* item, const LayoutCon
     item->setEndAnchor(BeamTremoloLayout::chordBeamAnchor(item->ldata(), item->chord2(), ChordBeamAnchorType::End));
 
     // deal with manual adjustments here and return
-    PropertyValue val = item->getProperty(Pid::PLACEMENT);
     if (item->userModified()) {
         int idx = item->directionIdx();
         double startY = item->beamFragment().py1[idx];

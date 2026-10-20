@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2024 MuseScore Limited
+ * Copyright (C) 2024 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -27,8 +27,8 @@ using namespace mu::context;
 void PlaybackState::setPlayer(audio::IPlayerPtr player)
 {
     if (m_player) {
-        m_player->playbackStatusChanged().resetOnReceive(this);
-        m_player->playbackPositionChanged().resetOnReceive(this);
+        m_player->playbackStatusChanged().disconnect(this);
+        m_player->playbackPositionChanged().disconnect(this);
     }
 
     m_player = player;

@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2025 MuseScore Limited
+ * Copyright (C) 2025 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -23,6 +23,7 @@
 #include "harmonylayout.h"
 #include "rendering/score/parenthesislayout.h"
 #include "tlayout.h"
+#include "textlayout.h"
 
 #include "dom/fret.h"
 #include "dom/harmony.h"
@@ -87,7 +88,7 @@ PointF HarmonyLayout::calculateBoundingRect(const Harmony* item, Harmony::Layout
     double newPosY = 0.0;
 
     if (item->ldata()->renderItemList().empty()) {
-        TLayout::layoutBaseTextBase1(item, ldata);
+        TextLayout::layoutBaseTextBase1(item, ldata);
 
         if (alignToFretDiagram) {
             newPosY = ldata->pos().y();
@@ -95,7 +96,7 @@ PointF HarmonyLayout::calculateBoundingRect(const Harmony* item, Harmony::Layout
             newPosY = ypos - ((item->align() == AlignV::BOTTOM) ? -ldata->bbox().height() : 0.0);
         }
     } else {
-        layoutModifierParentheses(item);
+        layoutModifierParentheses(item, ctx);
         RectF bb;
         RectF hAlignBox;
         for (HarmonyRenderItem* renderItem : item->ldata()->renderItemList()) {
@@ -111,6 +112,7 @@ PointF HarmonyLayout::calculateBoundingRect(const Harmony* item, Harmony::Layout
         if (alignToFretDiagram) {
             switch (ctx.conf().styleV(Sid::chordAlignmentToFretboard).value<AlignH>()) {
             case AlignH::LEFT:
+            case AlignH::JUSTIFY:
                 xx = -hAlignBox.left();
                 break;
             case AlignH::HCENTER:
@@ -123,6 +125,7 @@ PointF HarmonyLayout::calculateBoundingRect(const Harmony* item, Harmony::Layout
         } else {
             switch (item->position()) {
             case AlignH::LEFT:
+            case AlignH::JUSTIFY:
                 xx = -hAlignBox.left();
                 break;
             case AlignH::HCENTER:
@@ -163,6 +166,7 @@ PointF HarmonyLayout::calculateBoundingRect(const Harmony* item, Harmony::Layout
     if (alignToFretDiagram) {
         switch (ctx.conf().styleV(Sid::chordAlignmentToFretboard).value<AlignH>()) {
         case AlignH::LEFT:
+        case AlignH::JUSTIFY:
             newPosX = 0.0;
             break;
         case AlignH::HCENTER:
@@ -175,6 +179,7 @@ PointF HarmonyLayout::calculateBoundingRect(const Harmony* item, Harmony::Layout
     } else {
         switch (item->position()) {
         case AlignH::LEFT:
+        case AlignH::JUSTIFY:
             newPosX = 0.0;
             break;
         case AlignH::HCENTER:
@@ -194,10 +199,11 @@ PointF HarmonyLayout::calculateBoundingRect(const Harmony* item, Harmony::Layout
     return PointF(newPosX, newPosY);
 }
 
-void HarmonyLayout::layoutModifierParentheses(const Harmony* item)
+void HarmonyLayout::layoutModifierParentheses(const Harmony* item, const LayoutContext& ctx)
 {
     const double spatium = item->spatium();
     const std::vector<HarmonyRenderItem*>& itemList = item->ldata()->renderItemList();
+    const double smuflParens = ctx.conf().styleB(Sid::harmonyParenUseSmuflSym);
     // Layout parentheses
     std::vector<ChordSymbolParen*> openingParenStack;
     double lastTextSegHeight = 0.0;
@@ -210,6 +216,9 @@ void HarmonyLayout::layoutModifierParentheses(const Harmony* item)
             if (curParen->parenItem->direction() == DirectionH::LEFT) {
                 // Opening paren
                 openingParenStack.push_back(curParen);
+                if (ctx.conf().styleB(Sid::harmonyParenUseSmuflSym)) {
+                    curParen->parenItem->mutldata()->symId = SymId::csymParensLeftTall;
+                }
             } else {
                 // Closing paren
                 ChordSymbolParen* openingParen = openingParenStack.empty() ? nullptr : openingParenStack.back();
@@ -230,26 +239,43 @@ void HarmonyLayout::layoutModifierParentheses(const Harmony* item)
                     startY = lastTextSegTop;
                 }
 
-                const double mag = openingParen->parenItem->ldata()->mag();
-                const double scale = (height - 2 * parenExtension) / rootCapHeight;
-                static constexpr double HEIGHT_TO_WIDTH_RATIO = 20;
-                const double midPointThickness = height / HEIGHT_TO_WIDTH_RATIO * mag * 1 / std::sqrt(scale);
-                const double endPointThickness = 0.03;
-                const double shoulder = 0.2 * height * std::pow(mag, 0.1) * 1 / std::sqrt(scale);
+                if (smuflParens) {
+                    double symHeight = item->symHeight(SymId::csymParensRightTall);
+                    double scale = height / symHeight;
+                    curParen->parenItem->mutldata()->symId = SymId::csymParensRightTall;
+                    curParen->parenItem->mutldata()->symScale = scale;
+                    openingParen->parenItem->mutldata()->symScale = scale;
 
-                openingParen->parenItem->mutldata()->startY = startY;
-                openingParen->sety(startY);
-                openingParen->parenItem->mutldata()->height = height;
-                openingParen->parenItem->mutldata()->midPointThickness.set_value(midPointThickness);
-                openingParen->parenItem->mutldata()->endPointThickness.set_value(endPointThickness);
-                openingParen->parenItem->mutldata()->shoulderWidth = shoulder;
+                    curParen->sety(startY + height);
+                    openingParen->sety(startY + height);
 
-                curParen->parenItem->mutldata()->startY = startY;
-                curParen->sety(startY);
-                curParen->parenItem->mutldata()->height = height;
-                curParen->parenItem->mutldata()->midPointThickness.set_value(midPointThickness);
-                curParen->parenItem->mutldata()->endPointThickness.set_value(endPointThickness);
-                curParen->parenItem->mutldata()->shoulderWidth = shoulder;
+                    ParenthesisLayout::createSmuflShape(openingParen->parenItem, openingParen->parenItem->mutldata());
+                    ParenthesisLayout::createSmuflShape(curParen->parenItem, curParen->parenItem->mutldata());
+                } else {
+                    const double scale = (height - 2 * parenExtension) / rootCapHeight;
+                    const double mag = openingParen->parenItem->ldata()->mag();
+                    static constexpr double HEIGHT_TO_WIDTH_RATIO = 20;
+                    const double midPointThickness = height / HEIGHT_TO_WIDTH_RATIO * mag * 1 / std::sqrt(scale);
+                    const double endPointThickness = 0.03;
+                    const double shoulder = 0.2 * height * std::pow(mag, 0.1) * 1 / std::sqrt(scale);
+
+                    openingParen->parenItem->mutldata()->startY = startY;
+                    openingParen->sety(startY);
+                    openingParen->parenItem->mutldata()->height = height;
+                    openingParen->parenItem->mutldata()->midPointThickness.set_value(midPointThickness);
+                    openingParen->parenItem->mutldata()->endPointThickness.set_value(endPointThickness);
+                    openingParen->parenItem->mutldata()->shoulderWidth = shoulder;
+
+                    curParen->parenItem->mutldata()->startY = startY;
+                    curParen->sety(startY);
+                    curParen->parenItem->mutldata()->height = height;
+                    curParen->parenItem->mutldata()->midPointThickness.set_value(midPointThickness);
+                    curParen->parenItem->mutldata()->endPointThickness.set_value(endPointThickness);
+                    curParen->parenItem->mutldata()->shoulderWidth = shoulder;
+
+                    ParenthesisLayout::createPathAndShape(openingParen->parenItem, openingParen->parenItem->mutldata());
+                    ParenthesisLayout::createPathAndShape(curParen->parenItem, curParen->parenItem->mutldata());
+                }
 
                 double closingPos = openingParen->closingParenPos;
                 if (muse::RealIsEqual(-DBL_MAX, closingPos)) {
@@ -257,13 +283,11 @@ void HarmonyLayout::layoutModifierParentheses(const Harmony* item)
                 }
                 curParen->setx(closingPos);
 
-                ParenthesisLayout::createPathAndShape(openingParen->parenItem, openingParen->parenItem->mutldata());
-                ParenthesisLayout::createPathAndShape(curParen->parenItem, curParen->parenItem->mutldata());
-
                 // Outer parens must always be the same length or longer than inner parens
                 for (ChordSymbolParen* outerParen : openingParenStack) {
                     outerParen->top = std::min(openingParen->top, outerParen->top);
                     outerParen->bottom = std::max(openingParen->bottom, outerParen->bottom);
+                    outerParen->closingParenPos = std::max(openingParen->closingParenPos, outerParen->closingParenPos);
                 }
             }
         } else if (TextSegment* textSeg = dynamic_cast<TextSegment*>(renderItem)) {
@@ -279,10 +303,12 @@ void HarmonyLayout::layoutModifierParentheses(const Harmony* item)
                 rootRefHeight = height;
                 rootCapHeight = textSeg->capHeight();
             }
-            if (!openingParenStack.empty() && textSeg->font().type() != Font::Type::MusicSymbolText) {
+            if (!openingParenStack.empty()) {
                 ChordSymbolParen* topParen = openingParenStack.back();
-                topParen->top = std::min(topParen->top, textSeg->tightBoundingRect().translated(textSeg->pos()).y());
-                topParen->bottom = std::max(topParen->bottom, textSeg->pos().y());
+                if (textSeg->font().type() != Font::Type::MusicSymbolText) {
+                    topParen->top = std::min(topParen->top, textSeg->tightBoundingRect().translated(textSeg->pos()).y());
+                    topParen->bottom = std::max(topParen->bottom, textSeg->pos().y());
+                }
                 topParen->closingParenPos = std::max(topParen->closingParenPos, textSeg->x() + textSeg->width());
                 continue;
             }
@@ -319,15 +345,16 @@ void HarmonyLayout::layoutModifierParentheses(const Harmony* item)
         if (ChordSymbolParen* paren = dynamic_cast<ChordSymbolParen*>(renderItem)) {
             if (paren->parenItem->direction() == DirectionH::LEFT) {
                 double heightToRefRatio = std::max(paren->height(), rootRefHeight) / rootRefHeight;
-                bool scaleParenWidth = !prevParen && !muse::RealIsEqual(heightToRefRatio, 1.0);
+                bool scaleParenWidth = !smuflParens && !prevParen && !muse::RealIsEqual(heightToRefRatio, 1.0);
                 const double PAREN_PADDING_SCALER = 0.6;
                 double scaledParenWidth = paren->parenItem->width() * PAREN_PADDING_SCALER / heightToRefRatio;
 
                 double parenWidth = scaleParenWidth ? scaledParenWidth : paren->parenItem->width();
+
+                double parenAdjust = additionalSpace + padding + (smuflParens ? 0.0 : parenWidth);
+                paren->movex(parenAdjust);
                 additionalSpace += parenWidth + padding;
-                paren->movex(additionalSpace);
-            }
-            if (paren->parenItem->direction() == DirectionH::RIGHT) {
+            } else if (paren->parenItem->direction() == DirectionH::RIGHT) {
                 paren->movex(additionalSpace + padding);
                 additionalSpace += paren->parenItem->width() + padding;
             }
@@ -450,7 +477,8 @@ void HarmonyLayout::render(Harmony* item, Harmony::LayoutData* ldata, const Layo
     }
 
     double longestLine = 0.0;
-    for (double width : muse::keys(chordTextSegments)) {
+
+    for (const auto& [width, _] : chordTextSegments) {
         if (width > longestLine) {
             longestLine = width;
         }
@@ -491,20 +519,16 @@ void HarmonyLayout::renderRomanNumeral(Harmony* item, Harmony::LayoutData* ldata
     ldata->baseline = 0.0;
 }
 
-void HarmonyLayout::renderSingleHarmony(Harmony* item, Harmony::LayoutData* ldata, HarmonyRenderCtx& harmonyCtx,
-                                        const LayoutContext& ctx)
+void HarmonyLayout::doRenderSingleHarmony(Harmony* item, Harmony::LayoutData* ldata, HarmonyRenderCtx& harmonyCtx, int rootTpc, int bassTpc,
+                                          const LayoutContext& ctx)
 {
-    harmonyCtx.hAlign = true;
     HarmonyInfo* info = harmonyCtx.info;
-
-    const MStyle& style = ctx.conf().style();
-
-    int capo = style.styleI(Sid::capoPosition);
-
     ChordList* chordList = info->chordList();
     if (!chordList) {
         return;
     }
+
+    const MStyle& style = ctx.conf().style();
 
     NoteCaseType rootCase = item->rootRenderCase(info);
     NoteCaseType bassCase = item->bassRenderCase();
@@ -514,16 +538,16 @@ void HarmonyLayout::renderSingleHarmony(Harmony* item, Harmony::LayoutData* ldat
     const ChordDescription* cd = info->getDescription();
     const bool stackModifiers = style.styleB(Sid::verticallyStackModifiers) && !item->doNotStackModifiers();
 
-    if (item->harmonyType() == HarmonyType::STANDARD && tpcIsValid(info->rootTpc())) {
+    if (item->harmonyType() == HarmonyType::STANDARD && tpcIsValid(rootTpc)) {
         // render root
-        render(item, ldata, chordList->renderListRoot, harmonyCtx, ctx, info->rootTpc(), spelling, rootCase);
+        render(item, ldata, chordList->renderListRoot, harmonyCtx, ctx, rootTpc, spelling, rootCase);
         // render extension
         if (cd) {
             render(item, ldata, stackModifiers ? cd->renderListStacked : cd->renderList, harmonyCtx, ctx, 0);
         }
-    } else if (item->harmonyType() == HarmonyType::NASHVILLE && tpcIsValid(info->rootTpc())) {
+    } else if (item->harmonyType() == HarmonyType::NASHVILLE && tpcIsValid(rootTpc)) {
         // render function
-        render(item, ldata, chordList->renderListFunction, harmonyCtx, ctx, info->rootTpc(), spelling, bassCase);
+        render(item, ldata, chordList->renderListFunction, harmonyCtx, ctx, rootTpc, spelling, bassCase);
         double adjust = chordList->nominalAdjust();
         harmonyCtx.movey(adjust * item->magS() * item->spatium() * .2);
         // render extension
@@ -535,8 +559,8 @@ void HarmonyLayout::renderSingleHarmony(Harmony* item, Harmony::LayoutData* ldat
     }
 
     // render bass
-    if (tpcIsValid(info->bassTpc())) {
-        std::list<RenderActionPtr > bassNoteChordList
+    if (tpcIsValid(bassTpc)) {
+        const std::vector<RenderActionPtr>& bassNoteChordList
             = style.styleB(Sid::chordBassNoteStagger) ? chordList->renderListBassOffset : chordList->renderListBass;
 
         static const std::wregex PATTERN_69 = std::wregex(L"6[,/]?9");
@@ -544,15 +568,42 @@ void HarmonyLayout::renderSingleHarmony(Harmony* item, Harmony::LayoutData* ldat
         const bool hasModifierStack = stackModifiers && (info->parsedChord() ? info->parsedChord()->modifierList().size() > 1 : false);
 
         if (hasModifierStack || is69) {
-            bassNoteChordList.emplace_front(new RenderActionMove(0.05, 0.0));
+            render(item, ldata, { std::make_shared<RenderActionMove>(0.05, 0.0) }, harmonyCtx, ctx,
+                   bassTpc, spelling, bassCase, item->bassScale());
         }
-        render(item, ldata, bassNoteChordList, harmonyCtx, ctx, info->bassTpc(), spelling, bassCase, item->bassScale());
+        render(item, ldata, bassNoteChordList, harmonyCtx, ctx, bassTpc, spelling, bassCase, item->bassScale());
+    }
+}
+
+void HarmonyLayout::renderSingleHarmony(Harmony* item, Harmony::LayoutData* ldata, HarmonyRenderCtx& harmonyCtx,
+                                        const LayoutContext& ctx)
+{
+    harmonyCtx.hAlign = true;
+    const MStyle& style = ctx.conf().style();
+    HarmonyInfo* info = harmonyCtx.info;
+
+    int rootTpc = info->rootTpc();
+    int bassTpc = info->bassTpc();
+
+    DisplayCapoChordType displayCapo = style.styleV(Sid::displayCapoChords).value<DisplayCapoChordType>();
+
+    // render single if no capo or both
+
+    if (displayCapo == DisplayCapoChordType::BOTH || displayCapo == DisplayCapoChordType::CONCERT) {
+        doRenderSingleHarmony(item, ldata, harmonyCtx, rootTpc, bassTpc, ctx);
     }
 
-    if (tpcIsValid(info->rootTpc()) && capo > 0 && capo < 12) {
+    int capo = style.styleI(Sid::capoPosition);
+    if (capo == 0) {
+        return;
+    }
+
+    int capoRootTpc = Tpc::TPC_INVALID;
+    int capoBassTpc = Tpc::TPC_INVALID;
+    if (tpcIsValid(rootTpc) && capo > 0 && capo < 12) {
         int tpcOffset[] = { 0, 5, -2, 3, -4, 1, 6, -1, 4, -3, 2, -5 };
-        int capoRootTpc = info->rootTpc() + tpcOffset[capo];
-        int capoBassTpc = info->bassTpc();
+        capoRootTpc = rootTpc + tpcOffset[capo];
+        capoBassTpc = bassTpc;
 
         if (tpcIsValid(capoBassTpc)) {
             capoBassTpc += tpcOffset[capo];
@@ -573,21 +624,20 @@ void HarmonyLayout::renderSingleHarmony(Harmony* item, Harmony::LayoutData* ldat
                 capoBassTpc -= 12;
             }
         }
+    }
 
-        render(item, ldata, SymId::csymParensLeftTall, harmonyCtx, ctx);
-        render(item, ldata, chordList->renderListRoot, harmonyCtx, ctx, capoRootTpc, spelling, rootCase);
-
-        // render extension
-        if (cd) {
-            render(item, ldata, stackModifiers ? cd->renderListStacked : cd->renderList, harmonyCtx, ctx,  0);
-        }
-
-        if (tpcIsValid(capoBassTpc)) {
-            std::list<RenderActionPtr >& bassNoteChordList
-                = style.styleB(Sid::chordBassNoteStagger) ? chordList->renderListBassOffset : chordList->renderListBass;
-            render(item, ldata, bassNoteChordList, harmonyCtx, ctx, capoBassTpc, spelling, bassCase, item->bassScale());
-        }
-        render(item, ldata, SymId::csymParensRightTall, harmonyCtx, ctx);
+    // Render parens if both
+    if (displayCapo == DisplayCapoChordType::BOTH) {
+        RenderActionParenPtr p = std::make_shared<RenderActionParenLeft>();
+        renderActionParen(item, p, harmonyCtx);
+    }
+    if (displayCapo == DisplayCapoChordType::BOTH || displayCapo == DisplayCapoChordType::TRANSPOSED) {
+        // render capo if both or capo
+        doRenderSingleHarmony(item, ldata, harmonyCtx, capoRootTpc, capoBassTpc, ctx);
+    }
+    if (displayCapo == DisplayCapoChordType::BOTH) {
+        RenderActionParenPtr p = std::make_shared<RenderActionParenRight>();
+        renderActionParen(item, p, harmonyCtx);
     }
 }
 
@@ -623,7 +673,7 @@ void HarmonyLayout::render(Harmony* item, Harmony::LayoutData* ldata, SymId sym,
     harmonyCtx.movex(ts->width());
 }
 
-void HarmonyLayout::render(Harmony* item, Harmony::LayoutData* ldata, const std::list<RenderActionPtr>& renderList,
+void HarmonyLayout::render(Harmony* item, Harmony::LayoutData* ldata, const std::vector<RenderActionPtr>& renderList,
                            HarmonyRenderCtx& harmonyCtx, const LayoutContext& ctx,
                            int tpc,
                            NoteSpellingType noteSpelling,

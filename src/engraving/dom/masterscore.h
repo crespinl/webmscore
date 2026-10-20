@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -19,8 +19,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-#ifndef MU_ENGRAVING_MASTERSCORE_H
-#define MU_ENGRAVING_MASTERSCORE_H
+
+#pragma once
 
 #include <array>
 
@@ -51,6 +51,7 @@ class Revisions;
 class TempoMap;
 class TimeSigMap;
 class UndoStack;
+class AutomationController;
 
 class MidiMapping
 {
@@ -100,6 +101,7 @@ public:
     TimeSigMap* sigmap() const override { return m_sigmap; }
     TempoMap* tempomap() const override { return m_tempomap; }
     muse::async::Channel<ScoreChanges> changesChannel() const override { return m_changesChannel; }
+    IAutomation* automation() const override;
 
     bool playlistDirty() const override { return m_playlistDirty; }
     void setPlaylistDirty() override;
@@ -176,16 +178,10 @@ public:
 
     MasterScore* unrollRepeats();
 
-    void splitMeasure(const Fraction&);
-    void joinMeasure(const Fraction&, const Fraction&);
-
     MeasureBase* insertMeasure(MeasureBase* beforeMeasure = nullptr, const InsertMeasureOptions& options = InsertMeasureOptions());
 
     IFileInfoProviderPtr fileInfo() const;
     void setFileInfoProvider(IFileInfoProviderPtr fileInfoProvider);
-
-    bool saved() const;
-    void setSaved(bool v);
 
     String name() const override;
 
@@ -221,6 +217,7 @@ private:
     TempoMap* m_tempomap = nullptr;
     RepeatList* m_expandedRepeatList = nullptr;
     RepeatList* m_nonExpandedRepeatList = nullptr;
+    AutomationController* m_automationController = nullptr;
     bool m_expandRepeats = true;
     bool m_playlistDirty = true;
     std::vector<Excerpt*> m_excerpts;
@@ -247,11 +244,7 @@ private:
     // FIXME: Move to EngravingProject
     // We can't yet, because m_project is not set on every MasterScore
     IFileInfoProviderPtr m_fileInfoProvider;
-
-    bool m_saved = false;
 };
 
 extern MasterScore* gpaletteScore;
 }
-
-#endif // MU_ENGRAVING_MASTERSCORE_H

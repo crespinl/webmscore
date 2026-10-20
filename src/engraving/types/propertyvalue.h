@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -120,6 +120,7 @@ enum class P_TYPE : unsigned char {
 
     LH_TAPPING_SYMBOL,
     RH_TAPPING_SYMBOL,
+    VIBRATO_LINE_TYPE,
 
     VOICE_ASSIGNMENT,
     AUTO_ON_OFF,
@@ -127,6 +128,7 @@ enum class P_TYPE : unsigned char {
     AUTO_CUSTOM_HIDE,
 
     MEASURE_NUMBER_PLACEMENT,
+    CAPO_TRANSPOSE_MODE,
 
     // Other
     GROUPS,
@@ -342,6 +344,9 @@ public:
     PropertyValue(const RHTappingSymbol& v)
         : m_type(P_TYPE::RH_TAPPING_SYMBOL), m_data(make_data<RHTappingSymbol>(v)) {}
 
+    PropertyValue(const VibratoType& v)
+        : m_type(P_TYPE::VIBRATO_LINE_TYPE), m_data(make_data<VibratoType>(v)) {}
+
     PropertyValue(const VoiceAssignment& v)
         : m_type(P_TYPE::VOICE_ASSIGNMENT), m_data(make_data<VoiceAssignment>(v)) {}
 
@@ -357,6 +362,8 @@ public:
     PropertyValue(const MeasureNumberPlacement& v)
         : m_type(P_TYPE::MEASURE_NUMBER_PLACEMENT), m_data(make_data<MeasureNumberPlacement>(v)) {}
 
+    PropertyValue(const CapoParams::TransposeMode& v)
+        : m_type(P_TYPE::CAPO_TRANSPOSE_MODE), m_data(make_data<CapoParams::TransposeMode>(v)) {}
     bool isValid() const;
 
     P_TYPE type() const;

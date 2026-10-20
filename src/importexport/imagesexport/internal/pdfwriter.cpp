@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -154,4 +154,10 @@ void PdfWriter::preparePdfWriter(QPdfWriter& pdfWriter, const QString& title, co
     pdfWriter.setTitle(title);
     pdfWriter.setPageMargins(QMarginsF());
     pdfWriter.setPageLayout(QPageLayout(QPageSize(size, QPageSize::Inch), QPageLayout::Orientation::Portrait, QMarginsF()));
+
+    if (configuration()->exportPdfWithGrayscale()) {
+        pdfWriter.setColorModel(QPdfWriter::ColorModel::Grayscale);
+    } else {
+        pdfWriter.setColorModel(QPdfWriter::ColorModel::Auto);
+    }
 }

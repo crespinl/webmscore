@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -19,10 +19,10 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-#ifndef MU_INSTRUMENTSSCENE_SELECTINSTRUMENTSSCENARIO_H
-#define MU_INSTRUMENTSSCENE_SELECTINSTRUMENTSSCENARIO_H
 
-#include "notation/iselectinstrumentscenario.h"
+#pragma once
+
+#include "notationscene/iselectinstrumentscenario.h"
 
 #include "global/modularity/ioc.h"
 #include "global/iinteractive.h"
@@ -32,12 +32,18 @@
 #include "global/async/promise.h"
 
 namespace mu::instrumentsscene {
-class SelectInstrumentsScenario : public notation::ISelectInstrumentsScenario, public muse::async::Asyncable
+class SelectInstrumentsScenario : public notation::ISelectInstrumentsScenario, public muse::async::Asyncable, public muse::Contextable
 {
-    muse::Inject<muse::IInteractive> interactive;
-    muse::Inject<notation::IInstrumentsRepository> instrumentsRepository;
+    muse::ContextInject<muse::IInteractive> interactive = { this };
+    muse::ContextInject<notation::IInstrumentsRepository> instrumentsRepository = { this };
 
 public:
+
+    SelectInstrumentsScenario(const muse::modularity::ContextPtr& iocCtx)
+        : muse::Contextable(iocCtx)
+    {
+    }
+
     muse::async::Promise<notation::PartInstrumentListScoreOrder> selectInstruments() const override;
     muse::async::Promise<notation::InstrumentTemplate> selectInstrument(
         const notation::InstrumentKey& currentInstrumentId = notation::InstrumentKey()) const override;
@@ -46,5 +52,3 @@ private:
     muse::async::Promise<notation::PartInstrumentListScoreOrder> selectInstruments(const muse::ValMap& params) const;
 };
 }
-
-#endif // MU_INSTRUMENTSSCENE_SELECTINSTRUMENTSSCENARIO_H

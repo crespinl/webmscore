@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -25,15 +25,16 @@
 
 #include "draw/types/transform.h"
 
+#include "../editing/mscoreview.h"
+#include "../editing/undo.h"
+
 #include "accidental.h"
 #include "barline.h"
 #include "chord.h"
 #include "factory.h"
 #include "hook.h"
 #include "ledgerline.h"
-#include "masterscore.h"
 #include "measure.h"
-#include "mscoreview.h"
 #include "note.h"
 #include "notedot.h"
 #include "part.h"
@@ -45,7 +46,6 @@
 #include "stem.h"
 #include "system.h"
 #include "tiejumppointlist.h"
-#include "undo.h"
 #include "utils.h"
 #include "volta.h"
 
@@ -113,7 +113,7 @@ RectF TieSegment::drag(EditData& ed)
     return SlurTieSegment::drag(ed);
 }
 
-void TieSegment::editDrag(EditData& ed)
+void TieSegment::dragGrip(EditData& ed)
 {
     consolidateAdjustmentOffsetIntoUserOffset();
     Grip g = ed.curGrip;
@@ -166,6 +166,7 @@ void TieSegment::editDrag(EditData& ed)
         roffset() += ed.delta;
         break;
     default:
+        UNREACHABLE;
         return;
     }
 
@@ -265,7 +266,7 @@ void Tie::updatePossibleJumpPoints()
         const Segment* endNoteSegment = endChord ? endChord->segment() : nullptr;
         const ChordRest* finalCROfMeasure = measure->lastChordRest(track());
         const bool finalCRHasFollowingJump = finalCROfMeasure ? finalCROfMeasure->hasFollowingJumpItem() : false;
-        const bool segsAreAdjacent = segmentsAreAdjacentInRepeatStructure(segment, endNoteSegment);
+        const bool segsAreAdjacent = segmentsAreAdjacent(segment, endNoteSegment);
         const bool segsAreInDifferentRepeatSegments = segmentsAreInDifferentRepeatSegments(segment, endNoteSegment);
 
         if (!(finalCRHasFollowingJump && segsAreAdjacent) || !segsAreInDifferentRepeatSegments) {
@@ -453,7 +454,7 @@ void Tie::setStartNote(Note* note)
 
 Note* Tie::startNote() const
 {
-    assert(!startElement() || startElement()->type() == ElementType::NOTE);
+    assert(!startElement() || startElement()->isNote());
     return toNote(startElement());
 }
 

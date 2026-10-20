@@ -5,7 +5,7 @@
  * MuseScore
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore BVBA and others
+ * Copyright (C) 2025 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -59,8 +59,6 @@ static std::array<int, 3> parseVersion(const muse::String& versionString, bool& 
 
     if (componentIdx < result.size()) {
         result.at(componentIdx) = curNum;
-    } else {
-        LOGW() << "Ignoring everything after third point: " << versionString;
     }
 
     ok = true;
@@ -126,7 +124,7 @@ int Version::patch() const
     return m_patch;
 }
 
-String Version::suffix() const
+const String& Version::suffix() const
 {
     return m_suffix;
 }

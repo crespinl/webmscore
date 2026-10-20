@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -116,11 +116,10 @@ public:
     }
 };
 
-/// \cond PLUGIN_API \private \endcond
 template<typename T, class Container>
-QmlExcerptsListAccess<T, Container> wrapExcerptsContainerProperty(QObject* obj, Container& c)
+QmlExcerptsListAccess<T, Container> wrapExcerptsContainerProperty(const QObject* obj, Container& c)
 {
-    return QmlExcerptsListAccess<T, Container>(obj, c);
+    return QmlExcerptsListAccess<T, Container>(const_cast<QObject*>(obj), c);
 }
 }
 

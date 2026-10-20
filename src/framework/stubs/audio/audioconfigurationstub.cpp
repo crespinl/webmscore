@@ -5,7 +5,7 @@
  * MuseScore
  * Music Composition & Notation
  *
- * Copyright (C) 2025 MuseScore BVBA and others
+ * Copyright (C) 2025 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -24,9 +24,19 @@
 using namespace muse::audio;
 using namespace muse;
 
+AudioEngineConfig AudioConfigurationStub::engineConfig() const
+{
+    return {};
+}
+
+std::string AudioConfigurationStub::defaultAudioApi() const
+{
+    return {};
+}
+
 std::string AudioConfigurationStub::currentAudioApi() const
 {
-    return std::string();
+    return {};
 }
 
 void AudioConfigurationStub::setCurrentAudioApi(const std::string&)
@@ -71,26 +81,6 @@ async::Notification AudioConfigurationStub::driverBufferSizeChanged() const
     return async::Notification();
 }
 
-msecs_t AudioConfigurationStub::audioWorkerInterval(const samples_t, const sample_rate_t) const
-{
-    return 0;
-}
-
-samples_t AudioConfigurationStub::minSamplesToReserve(RenderMode) const
-{
-    return 0;
-}
-
-samples_t AudioConfigurationStub::samplesToPreallocate() const
-{
-    return 0;
-}
-
-async::Channel<samples_t> AudioConfigurationStub::samplesToPreallocateChanged() const
-{
-    return async::Channel<samples_t>();
-}
-
 unsigned int AudioConfigurationStub::sampleRate() const
 {
     return 0;
@@ -105,22 +95,17 @@ async::Notification AudioConfigurationStub::sampleRateChanged() const
     return async::Notification();
 }
 
-size_t AudioConfigurationStub::desiredAudioThreadNumber() const
+OutputSpec AudioConfigurationStub::defaultOutputSpec() const
 {
-    return 0;
+    return OutputSpec();
 }
 
-size_t AudioConfigurationStub::minTrackCountForMultithreading() const
+OutputSpec AudioConfigurationStub::desiredOutputSpec() const
 {
-    return 0;
+    return OutputSpec();
 }
 
 // synthesizers
-AudioInputParams AudioConfigurationStub::defaultAudioInputParams() const
-{
-    return {};
-}
-
 io::paths_t AudioConfigurationStub::soundFontDirectories() const
 {
     return {};
@@ -150,6 +135,20 @@ void AudioConfigurationStub::setAutoProcessOnlineSoundsInBackground(bool)
 }
 
 async::Channel<bool> AudioConfigurationStub::autoProcessOnlineSoundsInBackgroundChanged() const
+{
+    return {};
+}
+
+bool AudioConfigurationStub::useSoundFontLowPassFilter() const
+{
+    return false;
+}
+
+void AudioConfigurationStub::setUseSoundFontLowPassFilter(bool)
+{
+}
+
+async::Channel<bool> AudioConfigurationStub::useSoundFontLowPassFilterChanged() const
 {
     return {};
 }

@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -36,6 +36,7 @@
 #include "engraving/dom/factory.h"
 #include "engraving/dom/fingering.h"
 #include "engraving/dom/glissando.h"
+#include "engraving/dom/guitarbend.h"
 #include "engraving/dom/instrtemplate.h"
 #include "engraving/dom/keysig.h"
 #include "engraving/dom/lyrics.h"
@@ -565,6 +566,10 @@ bool GuitarPro5::readTracks()
         }
         int midiPort     = readInt() - 1;
         int midiChannel  = readInt() - 1;
+        if (midiChannel < 0 || midiChannel >= static_cast<int>(channelDefaults.size())) {
+            LOGE() << "midiChannel " << midiChannel << " out of range 0-" << channelDefaults.size();
+            return false;
+        }
         /*int midiChannel2 =*/ readInt();       // -1
 
         int frets        = readInt();
@@ -771,7 +776,7 @@ void GuitarPro5::readMeasures(int /*startingTempo*/)
                 ChordRest* cr = beg->cr(gpLyrics.lyricTrack);
                 assert(cr);
                 ++counter;
-                if (cr->type() != ElementType::CHORD) {
+                if (!cr->isChord()) {
                     continue;
                 }
 
@@ -834,7 +839,7 @@ void GuitarPro5::readMeasures(int /*startingTempo*/)
                 }
             }
         } while ((beg = beg->next())
-                 || (mes->next() && mes->next()->type() == ElementType::MEASURE && (mes = toMeasure(mes->next())) && (beg = mes->first())));
+                 || (mes->next() && mes->next()->isMeasure() && (mes = toMeasure(mes->next())) && (beg = mes->first())));
     }
 }
 
@@ -994,31 +999,8 @@ bool GuitarPro5::read(IODevice* io)
                         if (br) {
                             break;
                         }
-                        Glissando* s = mu::engraving::Factory::createGlissando(n);
-                        s->setAnchor(Spanner::Anchor::NOTE);
-                        s->setStartElement(n);
-                        s->setTick(n->chord()->segment()->tick());
-                        s->setTrack(n->track());
-                        s->setParent(n);
-                        s->setGlissandoType(GlissandoType::STRAIGHT);
-                        s->setGlissandoShift(true);
-                        s->setGlissandoStyle(n->part()->instrument(n->tick())->glissandoStyle());
-                        s->setEndElement(nt);
-                        s->setTick2(nt->chord()->segment()->tick());
-                        s->setTrack2(n->track());
 
-                        for (Spanner* spanner : n->chord()->startingSpanners()) {
-                            if (spanner && spanner->isSlur()) {
-                                Slur* slur = toSlur(spanner);
-                                if (slur->endElement() == nt->chord()) {
-                                    slur->setConnectedElement(mu::engraving::Slur::ConnectedElement::GLISSANDO);
-                                    s->setGlissandoShift(false);
-                                    break;
-                                }
-                            }
-                        }
-
-                        score->addElement(s);
+                        m_glissandoNotePairs.push_back({ n, nt });
                         br = true;
                         break;
                     }
@@ -1081,6 +1063,7 @@ bool GuitarPro5::read(IODevice* io)
 
     m_continiousElementsBuilder->addElementsToScore();
     m_guitarBendImporter->applyBendsToChords();
+    addGlissandos();
 
     return true;
 }
@@ -1250,7 +1233,7 @@ GuitarPro::ReadNoteResult GuitarPro5::readNoteEffects(Note* note)
             auto staff = note->staff();
             int pitch = staff->part()->instrument()->stringData()->getPitch(note->string(), harmonicOvertone, staff);
 
-            note->setPitch(std::clamp(pitch, 0, 127));
+            note->setPitch(clampPitch(pitch));
             note->setTpcFromPitch(Prefer::SHARPS);
         } else if (type >= HARMONIC_MARK_ARTIFICIAL && type <= HARMONIC_MARK_SEMI) {
             int fret = (type == HARMONIC_MARK_TAP ? (readChar() - note->fret()) : note->fret());
@@ -1310,7 +1293,7 @@ GuitarPro::ReadNoteResult GuitarPro5::readNoteEffects(Note* note)
 
             int pitch = staff->part()->instrument()->stringData()->getPitch(note->string(), overtoneFret + note->part()->capoFret(), staff);
 
-            harmonicNote->setPitch(std::clamp(pitch, 0, 127));
+            harmonicNote->setPitch(clampPitch(pitch));
             harmonicNote->setTpcFromPitch(Prefer::SHARPS);
             note->setHarmonicPitchOffset(harmonicNote->pitch() - note->pitch());
             note->chord()->add(harmonicNote);
@@ -1657,6 +1640,64 @@ float GuitarPro5::naturalHarmonicFromFret(int fret)
         return 21.7f;
     default:
         return 12.0f;
+    }
+}
+
+void GuitarPro5::addGlissandos()
+{
+    for (auto& [startNote, endNote] : m_glissandoNotePairs) {
+        Note* currentStart = startNote;
+        if (startNote->bendFor()) {
+            Note* bendNote = startNote;
+            GuitarBend* bend = bendNote->bendFor();
+
+            while (bend) {
+                bendNote = bend->endNote();
+                IF_ASSERT_FAILED(bendNote) {
+                    LOGE() << "glissando start note may be incorrect";
+                    break;
+                }
+
+                if (!bendNote->chord()->isGraceAfter()) {
+                    break;
+                }
+
+                currentStart = bendNote;
+                bend = bendNote->bendFor();
+            }
+        }
+
+        Glissando* gliss = mu::engraving::Factory::createGlissando(currentStart);
+        gliss->setAnchor(Spanner::Anchor::NOTE);
+        gliss->setStartElement(currentStart);
+        gliss->setTick(currentStart->tick());
+        gliss->setTrack(currentStart->track());
+        gliss->setParent(currentStart);
+        gliss->setGlissandoType(GlissandoType::STRAIGHT);
+        gliss->setGlissandoShift(true);
+        gliss->setEndElement(endNote);
+        gliss->setTick2(endNote->tick());
+        gliss->setTrack2(endNote->track());
+        score->addElement(gliss);
+
+        std::vector<std::pair<Slur*, Note*> > movedSlurs;
+        for (Spanner* spanner : startNote->chord()->startingSpanners()) {
+            if (spanner && spanner->isSlur()) {
+                Slur* slur = toSlur(spanner);
+                if (slur->endElement() == endNote->chord()) {
+                    gliss->setGlissandoShift(false);
+                    slur->setConnectedElement(mu::engraving::Slur::ConnectedElement::GLISSANDO);
+                    movedSlurs.push_back({ slur, currentStart });
+                    break;
+                }
+            }
+        }
+
+        for (auto& [slur, note] : movedSlurs) {
+            slur->setStartElement(note->chord());
+            slur->setTick(note->tick());
+            slur->setTrack(note->track());
+        }
     }
 }
 } // namespace mu::iex::guitarpro

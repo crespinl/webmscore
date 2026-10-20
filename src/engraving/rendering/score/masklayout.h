@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2023 MuseScore Limited
+ * Copyright (C) 2023 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -38,8 +38,6 @@ class MaskLayout
 public:
     static void computeMasks(LayoutContext& ctx, Page* page);
 
-    static void maskTABStringLinesForFrets(StaffLines* staffLines, const LayoutContext& ctx);
-
 private:
     static void computeBarlineMasks(const Segment* barlineSement, const System* system, const std::vector<TextBase*>& allSystemText,
                                     LayoutContext& ctx);
@@ -47,5 +45,7 @@ private:
     static std::vector<TextBase*> collectAllSystemText(const System* system);
 
     static void cleanupMask(const Shape& itemShape, Shape& mask, double minFragmentLength);
+
+    static void maskTABStringLinesForFrets(StaffLines* staffLines, const LayoutContext& ctx);
 };
 } // namespace mu::engraving::rendering::score

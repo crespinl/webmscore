@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -22,13 +22,12 @@
 
 #include <gtest/gtest.h>
 
-#include "dom/hairpin.h"
-#include "dom/masterscore.h"
+#include "engraving/dom/hairpin.h"
+#include "engraving/dom/masterscore.h"
 
 #include "engraving/compat/scoreaccess.h"
 #include "utils/scorerw.h"
 
-using namespace mu;
 using namespace mu::engraving;
 
 class Engraving_HairpinTests : public ::testing::Test
@@ -42,12 +41,12 @@ TEST_F(Engraving_HairpinTests, hairpin)
 
     // subtype
     hp->setHairpinType(HairpinType::DIM_HAIRPIN);
-    Hairpin* hp2 = static_cast<Hairpin*>(ScoreRW::writeReadElement(hp));
+    Hairpin* hp2 = toHairpin(ScoreRW::writeReadElement(hp));
     EXPECT_EQ(hp2->hairpinType(), HairpinType::DIM_HAIRPIN);
     delete hp2;
 
     hp->setHairpinType(HairpinType::CRESC_HAIRPIN);
-    hp2 = static_cast<Hairpin*>(ScoreRW::writeReadElement(hp));
+    hp2 = toHairpin(ScoreRW::writeReadElement(hp));
     EXPECT_EQ(hp2->hairpinType(), HairpinType::CRESC_HAIRPIN);
     delete hp2;
 }

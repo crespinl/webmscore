@@ -5,7 +5,7 @@
  * MuseScore
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore BVBA and others
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -46,7 +46,7 @@ std::string AudioPluginsModule::moduleName() const
 
 void AudioPluginsModule::registerExports()
 {
-    m_configuration = std::make_shared<AudioPluginsConfiguration>();
+    m_configuration = std::make_shared<AudioPluginsConfiguration>(iocContext());
     m_registerAudioPluginsScenario = std::make_shared<RegisterAudioPluginsScenario>(iocContext());
 
     ioc()->registerExport<IAudioPluginsConfiguration>(moduleName(), m_configuration);

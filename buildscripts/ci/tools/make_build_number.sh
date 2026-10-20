@@ -5,7 +5,7 @@
 # MuseScore Studio
 # Music Composition & Notation
 #
-# Copyright (C) 2021 MuseScore Limited
+# Copyright (C) 2021 MuseScore Limited and others
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 3 as
@@ -22,7 +22,8 @@ ARTIFACTS_DIR="build.artifacts"
 
 NUMBER=$1
 if [ -z "$NUMBER" ]; then
-    NUMBER=$(date -u +%y%j%H%M) # less than 2147483647 to fit in Int32 for WiX packaging tool
+    NUMBER="$(date -u +%y%m%d%H%M)"
+    NUMBER="${NUMBER:0:9}" # less than 2147483647 to fit in Int32 for WiX packaging tool
 fi
 
 if [ -z "$NUMBER" ]; then echo "error: not set BUILD_NUMBER"; exit 1; fi

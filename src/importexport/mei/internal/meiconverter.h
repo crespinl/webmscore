@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -20,18 +20,19 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef MU_IMPORTEXPORT_MEICONVERTER_H
-#define MU_IMPORTEXPORT_MEICONVERTER_H
+#pragma once
 
 #include "engraving/dom/articulation.h"
 #include "engraving/dom/accidental.h"
+#include "engraving/dom/chordline.h"
 #include "engraving/dom/harppedaldiagram.h"
 #include "engraving/dom/interval.h"
 #include "engraving/dom/timesig.h"
+#include "engraving/dom/tremolotwochord.h"
 #include "engraving/dom/tremolosinglechord.h"
 #include "engraving/dom/volta.h"
 
-#include "iengravingfontsprovider.h"
+#include "engraving/iengravingfontsprovider.h"
 
 #include "thirdparty/libmei/cmn.h"
 #include "thirdparty/libmei/cmnornaments.h"
@@ -81,6 +82,8 @@ enum ElisionType {
 #define MARKER_TYPE "mscore-marker-"
 // The @type attribute prefix for tempo inferring type in <tempo>
 #define TEMPO_INFER_FROM_TEXT "mscore-infer-from-text"
+// The @type attribute prefix for chordline type in <artic>
+#define CHORDLINE_TYPE "mscore-"
 // The @type attribute prefixes for ornament interval (above/below)
 #define INTERVAL_ABOVE "mscore-above-"
 #define INTERVAL_BELOW "mscore-below-"
@@ -88,8 +91,8 @@ enum ElisionType {
 class Convert
 {
     // The fallback font is used to convert smufl codes (char32_t) to engraving::SymId
-    INJECT_STATIC(engraving::IEngravingFontsProvider, engravingFonts)
-    INJECT_STATIC(engraving::IEngravingConfiguration, engravingConfiguration)
+    static inline muse::GlobalInject<engraving::IEngravingFontsProvider> engravingFonts;
+    static inline muse::GlobalInject<engraving::IEngravingConfiguration> engravingConfiguration;
 public:
 
     /**
@@ -159,7 +162,9 @@ public:
     static libmei::Arpeg arpegToMEI(const engraving::Arpeggio* arpeggio);
 
     static void articFromMEI(engraving::Articulation* articulation, const libmei::Artic& meiArtic, bool& warning);
+    static void articFromMEI(engraving::ChordLine* chordline, const libmei::Artic& meiArtic, bool& warning);
     static libmei::Artic articToMEI(const engraving::Articulation* articulation);
+    static libmei::Artic articToMEI(const engraving::ChordLine* chordline);
 
     static engraving::BarLineType barlineFromMEI(const libmei::data_BARRENDITION meiBarline, bool& warning);
     static libmei::data_BARRENDITION barlineToMEI(engraving::BarLineType barline);
@@ -198,6 +203,9 @@ public:
 
     static engraving::DurationType durFromMEI(const libmei::data_DURATION meiDuration, bool& warning);
     static libmei::data_DURATION durToMEI(const engraving::DurationType duration);
+
+    static engraving::TremoloType unitdurFromMEI(const libmei::FTrem& meiFTrem, bool& warning);
+    static libmei::data_DURATION unitdurToMEI(const engraving::TremoloTwoChord* tremolo);
 
     static void dynamFromMEI(engraving::Dynamic* dynamic, const muse::StringList& meiLines, const libmei::Dynam& meiDynam, bool& warning);
     static libmei::Dynam dynamToMEI(const engraving::Dynamic* dynamic, muse::StringList& meiLines);
@@ -298,7 +306,7 @@ public:
     static libmei::StaffDef staffToMEI(const engraving::Staff* staff);
 
     static BracketStruct staffGrpFromMEI(const libmei::StaffGrp& meiStaffGrp);
-    static libmei::StaffGrp staffGrpToMEI(const engraving::BracketType, int barLineSpan);
+    static libmei::StaffGrp staffGrpToMEI(const engraving::BracketType, bool barLineSpan);
 
     static void staffIdentToMEI(const engraving::EngravingItem* item, libmei::Element& meiElement);
 
@@ -320,7 +328,7 @@ public:
     static engraving::TextStyleType textFromMEI(const libmei::Rend& meiRend, bool& warning);
     static std::tuple<libmei::Rend, TextCell, muse::String> textToMEI(const engraving::Text* text);
 
-    using textWithSmufl = std::list<std::pair<bool, muse::String> >;
+    using textWithSmufl = std::vector<std::pair<bool, muse::String> >;
 
     static void textFromMEI(muse::String& text, const textWithSmufl& textBlocks);
     static void textToMEI(textWithSmufl& textBlocks, const muse::String& text);
@@ -405,5 +413,3 @@ private:
     std::unordered_map<uintptr_t, std::string> m_uids;
 };
 } // namespace
-
-#endif // MU_IMPORTEXPORT_MEICONVERTER_H

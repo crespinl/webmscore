@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -27,10 +27,14 @@
 #include "context/iuicontextresolver.h"
 
 namespace mu::instrumentsscene {
-class InstrumentsUiActions : public muse::ui::IUiActionsModule
+class InstrumentsUiActions : public muse::ui::IUiActionsModule, public muse::Contextable
 {
-    INJECT(context::IUiContextResolver, uicontextResolver)
+    muse::ContextInject<context::IUiContextResolver> uicontextResolver = { this };
 public:
+
+    InstrumentsUiActions(const muse::modularity::ContextPtr& iocCtx)
+        : muse::Contextable(iocCtx)
+    {}
 
     const muse::ui::UiActionList& actionsList() const override;
 

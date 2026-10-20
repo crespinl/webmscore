@@ -5,7 +5,7 @@
  * MuseScore
  * Music Composition & Notation
  *
- * Copyright (C) 2025 MuseScore BVBA and others
+ * Copyright (C) 2025 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -21,12 +21,15 @@
  */
 #pragma once
 
-#include "audio/iaudioconfiguration.h"
+#include "audio/main/iaudioconfiguration.h"
 
 namespace muse::audio {
 class AudioConfigurationStub : public IAudioConfiguration
 {
 public:
+    AudioEngineConfig engineConfig() const override;
+
+    std::string defaultAudioApi() const override;
     std::string currentAudioApi() const override;
     void setCurrentAudioApi(const std::string& name) override;
     async::Notification currentAudioApiChanged() const override;
@@ -41,22 +44,14 @@ public:
     void setDriverBufferSize(unsigned int size) override;
     async::Notification driverBufferSizeChanged() const override;
 
-    msecs_t audioWorkerInterval(const samples_t, const sample_rate_t) const override;
-    samples_t minSamplesToReserve(RenderMode mode) const override;
-
-    samples_t samplesToPreallocate() const override;
-    async::Channel<samples_t> samplesToPreallocateChanged() const override;
-
     unsigned int sampleRate() const override;
     void setSampleRate(unsigned int sampleRate) override;
     async::Notification sampleRateChanged() const override;
 
-    size_t desiredAudioThreadNumber() const override;
-    size_t minTrackCountForMultithreading() const override;
+    OutputSpec defaultOutputSpec() const override;
+    OutputSpec desiredOutputSpec() const override;
 
     // synthesizers
-    AudioInputParams defaultAudioInputParams() const override;
-
     io::paths_t soundFontDirectories() const override;
     io::paths_t userSoundFontDirectories() const override;
     void setUserSoundFontDirectories(const io::paths_t& paths) override;
@@ -65,6 +60,10 @@ public:
     bool autoProcessOnlineSoundsInBackground() const override;
     void setAutoProcessOnlineSoundsInBackground(bool process) override;
     async::Channel<bool> autoProcessOnlineSoundsInBackgroundChanged() const override;
+
+    bool useSoundFontLowPassFilter() const override;
+    void setUseSoundFontLowPassFilter(bool value) override;
+    async::Channel<bool> useSoundFontLowPassFilterChanged() const override;
 
     bool shouldMeasureInputLag() const override;
 };

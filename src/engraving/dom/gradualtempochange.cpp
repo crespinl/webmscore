@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -22,13 +22,13 @@
 
 #include "gradualtempochange.h"
 
-#include "dom/rehearsalmark.h"
-#include "dom/text.h"
 #include "measure.h"
+#include "rehearsalmark.h"
 #include "score.h"
 #include "segment.h"
 #include "system.h"
 #include "tempotext.h"
+#include "text.h"
 
 #include "types/typesconv.h"
 
@@ -62,12 +62,32 @@ static const ElementStyle tempoStyle {
     { Sid::tempoChangeAlign, Pid::CONTINUE_TEXT_ALIGN },
     { Sid::tempoChangeAlign, Pid::END_TEXT_ALIGN },
 
+    { Sid::tempoChangePosition, Pid::BEGIN_TEXT_POSITION },
+    { Sid::tempoChangePosition, Pid::CONTINUE_TEXT_POSITION },
+    { Sid::tempoChangePosition, Pid::END_TEXT_POSITION },
+
     { Sid::tempoChangeFontSpatiumDependent, Pid::SIZE_SPATIUM_DEPENDENT },
     { Sid::tempoChangeLineWidth, Pid::LINE_WIDTH },
     { Sid::tempoChangeLineStyle, Pid::LINE_STYLE },
     { Sid::tempoChangeDashLineLen, Pid::DASH_LINE_LEN },
     { Sid::tempoChangeDashGapLen, Pid::DASH_GAP_LEN },
     { Sid::tempoChangeFontSpatiumDependent, Pid::TEXT_SIZE_SPATIUM_DEPENDENT },
+
+    { Sid::gradualTempoChangeEndLineArrowHeight,         Pid::END_LINE_ARROW_HEIGHT },
+    { Sid::gradualTempoChangeEndLineArrowWidth,          Pid::END_LINE_ARROW_WIDTH },
+    { Sid::gradualTempoChangeBeginLineArrowHeight,       Pid::BEGIN_LINE_ARROW_HEIGHT },
+    { Sid::gradualTempoChangeBeginLineArrowWidth,        Pid::BEGIN_LINE_ARROW_WIDTH },
+    { Sid::gradualTempoChangeEndFilledArrowHeight,       Pid::END_FILLED_ARROW_HEIGHT },
+    { Sid::gradualTempoChangeEndFilledArrowWidth,        Pid::END_FILLED_ARROW_WIDTH },
+    { Sid::gradualTempoChangeBeginFilledArrowHeight,     Pid::BEGIN_FILLED_ARROW_HEIGHT },
+    { Sid::gradualTempoChangeBeginFilledArrowWidth,      Pid::BEGIN_FILLED_ARROW_WIDTH },
+
+    { Sid::tempoChangeMusicalSymbolSize,          Pid::BEGIN_TEXT_MUSIC_SYMBOLS_SIZE },
+    { Sid::tempoChangeMusicalSymbolSize,          Pid::CONTINUE_TEXT_MUSIC_SYMBOLS_SIZE },
+    { Sid::tempoChangeMusicalSymbolSize,          Pid::END_TEXT_MUSIC_SYMBOLS_SIZE },
+    { Sid::dummyMusicalSymbolsScale,           Pid::BEGIN_TEXT_MUSICAL_SYMBOLS_SCALE },
+    { Sid::dummyMusicalSymbolsScale,           Pid::CONTINUE_TEXT_MUSICAL_SYMBOLS_SCALE },
+    { Sid::dummyMusicalSymbolsScale,           Pid::END_TEXT_MUSICAL_SYMBOLS_SCALE },
 };
 
 static const ElementStyle tempoSegmentStyle {
@@ -162,10 +182,10 @@ bool GradualTempoChange::setProperty(Pid id, const PropertyValue& val)
 {
     switch (id) {
     case Pid::TEMPO_CHANGE_TYPE:
-        m_tempoChangeType = GradualTempoChangeType(val.toInt());
+        m_tempoChangeType = val.value<GradualTempoChangeType>();
         break;
     case Pid::TEMPO_EASING_METHOD:
-        m_tempoEasingMethod = ChangeMethod(val.toInt());
+        m_tempoEasingMethod = val.value<ChangeMethod>();
         break;
     case Pid::TEMPO_CHANGE_FACTOR:
         m_tempoChangeFactor = val.toReal();
@@ -232,6 +252,9 @@ PropertyValue GradualTempoChange::propertyDefault(Pid propertyId) const
 
     case Pid::TEMPO_ALIGN_RIGHT_OF_REHEARSAL_MARK:
         return true;
+
+    case Pid::TEXT_STYLE:
+        return TextStyleType::TEMPO_CHANGE;
 
     default:
         return TextLineBase::propertyDefault(propertyId);
@@ -358,6 +381,8 @@ GradualTempoChangeSegment::GradualTempoChangeSegment(GradualTempoChange* annotat
                           ElementFlag::MOVABLE | ElementFlag::ON_STAFF | ElementFlag::SYSTEM)
 {
     initElementStyle(&tempoSegmentStyle);
+    m_text->setTextStyleType(propertyDefault(Pid::TEXT_STYLE).value<TextStyleType>());
+    m_endText->setTextStyleType(propertyDefault(Pid::TEXT_STYLE).value<TextStyleType>());
 }
 
 GradualTempoChangeSegment* GradualTempoChangeSegment::clone() const

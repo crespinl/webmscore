@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2023 MuseScore Limited
+ * Copyright (C) 2023 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -36,6 +36,13 @@ namespace mu::engraving::rendering::score {
 void RestLayout::layoutRest(const Rest* item, Rest::LayoutData* ldata, const LayoutContext& ctx)
 {
     if (item->isGap()) {
+        if (item->debugDrawGap()) {
+            ldata->sym = item->getSymbol(item->durationType().type(), 16, 5);
+            fillShape(item, ldata, ctx.conf());
+            ldata->setPos(PointF(0.0, 10 * item->spatium()));
+        } else {
+            ldata->reset();
+        }
         return;
     }
 
@@ -151,7 +158,7 @@ void RestLayout::fillShape(const Rest* item, Rest::LayoutData* ldata, const Layo
 {
     switch (item->type()) {
     case ElementType::REST:
-        fillShape(static_cast<const Rest*>(item), static_cast<Rest::LayoutData*>(ldata));
+        fillShape(toRest(item), static_cast<Rest::LayoutData*>(ldata));
         break;
     case ElementType::MMREST:
         fillShape(static_cast<const MMRest*>(item), static_cast<MMRest::LayoutData*>(ldata), conf);
@@ -522,7 +529,7 @@ InterruptionPoints RestLayout::computeInterruptionPoints(const Measure* measure,
             return true;
         }
 
-        BeamMode beamModeChordRest = Groups::endBeam(chordRest);
+        BeamMode beamModeChordRest = Groups::baseBeamMode(chordRest);
         switch (beamModeChordRest) {
         case BeamMode::BEGIN:
             // Beam certainly starts here
@@ -612,10 +619,15 @@ void RestLayout::checkFullMeasureRestCollisions(const System* system, LayoutCont
                 double xSegment = segment.pagePos().x() - system->pagePos().x();
                 measureShape.add(segment.staffShape(staffIdx).translated(PointF(xSegment, 0.0)));
             }
-            measureShape.remove_if([fullMeasureRest] (const ShapeElement& shapeEl) {
+            measureShape.remove_if([] (const ShapeElement& shapeEl) {
                 const EngravingItem* shapeItem = shapeEl.item();
-                return shapeItem && (shapeItem == fullMeasureRest || shapeItem->isBarLine() || shapeItem->isAccidental());
+                return shapeItem && ((shapeItem->isRest() && toRest(shapeItem)->isFullMeasureRest())
+                                     || shapeItem->isBarLine() || shapeItem->isAccidental());
             });
+
+            if (measureShape.size() == 0) {
+                continue;
+            }
 
             const double spatium = fullMeasureRest->spatium();
             const double lineDist = fullMeasureRest->staff()->lineDistance(fullMeasureRest->tick()) * spatium;
@@ -641,7 +653,7 @@ void RestLayout::fillShape(const Rest* item, Rest::LayoutData* ldata)
 {
     Shape shape(Shape::Type::Composite);
 
-    if (!item->isGap() && !item->shouldNotBeDrawn()) {
+    if ((!item->isGap() || item->debugDrawGap()) && !item->shouldNotBeDrawn()) {
         shape.add(ChordLayout::chordRestShape(item));
         shape.add(item->symBbox(ldata->sym), item);
         for (const NoteDot* dot : item->dotList()) {

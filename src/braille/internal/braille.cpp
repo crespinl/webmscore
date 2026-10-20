@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -67,6 +67,13 @@
 
 #include "louis.h"
 #include "braillecode.h"
+
+#define BRAILLE_TRACE_ENABLED 0
+#if BRAILLE_TRACE_ENABLED
+#define BRAILLE_TRACE LOGD
+#else
+#define BRAILLE_TRACE LOGN
+#endif
 
 namespace mu::engraving {
 // Max lyrics num
@@ -829,7 +836,7 @@ bool Braille::write(QIODevice& device)
         }
 
         for (size_t i = 0; i < nrStaves; ++i) {
-            LOGD() << "Measure " << mb->no() + 1 << " Staff " << i;
+            BRAILLE_TRACE() << "Measure " << mb->no() + 1 << " Staff " << i;
 
             measureBraille[i] = brailleMeasure(m, static_cast<int>(i)).toUtf8();
 
@@ -838,7 +845,7 @@ bool Braille::write(QIODevice& device)
             }
         }
 
-        LOGD() << "Current measure max len: " << currentMeasureMaxLength;
+        BRAILLE_TRACE() << "Current measure max len: " << currentMeasureMaxLength;
         // TODO handle better the case when the size of the current measure
         // by itself is larger than the MAX_CHARS_PER_LINE. The measure will
         // have to be split on multiple lines based on specific rules
@@ -1441,8 +1448,8 @@ void Braille::brailleMeasureLyrics(BrailleEngravingItemList* beiz, Measure* meas
                 ChordRest* cr = seg->cr(staffCount * VOICES + voice);
                 if (cr && !cr->lyrics().empty()) {
                     for (Lyrics* l : cr->lyrics()) {
-                        int no = l->no();
-                        lyrics[no].addLyricsItem(l);
+                        int verse = l->verse();
+                        lyrics[verse].addLyricsItem(l);
                     }
                 }
             }
@@ -2828,6 +2835,11 @@ QString Braille::brailleTuplet(Tuplet* tuplet, DurationElement* el)
 {
     if (tuplet == nullptr || *tuplet->elements().begin() != el) {
         return QString();
+    }
+
+    if (tuplet->ratio().numerator() == 3) {
+        // Special handling for triplets.
+        return QString("2"); // '⠆' (dots 2-3)
     }
 
     return QString("_") + QString::number(tuplet->ratio().numerator()) + QString("'");

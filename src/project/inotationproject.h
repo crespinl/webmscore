@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2025 MuseScore Limited
+ * Copyright (C) 2025 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -45,9 +45,7 @@ public:
     virtual QString displayName() const = 0;
     virtual muse::async::Notification displayNameChanged() const = 0;
 
-    virtual muse::Ret load(const muse::io::path_t& path,
-                           const muse::io::path_t& stylePath = muse::io::path_t(), bool forceMode = false,
-                           const std::string& format = "") = 0;
+    virtual muse::Ret load(const muse::io::path_t& path, const OpenParams& params = {}, const std::string& format = "") = 0;
     virtual muse::Ret createNew(const ProjectCreateOptions& projectInfo) = 0;
 
     virtual bool isCloudProject() const = 0;

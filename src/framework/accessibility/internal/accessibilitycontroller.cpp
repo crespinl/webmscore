@@ -5,7 +5,7 @@
  * MuseScore
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore BVBA and others
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -33,7 +33,7 @@
 
 #include "accessibleobject.h"
 #include "accessiblestub.h"
-#include "accessibleiteminterface.h"
+#include "accessiblewindowinterface.h"
 #include "iqaccessibleinterfaceregister.h"
 
 #include "log.h"
@@ -57,7 +57,7 @@ static void updateHandlerNoop(QAccessibleEvent*)
 }
 
 AccessibilityController::AccessibilityController(const muse::modularity::ContextPtr& iocCtx)
-    : muse::Injectable(iocCtx)
+    : muse::Contextable(iocCtx)
 {
     m_pretendFocusTimer.setInterval(80); // Value found experimentally.
     m_pretendFocusTimer.setSingleShot(true);
@@ -72,9 +72,9 @@ AccessibilityController::~AccessibilityController()
     unreg(this);
 }
 
-QAccessibleInterface* AccessibilityController::accessibleInterface(QObject*)
+QAccessibleInterface* AccessibilityController::accessibleInterface(QObject* window)
 {
-    return static_cast<QAccessibleInterface*>(new AccessibleItemInterface(s_rootObject));
+    return static_cast<QAccessibleInterface*>(new AccessibleWindowInterface(window, s_rootObject));
 }
 
 void AccessibilityController::setAccesibilityEnabled(bool enabled)
@@ -238,6 +238,11 @@ void AccessibilityController::unreg(IAccessible* aitem)
     sendEvent(&ev);
 
     delete item.object;
+}
+
+bool AccessibilityController::isReg(IAccessible* item) const
+{
+    return m_allItems.contains(item);
 }
 
 // Force the screen reader to speak an arbitrary message that isn't covered
@@ -615,7 +620,10 @@ void AccessibilityController::restoreFocus()
                               // Must do this before sending focus changed events.
 
     const Item& restore = findItem(m_lastFocused);
-    IF_ASSERT_FAILED(restore.isValid() && restore.item != pretendItem) {
+    //! FIXME we just need to open the project and close the project tab after opening it
+    //! will triggered this assert
+    //IF_ASSERT_FAILED(restore.isValid() && restore.item != pretendItem) {
+    if (!(restore.isValid() && restore.item != pretendItem)) {
         return;
     }
 
@@ -843,7 +851,7 @@ QWindow* AccessibilityController::accessibleWindow() const
 
 muse::modularity::ContextPtr AccessibilityController::iocContext() const
 {
-    return Injectable::iocContext();
+    return Contextable::iocContext();
 }
 
 IAccessible::Role AccessibilityController::accessibleRole() const

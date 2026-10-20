@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<museScore version="4.60">
+<museScore version="4.70">
   <Score>
     <eid>B_B</eid>
     <Division>480</Division>
@@ -60,9 +60,7 @@
         <Text>
           <eid>F_F</eid>
           <style>subtitle</style>
-          <text>:)
-Pantera
-Cowboys From Hell</text>
+          <text>:)<br/>Pantera<br/>Cowboys From Hell</text>
           </Text>
         <Text>
           <eid>G_G</eid>
@@ -119,10 +117,12 @@ Cowboys From Hell</text>
             <noStem>1</noStem>
             <Note>
               <eid>P_P</eid>
+              <parentheses>both</parentheses>
               <pitch>59</pitch>
               <tpc>19</tpc>
-              <fret>2</fret>
+              <fret>4</fret>
               <string>2</string>
+              <ghost>1</ghost>
               <Spanner type="GuitarBend">
                 <GuitarBend>
                   <guitarBendType>1</guitarBendType>
@@ -137,6 +137,11 @@ Cowboys From Hell</text>
                   </next>
                 </Spanner>
               </Note>
+            <NoteParenGroup>
+              <Notes>
+                <NoteIdx>0</NoteIdx>
+                </Notes>
+              </NoteParenGroup>
             </Chord>
           <Chord>
             <eid>R_R</eid>

@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -23,9 +23,10 @@
 
 #include "global/allocator.h"
 
-#include "style/defaultstyle.h"
+#include "rw/inoutdata.h"
 #include "rw/mscloader.h"
 #include "rw/mscsaver.h"
+#include "style/defaultstyle.h"
 #include "dom/masterscore.h"
 #include "dom/part.h"
 
@@ -56,7 +57,7 @@ std::shared_ptr<EngravingProject> EngravingProject::create(const MStyle& style, 
 }
 
 EngravingProject::EngravingProject(const modularity::ContextPtr& iocCtx)
-    : muse::Injectable(iocCtx)
+    : muse::Contextable(iocCtx)
 {
     muse::ObjectAllocator::used();
 }
@@ -102,12 +103,12 @@ bool EngravingProject::readOnly() const
     return m_masterScore->readOnly();
 }
 
-Ret EngravingProject::setupMasterScore(bool forceMode)
+void EngravingProject::setMasterScore(MasterScore* score)
 {
-    return doSetupMasterScore(forceMode);
+    m_masterScore = score;
 }
 
-Ret EngravingProject::doSetupMasterScore(bool forceMode)
+Ret EngravingProject::setupMasterScore(bool forceMode)
 {
     TRACEFUNC;
 
@@ -141,21 +142,22 @@ MasterScore* EngravingProject::masterScore() const
     return m_masterScore;
 }
 
-Ret EngravingProject::loadMscz(const MscReader& msc, SettingsCompat& settingsCompat, bool ignoreVersionError)
+Ret EngravingProject::loadMscz(const MscReader& msc, rw::ReadInOutData* data, bool ignoreVersionError)
 {
     TRACEFUNC;
 
     MScore::setError(MsError::MS_NO_ERROR);
+
     MscLoader loader;
-    return loader.loadMscz(m_masterScore, msc, settingsCompat, ignoreVersionError);
+    return loader.loadMscz(m_masterScore, msc, data, ignoreVersionError);
 }
 
-bool EngravingProject::writeMscz(MscWriter& writer, bool createThumbnail, const write::WriteRange* range)
+bool EngravingProject::writeMscz(MscWriter& writer, bool createThumbnail, const write::WriteContext* ctx)
 {
     TRACEFUNC;
 
     MscSaver saver(iocContext());
-    return saver.writeMscz(m_masterScore, writer, createThumbnail, range);
+    return saver.writeMscz(m_masterScore, writer, createThumbnail, ctx);
 }
 
 bool EngravingProject::isCorruptedUponLoading() const

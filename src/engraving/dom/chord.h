@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -115,6 +115,24 @@ private:
 //   @P stemDirection Direction     the stem direction of the chord: AUTO, UP, DOWN (read only)
 //---------------------------------------------------------
 
+struct NoteParenthesisInfo {
+    NoteParenthesisInfo (Parenthesis* lParen, Parenthesis* rParen, std::vector<Note*> nList);
+    ~NoteParenthesisInfo();
+    Parenthesis* leftParen() const { return m_leftParen; }
+    Parenthesis* rightParen() const { return m_rightParen; }
+    const std::vector<Note*>& notes() const { return m_notes; }
+
+    void insertNote(Note* note);
+    void removeNote(Note* note);
+
+private:
+    Parenthesis* m_leftParen = nullptr;
+    Parenthesis* m_rightParen = nullptr;
+    std::vector<Note*> m_notes;
+};
+
+using NoteParenthesisInfoList = std::vector<NoteParenthesisInfo*>;
+
 class Chord final : public ChordRest
 {
     OBJECT_ALLOCATOR(engraving, Chord)
@@ -125,10 +143,7 @@ public:
     ~Chord();
     Chord& operator=(const Chord&) = delete;
 
-    // Score Tree functions
-    EngravingObject* scanParent() const override;
-    EngravingObjectList scanChildren() const override;
-    void scanElements(void* data, void (* func)(void*, EngravingItem*), bool all=true) override;
+    void scanElements(std::function<void(EngravingItem*)> func) override;
 
     Chord* clone() const override { return new Chord(*this, false); }
     EngravingItem* linkedClone() override { return new Chord(*this, true); }
@@ -161,6 +176,14 @@ public:
 
     std::vector<Note*>& notes() { return m_notes; }
     const std::vector<Note*>& notes() const { return m_notes; }
+
+    const NoteParenthesisInfoList& noteParentheses() const { return m_noteParens; }
+    const NoteParenthesisInfo* findNoteParenthesisInfo(const Note* note) const;
+    NoteParenthesisInfo* findNoteParenthesisInfo(const Parenthesis* paren);
+    void addNoteParenthesisInfo(NoteParenthesisInfo* noteParenInfo);
+    void removeNoteParenthesisInfo(const NoteParenthesisInfo* noteParenInfo);
+    void addNoteToParenthesisInfo(Note* note, const Parenthesis* paren);
+    void removeNoteFromParenthesisInfo(Note* note, const Parenthesis* paren);
 
     bool isChordPlayable() const;
     void setIsChordPlayable(const bool isPlayable);
@@ -227,9 +250,7 @@ public:
     Hook* hook() const { return m_hook; }
     void setHook(Hook* h) { m_hook = h; }
 
-    //@ add an element to the Chord
     void add(EngravingItem*) override;
-    //@ remove the element from the Chord
     void remove(EngravingItem*) override;
 
     Note* selectedNote() const;
@@ -244,7 +265,6 @@ public:
 
     bool isPreBendOrGraceBendStart() const;
     bool isGraceBendEnd() const;
-    bool preOrGraceBendSpacingExceptionInTab() const;
 
     bool isTrillCueNote() const { return m_isTrillCueNote; }
     void setIsTrillCueNote(bool v);
@@ -373,6 +393,7 @@ private:
 
     std::vector<Note*> m_notes;           // sorted to decreasing line step
     std::vector<LedgerLine*> m_ledgerLines;
+    NoteParenthesisInfoList m_noteParens;
 
     Stem* m_stem = nullptr;
     Hook* m_hook = nullptr;

@@ -5,7 +5,7 @@
 # MuseScore Studio
 # Music Composition & Notation
 #
-# Copyright (C) 2021 MuseScore Limited
+# Copyright (C) 2021 MuseScore Limited and others
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 3 as
@@ -35,7 +35,7 @@ fi
 
 LUPDATE=lupdate
 SRC_DIR=src
-TS_FILE=share/locale/musescore_en.ts
+TS_FILE=share/locale/musescore_${1:-en}.ts
 DEFAULT_LUPDATE_ARGS=(
     -recursive
     -tr-function-alias translate+=trc
@@ -44,7 +44,7 @@ DEFAULT_LUPDATE_ARGS=(
     -tr-function-alias translate+=TranslatableString
     -tr-function-alias qsTranslate+=qsTrc
     -tr-function-alias QT_TRANSLATE_NOOP+=QT_TRANSLATE_NOOP_U16
-    -extensions cpp,h,mm,ui,qml,js
+    -extensions cpp,h,mm,ui,qml,js,mjs
 )
 
 run_indented() {
@@ -63,7 +63,7 @@ echo ""
 
 # instruments (and templates, and score orders, currently)
 FAKE_HEADER_FILE=share/instruments/instrumentsxml.h
-TS_FILE=share/locale/instruments_en.ts
+TS_FILE=share/locale/instruments_${1:-en}.ts
 DEFAULT_LUPDATE_ARGS=()
 
 echo "Instruments:"
@@ -72,9 +72,12 @@ run_indented "${LUPDATE}" "${DEFAULT_LUPDATE_ARGS[@]}" ${LUPDATE_ARGS} "${FAKE_H
 
 echo ""
 
-echo "Postprocessing:"
+if [ "${1:-en}" = "en" ]
+then
+    echo "Postprocessing:"
 
-POSTPROCESS="tools/translations/process_source_ts_files.py"
+    POSTPROCESS="tools/translations/process_source_ts_files.py"
 
-echo "Running" $POSTPROCESS_LAUNCHER "${POSTPROCESS}" ${POSTPROCESS_ARGS}
-run_indented $POSTPROCESS_LAUNCHER "${POSTPROCESS}" ${POSTPROCESS_ARGS}
+    echo "Running" $POSTPROCESS_LAUNCHER "${POSTPROCESS}" ${POSTPROCESS_ARGS}
+    run_indented $POSTPROCESS_LAUNCHER "${POSTPROCESS}" ${POSTPROCESS_ARGS}
+fi

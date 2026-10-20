@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -29,6 +29,7 @@
 #include "score.h"
 #include "system.h"
 #include "text.h"
+#include "rest.h"
 
 #include "log.h"
 
@@ -48,9 +49,18 @@ static const ElementStyle pedalStyle {
     { Sid::pedalFontStyle,                     Pid::BEGIN_FONT_STYLE },
     { Sid::pedalFontStyle,                     Pid::CONTINUE_FONT_STYLE },
     { Sid::pedalFontStyle,                     Pid::END_FONT_STYLE },
+    { Sid::pedalMusicalSymbolsScale,           Pid::BEGIN_TEXT_MUSICAL_SYMBOLS_SCALE },
+    { Sid::pedalMusicalSymbolsScale,           Pid::CONTINUE_TEXT_MUSICAL_SYMBOLS_SCALE },
+    { Sid::pedalMusicalSymbolsScale,           Pid::END_TEXT_MUSICAL_SYMBOLS_SCALE },
+    { Sid::dummyMusicalSymbolSize,             Pid::BEGIN_TEXT_MUSIC_SYMBOLS_SIZE },
+    { Sid::dummyMusicalSymbolSize,             Pid::CONTINUE_TEXT_MUSIC_SYMBOLS_SIZE },
+    { Sid::dummyMusicalSymbolSize,             Pid::END_TEXT_MUSIC_SYMBOLS_SIZE },
     { Sid::pedalTextAlign,                     Pid::BEGIN_TEXT_ALIGN },
     { Sid::pedalTextAlign,                     Pid::CONTINUE_TEXT_ALIGN },
     { Sid::pedalTextAlign,                     Pid::END_TEXT_ALIGN },
+    { Sid::pedalPosition,                      Pid::BEGIN_TEXT_POSITION },
+    { Sid::pedalPosition,                      Pid::CONTINUE_TEXT_POSITION },
+    { Sid::pedalPosition,                      Pid::END_TEXT_POSITION },
     { Sid::pedalHookHeight,                    Pid::BEGIN_HOOK_HEIGHT },
     { Sid::pedalHookHeight,                    Pid::END_HOOK_HEIGHT },
     { Sid::pedalLineWidth,                     Pid::LINE_WIDTH },
@@ -59,7 +69,15 @@ static const ElementStyle pedalStyle {
     { Sid::pedalPlacement,                     Pid::PLACEMENT },
     { Sid::pedalLineStyle,                     Pid::LINE_STYLE },
     { Sid::pedalPosBelow,                      Pid::OFFSET },
-    { Sid::pedalFontSpatiumDependent,          Pid::TEXT_SIZE_SPATIUM_DEPENDENT }
+    { Sid::pedalFontSpatiumDependent,          Pid::TEXT_SIZE_SPATIUM_DEPENDENT },
+    { Sid::pedalEndLineArrowHeight,            Pid::END_LINE_ARROW_HEIGHT },
+    { Sid::pedalEndLineArrowWidth,             Pid::END_LINE_ARROW_WIDTH },
+    { Sid::pedalBeginLineArrowHeight,          Pid::BEGIN_LINE_ARROW_HEIGHT },
+    { Sid::pedalBeginLineArrowWidth,           Pid::BEGIN_LINE_ARROW_WIDTH },
+    { Sid::pedalEndFilledArrowHeight,          Pid::END_FILLED_ARROW_HEIGHT },
+    { Sid::pedalEndFilledArrowWidth,           Pid::END_FILLED_ARROW_WIDTH },
+    { Sid::pedalBeginFilledArrowHeight,        Pid::BEGIN_FILLED_ARROW_HEIGHT },
+    { Sid::pedalBeginFilledArrowWidth,         Pid::BEGIN_FILLED_ARROW_WIDTH },
 };
 
 const String Pedal::PEDAL_SYMBOL = u"<sym>keyboardPedalPed</sym>";
@@ -68,8 +86,8 @@ const String Pedal::STAR_SYMBOL = u"<sym>keyboardPedalUp</sym>";
 PedalSegment::PedalSegment(Pedal* sp, System* parent)
     : TextLineBaseSegment(ElementType::PEDAL_SEGMENT, sp, parent, ElementFlag::MOVABLE | ElementFlag::ON_STAFF)
 {
-    m_text->setTextStyleType(TextStyleType::PEDAL);
-    m_endText->setTextStyleType(TextStyleType::PEDAL);
+    m_text->setTextStyleType(propertyDefault(Pid::TEXT_STYLE).value<TextStyleType>());
+    m_endText->setTextStyleType(propertyDefault(Pid::TEXT_STYLE).value<TextStyleType>());
 }
 
 //---------------------------------------------------------
@@ -176,9 +194,37 @@ engraving::PropertyValue Pedal::propertyDefault(Pid propertyId) const
     case Pid::PLACEMENT:
         return style().styleV(Sid::pedalPlacement);
 
+    case Pid::TEXT_STYLE:
+        return TextStyleType::PEDAL;
+
     default:
         return TextLineBase::propertyDefault(propertyId);
     }
+}
+
+bool Pedal::setProperty(Pid propertyId, const PropertyValue& v)
+{
+    // Update style flag for text
+    if (propertyId == Pid::BEGIN_HOOK_TYPE) {
+        setBeginHookType(v.value<HookType>());
+
+        PropertyFlags beginTextStyleFlag = beginText() == propertyDefault(Pid::BEGIN_TEXT).value<String>()
+                                           ? PropertyFlags::STYLED : PropertyFlags::UNSTYLED;
+        setPropertyFlags(Pid::BEGIN_TEXT, beginTextStyleFlag);
+        PropertyFlags continueTextStyleFlag = continueText() == propertyDefault(Pid::CONTINUE_TEXT).value<String>()
+                                              ? PropertyFlags::STYLED : PropertyFlags::UNSTYLED;
+        setPropertyFlags(Pid::CONTINUE_TEXT, continueTextStyleFlag);
+    } else if (propertyId == Pid::LINE_VISIBLE) {
+        setLineVisible(v.toBool());
+        PropertyFlags endTextStyleFlag = endText() == propertyDefault(Pid::END_TEXT).value<String>()
+                                         ? PropertyFlags::STYLED : PropertyFlags::UNSTYLED;
+        setPropertyFlags(Pid::END_TEXT, endTextStyleFlag);
+    } else {
+        return TextLineBase::setProperty(propertyId, v);
+    }
+
+    triggerLayout();
+    return true;
 }
 
 Pedal* Pedal::findNextInStaff() const
@@ -232,7 +278,7 @@ PointF Pedal::linePos(Grip grip, System** sys) const
                 Note* downNote = toChord(item)->downNote();
                 x += 0.5 * downNote->headWidth();
             } else if (item && item->isRest()) {
-                x += 0.5 * item->width();
+                x += toRest(item)->centerX();
             }
         }
         return PointF(x, 0.0);
@@ -253,7 +299,7 @@ PointF Pedal::linePos(Grip grip, System** sys) const
             Note* downNote = toChord(item)->downNote();
             x += 0.5 * downNote->headWidth();
         } else if (item && item->isRest()) {
-            x += 0.5 * item->width();
+            x += toRest(item)->centerX();
         }
         return PointF(x, 0.0);
     }

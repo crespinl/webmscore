@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -68,10 +68,6 @@ public:
 
     String label() const { return m_label; }
     void setLabel(const String& s) { m_label = s; }
-    void undoSetLabel(const String& s);
-    void undoSetMarkerType(MarkerType t);
-
-    void styleChanged() override;
 
     PropertyValue getProperty(Pid propertyId) const override;
     bool setProperty(Pid propertyId, const PropertyValue&) override;
@@ -81,7 +77,7 @@ public:
     EngravingItem* prevSegmentElement() override;
     String accessibleInfo() const override;
 
-    bool positionSeparateFromAlignment() const override { return true; }
+    bool positionRelativeToNoteheadRest() const override { return false; }
 
     bool centerOnSymbol() const { return m_centerOnSymbol; }
     void setCenterOnSymbol(bool val) { m_centerOnSymbol = val; }
@@ -99,9 +95,18 @@ public:
     String symbolString() const;
 
 private:
-    MarkerType m_markerType = MarkerType::SEGNO;
-    String m_label;                 ///< referenced from Jump() element
+    MarkerType m_markerType = MarkerType::FINE;
+    String m_label = u"fine";                 ///< referenced from Jump() element
 
     bool m_centerOnSymbol = true;
 };
+
+struct MarkerTypeTableItem {
+    MarkerType type;
+    AsciiStringView text;
+    AsciiStringView label;
+    bool rightAligned;
+};
+
+extern const std::vector<MarkerTypeTableItem> markerTypeTable;
 } // namespace mu::engraving

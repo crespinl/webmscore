@@ -5,7 +5,7 @@
  * MuseScore
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore BVBA and others
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -35,7 +35,7 @@ class ITracks;
 class IPlayer;
 class IAudioOutput;
 
-class IPlayback : MODULE_EXPORT_INTERFACE
+class IPlayback : MODULE_CONTEXT_INTERFACE
 {
     INTERFACE_ID(IPlayback)
 
@@ -43,6 +43,10 @@ public:
     virtual ~IPlayback() = default;
 
     // A quick guide how to playback something:
+
+    // 0. Check is audio system started
+    virtual bool isAudioStarted() const = 0;
+    virtual async::Channel<bool> isAudioStartedChanged() const = 0;
 
     // 1. Add Sequence
     virtual async::Promise<TrackSequenceId> addSequence() = 0;
@@ -104,8 +108,7 @@ public:
     virtual async::Promise<bool> saveSoundTrack(const TrackSequenceId sequenceId, const io::path_t& destination,
                                                 const SoundTrackFormat& format) = 0;
     virtual void abortSavingAllSoundTracks() = 0;
-    virtual async::Channel<int64_t /*current*/, int64_t /*total*/>
-    saveSoundTrackProgressChanged(const TrackSequenceId sequenceId) const = 0;
+    virtual SaveSoundTrackProgress saveSoundTrackProgressChanged(const TrackSequenceId sequenceId) const = 0;
 
     virtual void clearAllFx() = 0;
 };

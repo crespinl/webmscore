@@ -5,7 +5,7 @@
  * MuseScore
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore BVBA and others
+ * Copyright (C) 2025 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -19,8 +19,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-#ifndef MUSE_CLOUD_AUDIOCOMSERVICE_H
-#define MUSE_CLOUD_AUDIOCOMSERVICE_H
+
+#pragma once
 
 #include <memory>
 
@@ -37,8 +37,8 @@
 namespace muse::cloud {
 class AudioComService : public IAudioComService, public AbstractCloudService, public std::enable_shared_from_this<AudioComService>
 {
-    muse::Inject<ICloudConfiguration> configuration = { this };
-    muse::Inject<network::INetworkManagerCreator> networkManagerCreator = { this };
+    muse::GlobalInject<ICloudConfiguration> configuration;
+    muse::GlobalInject<network::INetworkManagerCreator> networkManagerCreator;
 
 public:
     explicit AudioComService(const modularity::ContextPtr& iocCtx, QObject* parent = nullptr);
@@ -49,23 +49,28 @@ public:
 
     CloudInfo cloudInfo() const override;
 
-    ProgressPtr uploadAudio(QIODevice& audioData, const QString& audioFormat, const QString& title, const QUrl& url,
+    ProgressPtr uploadAudio(DevicePtr audioData, const QString& audioFormat, const QString& title, const QUrl& url,
                             Visibility visibility = Visibility::Private, bool replaceExisting = false) override;
 
 private:
     ServerConfig serverConfig() const override;
 
-    Ret downloadAccountInfo() override;
-
-    bool doUpdateTokens() override;
+    async::Promise<Ret> downloadAccountInfo() override;
+    async::Promise<Ret> updateTokens() override;
 
     network::RequestHeaders headers(const QString& token = QString()) const;
 
-    Ret doUploadAudio(network::INetworkManagerPtr uploadManager, QIODevice& audioData, const QString& audioFormat);
-    Ret doCreateAudio(network::INetworkManagerPtr manager, const QString& title, int size, const QString& audioFormat,
-                      const QUrl& existingUrl, Visibility visibility, bool replaceExisting);
+    async::Promise<Ret> uploadNewAudio(DevicePtr audioData, const QString& audioFormat, const QString& title, const QUrl& url,
+                                       Visibility visibility, ProgressPtr progress);
 
-    Ret doUpdateVisibility(network::INetworkManagerPtr manager, const QUrl& url, Visibility visibility);
+    async::Promise<Ret> replaceExistingAudio(DevicePtr audioData, const QString& audioFormat, const QString& title, const QUrl& url,
+                                             Visibility visibility, ProgressPtr progress);
+
+    async::Promise<Ret> doUploadAudio(DevicePtr audioData, const QString& audioFormat, ProgressPtr progress);
+    async::Promise<Ret> doCreateAudio(const QString& title, int size, const QString& audioFormat, const QUrl& existingUrl,
+                                      Visibility visibility, bool replaceExisting);
+
+    async::Promise<Ret> doUpdateVisibility(const QUrl& url, Visibility visibility);
 
     void notifyServerAboutFailUpload(const QUrl& failUrl, const QString& token);
     void notifyServerAboutSuccessUpload(const QUrl& successUrl, const QString& token);
@@ -75,5 +80,3 @@ private:
     QJsonObject m_currentUploadingAudioInfo;
 };
 }
-
-#endif // MUSE_CLOUD_AUDIOCOMSERVICE_H

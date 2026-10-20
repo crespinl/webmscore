@@ -5,7 +5,7 @@
  * MuseScore
  * Music Composition & Notation
  *
- * Copyright (C) 2024 MuseScore BVBA and others
+ * Copyright (C) 2024 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -19,32 +19,32 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-#ifndef MU_MODULARITY_IOC_H
-#define MU_MODULARITY_IOC_H
+
+#pragma once
 
 #ifndef NO_QT_SUPPORT
 #include <QObject>
-class QQmlEngine;
+class QQmlContext;
 #endif
 
 #include "../thirdparty/kors_modularity/modularity/ioc.h" // IWYU pragma: export
 
 namespace muse::modularity {
-using ModulesIoC = kors::modularity::ModulesIoC;
-using Context = kors::modularity::Context;
-using ContextPtr = kors::modularity::ContextPtr;
+using kors::modularity::ModulesIoC;
+using kors::modularity::IoCID;
+using kors::modularity::Context;
+using kors::modularity::ContextPtr;
 
-template<class T>
-using Creator = kors::modularity::Creator<T>;
+using kors::modularity::Creator;
 
-inline ModulesIoC* _ioc(const ContextPtr& ctx = nullptr)
+inline ModulesIoC* ioc(const ContextPtr& ctx = nullptr)
 {
-    return kors::modularity::_ioc(ctx);
+    return kors::modularity::ioc(ctx);
 }
 
 inline ModulesIoC* globalIoc()
 {
-    return kors::modularity::_ioc(nullptr);
+    return kors::modularity::globalIoc();
 }
 
 inline muse::modularity::ContextPtr globalCtx()
@@ -55,7 +55,7 @@ inline muse::modularity::ContextPtr globalCtx()
 
 inline ModulesIoC* fixmeIoc()
 {
-    return kors::modularity::_ioc(nullptr);
+    return kors::modularity::ioc(nullptr);
 }
 
 inline void removeIoC(const ContextPtr& ctx = nullptr)
@@ -65,15 +65,17 @@ inline void removeIoC(const ContextPtr& ctx = nullptr)
 }
 
 namespace muse {
-template<class I>
-using Inject = kors::modularity::Inject<I>;
-template<class I>
-using GlobalInject = kors::modularity::GlobalInject<I>;
+using kors::modularity::GlobalInject;
+using kors::modularity::GlobalThreadSafeInject;
+using kors::modularity::ContextInject;
+using kors::modularity::ContextThreadSafeInject;
+using kors::modularity::Contextable;
 
-#define INJECT(Interface, getter) muse::Inject<Interface> getter;
-#define INJECT_STATIC(Interface, getter) static inline muse::Inject<Interface> getter;
-
-using Injectable = kors::modularity::Injectable;
+//! NOTE Temporary for compatibility
+using kors::modularity::Inject;
+using kors::modularity::ThreadSafeInject;
+using kors::modularity::Injectable;
+//! ----
 
 #ifndef NO_QT_SUPPORT
 struct QmlIoCContext : public QObject
@@ -86,15 +88,8 @@ public:
     modularity::ContextPtr ctx;
 };
 
-Injectable::GetContext iocCtxForQmlObject(const QObject* o);
-modularity::ContextPtr iocCtxForQmlEngine(const QQmlEngine* e);
+Contextable::GetContext iocCtxForQmlObject(const QObject* o);
+modularity::ContextPtr iocCtxForQmlContext(const QQmlContext* c);
 modularity::ContextPtr iocCtxForQWidget(const QWidget* o);
 #endif
 }
-
-namespace mu {
-template<class I>
-using Inject = kors::modularity::Inject<I>;
-}
-
-#endif // MU_MODULARITY_IOC_H

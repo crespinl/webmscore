@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -33,38 +33,41 @@
 #include "languages/ilanguagesservice.h"
 #include "iinteractive.h"
 #include "iappshellconfiguration.h"
-#include "multiinstances/imultiinstancesprovider.h"
+#include "multiwindows/imultiwindowsprovider.h"
 #include "project/iprojectfilescontroller.h"
 #include "audio/main/isoundfontcontroller.h"
 #include "istartupscenario.h"
 #include "iapplication.h"
 #include "extensions/iextensioninstaller.h"
 #include "context/iglobalcontext.h"
+#include "context/iuicontextresolver.h"
 
 class QDragEnterEvent;
 class QDragMoveEvent;
 class QDropEvent;
 
 namespace mu::appshell {
-class ApplicationActionController : public QObject, public muse::Injectable, public muse::actions::Actionable, public muse::async::Asyncable
+class ApplicationActionController : public QObject, public muse::Contextable, public muse::actions::Actionable,
+    public muse::async::Asyncable
 {
-    muse::Inject<muse::actions::IActionsDispatcher> dispatcher = { this };
-    muse::Inject<muse::ui::IUiActionsRegister> actionsRegister = { this };
-    muse::Inject<muse::ui::IMainWindow> mainWindow = { this };
-    muse::Inject<muse::languages::ILanguagesService> languagesService = { this };
-    muse::Inject<muse::IInteractive> interactive = { this };
-    muse::Inject<IAppShellConfiguration> configuration = { this };
-    muse::Inject<muse::mi::IMultiInstancesProvider> multiInstancesProvider = { this };
-    muse::Inject<project::IProjectFilesController> projectFilesController = { this };
-    muse::Inject<muse::audio::ISoundFontController> soundFontController = { this };
-    muse::Inject<IStartupScenario> startupScenario = { this };
-    muse::Inject<muse::IApplication> application = { this };
-    muse::Inject<muse::extensions::IExtensionInstaller> extensionInstaller = { this };
-    muse::Inject<context::IGlobalContext> globalContext = { this };
+    muse::GlobalInject<muse::mi::IMultiWindowsProvider> multiwindowsProvider;
+    muse::GlobalInject<IAppShellConfiguration> configuration;
+    muse::GlobalInject<muse::languages::ILanguagesService> languagesService;
+    muse::ContextInject<muse::ui::IUiActionsRegister> actionsRegister = { this };
+    muse::ContextInject<muse::actions::IActionsDispatcher> dispatcher = { this };
+    muse::ContextInject<muse::ui::IMainWindow> mainWindow = { this };
+    muse::ContextInject<muse::IInteractive> interactive = { this };
+    muse::ContextInject<project::IProjectFilesController> projectFilesController = { this };
+    muse::ContextInject<muse::audio::ISoundFontController> soundFontController = { this };
+    muse::ContextInject<IStartupScenario> startupScenario = { this };
+    muse::ContextInject<muse::IApplication> application = { this };
+    muse::ContextInject<muse::extensions::IExtensionInstaller> extensionInstaller = { this };
+    muse::ContextInject<context::IGlobalContext> globalContext = { this };
+    muse::ContextInject<context::IUiContextResolver> uiContextResolver = { this };
 
 public:
     ApplicationActionController(const muse::modularity::ContextPtr& iocCtx)
-        : muse::Injectable(iocCtx) {}
+        : muse::Contextable(iocCtx) {}
 
     void preInit();
     void init();
@@ -81,6 +84,8 @@ private:
     };
 
     bool eventFilter(QObject* watched, QEvent* event) override;
+
+    QWindow* qWindow() const;
 
     DragTarget dragTarget(const QUrl& url) const;
     bool onDragEnterEvent(QDragEnterEvent* event);
@@ -104,6 +109,15 @@ private:
     void doOpenPreferencesDialog();
 
     void revertToFactorySettings();
+
+    bool hasProjectAndIsFocused() const;
+    void doGlobalCopy();
+    void doGlobalCut();
+    void doGlobalPaste();
+    void doGlobalUndo();
+    void doGlobalRedo();
+    void doGlobalDelete();
+    void doGlobalCancel();
 
     bool m_quiting = false;
 

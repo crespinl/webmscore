@@ -5,7 +5,7 @@
  * MuseScore
  * Music Composition & Notation
  *
- * Copyright (C) 2024 MuseScore BVBA and others
+ * Copyright (C) 2024 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -31,17 +31,19 @@
 #include "modularity/ioc.h"
 #include "global/io/ifilesystem.h"
 #include "global/types/ret.h"
+#include "global/api/iapiregister.h"
 
 #include "global/api/iapiengine.h"
 
 namespace muse::extensions {
 class JsModuleLoader;
-class ScriptEngine : public muse::api::IApiEngine
+class ScriptEngine
 {
     GlobalInject<io::IFileSystem> fileSystem;
+    GlobalInject<muse::api::IApiRegister> apiRegister;
 
 public:
-    ScriptEngine(const modularity::ContextPtr& iocCtx, int apiverion);
+    ScriptEngine(const modularity::ContextPtr& iocCtx, int apiversion);
     ~ScriptEngine();
 
     struct CallData {
@@ -63,15 +65,10 @@ public:
     void throwError(const QString& message);
 
     // js modules
-    QJSValue require(const QString& filePath);
+    QJSValue requireModule(const QString& module);
+    QJSValue requireFile(const QString& filePath);
     QJSValue exports() const;
     void setExports(const QJSValue& obj);
-
-    // IApiEngine
-    const modularity::ContextPtr& iocContext() const override;
-    QJSValue newQObject(QObject* o) override;
-    QJSValue newObject() override;
-    QJSValue newArray(size_t length = 0) override;
 
     static void dump(const QString& name, const QJSValue& val);
     static Ret jsValueToRet(const QJSValue& val);
@@ -91,6 +88,7 @@ private:
 
     const modularity::ContextPtr m_iocContext;
     QJSEngine* m_engine = nullptr;
+    muse::api::JsApiEngine* m_apiengine = nullptr;
     QObject* m_api = nullptr;
     JsModuleLoader* m_moduleLoader = nullptr;
     bool m_isRequireMode = false;

@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2023 MuseScore Limited
+ * Copyright (C) 2023 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -21,7 +21,6 @@
  */
 #include "projectconfigurationstub.h"
 
-using namespace mu;
 using namespace mu::project;
 
 muse::io::path_t ProjectConfigurationStub::recentFilesJsonPath() const
@@ -29,9 +28,9 @@ muse::io::path_t ProjectConfigurationStub::recentFilesJsonPath() const
     return muse::io::path_t();
 }
 
-ByteArray ProjectConfigurationStub::compatRecentFilesData() const
+muse::ByteArray ProjectConfigurationStub::compatRecentFilesData() const
 {
-    return ByteArray();
+    return {};
 }
 
 muse::io::path_t ProjectConfigurationStub::myFirstProjectPath() const
@@ -39,9 +38,9 @@ muse::io::path_t ProjectConfigurationStub::myFirstProjectPath() const
     return muse::io::path_t();
 }
 
-io::paths_t ProjectConfigurationStub::availableTemplateDirs() const
+muse::io::paths_t ProjectConfigurationStub::availableTemplateDirs() const
 {
-    return io::paths_t();
+    return {};
 }
 
 muse::io::path_t ProjectConfigurationStub::templateCategoriesJsonPath(const muse::io::path_t&) const
@@ -102,6 +101,11 @@ muse::io::path_t ProjectConfigurationStub::defaultUserProjectsPath() const
     return muse::io::path_t();
 }
 
+muse::io::path_t ProjectConfigurationStub::defaultOpenProjectsPath() const
+{
+    return muse::io::path_t();
+}
+
 bool ProjectConfigurationStub::shouldAskSaveLocationType() const
 {
     return false;
@@ -116,7 +120,22 @@ bool ProjectConfigurationStub::isCloudProject(const muse::io::path_t&) const
     return false;
 }
 
-muse::io::path_t ProjectConfigurationStub::cloudProjectSavingFilePath(const muse::io::path_t&) const
+bool ProjectConfigurationStub::isLegacyCloudProject(const muse::io::path_t&) const
+{
+    return false;
+}
+
+muse::io::path_t ProjectConfigurationStub::cloudProjectPath(int) const
+{
+    return muse::io::path_t();
+}
+
+int ProjectConfigurationStub::cloudScoreIdFromPath(const muse::io::path_t&) const
+{
+    return 0;
+}
+
+muse::io::path_t ProjectConfigurationStub::cloudProjectSavingPath(int) const
 {
     return muse::io::path_t();
 }
@@ -150,6 +169,24 @@ bool ProjectConfigurationStub::shouldWarnBeforeSavingPubliclyToCloud() const
 }
 
 void ProjectConfigurationStub::setShouldWarnBeforeSavingPubliclyToCloud(bool)
+{
+}
+
+int ProjectConfigurationStub::homeScoresPageTabIndex() const
+{
+    return 0;
+}
+
+void ProjectConfigurationStub::setHomeScoresPageTabIndex(int)
+{
+}
+
+IProjectConfiguration::HomeScoresPageViewType ProjectConfigurationStub::homeScoresPageViewType() const
+{
+    return IProjectConfiguration::HomeScoresPageViewType::Grid;
+}
+
+void ProjectConfigurationStub::setHomeScoresPageViewType(IProjectConfiguration::HomeScoresPageViewType)
 {
 }
 
@@ -217,7 +254,7 @@ bool ProjectConfigurationStub::alsoShareAudioCom() const
     return false;
 }
 
-void ProjectConfigurationStub::setAlsoShareAudioCom(bool share)
+void ProjectConfigurationStub::setAlsoShareAudioCom(bool)
 {
 }
 
@@ -232,7 +269,7 @@ bool ProjectConfigurationStub::showAlsoShareAudioComDialog() const
     return false;
 }
 
-void ProjectConfigurationStub::setShowAlsoShareAudioComDialog(bool show)
+void ProjectConfigurationStub::setShowAlsoShareAudioComDialog(bool)
 {
 }
 
@@ -241,7 +278,7 @@ bool ProjectConfigurationStub::hasAskedAlsoShareAudioCom() const
     return false;
 }
 
-void ProjectConfigurationStub::setHasAskedAlsoShareAudioCom(bool has)
+void ProjectConfigurationStub::setHasAskedAlsoShareAudioCom(bool)
 {
 }
 
@@ -265,6 +302,16 @@ void ProjectConfigurationStub::setShouldDestinationFolderBeOpenedOnExport(bool)
 }
 
 QUrl ProjectConfigurationStub::supportForumUrl() const
+{
+    return QUrl();
+}
+
+QUrl ProjectConfigurationStub::dotComBugReportUrl() const
+{
+    return QUrl();
+}
+
+QUrl ProjectConfigurationStub::scoreUploadingGuidelinesUrl() const
 {
     return QUrl();
 }
@@ -343,4 +390,37 @@ bool ProjectConfigurationStub::disableVersionChecking() const
 
 void ProjectConfigurationStub::setDisableVersionChecking(bool)
 {
+}
+
+bool ProjectConfigurationStub::createBackupBeforeSaving() const
+{
+    return false;
+}
+
+void ProjectConfigurationStub::setCreateBackupBeforeSaving(bool)
+{
+}
+
+bool ProjectConfigurationStub::showConvertFileProcessingDialog() const
+{
+    return false;
+}
+
+void ProjectConfigurationStub::setShowConvertFileProcessingDialog(bool)
+{
+}
+
+muse::io::path_t ProjectConfigurationStub::convertedScoresPath() const
+{
+    return muse::io::path_t();
+}
+
+muse::io::path_t ProjectConfigurationStub::pendingConvertsJsonPath() const
+{
+    return muse::io::path_t();
+}
+
+std::string ProjectConfigurationStub::uniqueFileNameAddition(const muse::io::path_t&, const muse::io::path_t&, const std::string&) const
+{
+    return std::string();
 }

@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2025 MuseScore Limited
+ * Copyright (C) 2025 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -30,7 +30,7 @@
 #include "iengravingfont.h"
 
 namespace mu::engraving {
-class IEngravingFontsProvider : MODULE_EXPORT_INTERFACE
+class IEngravingFontsProvider : MODULE_GLOBAL_INTERFACE
 {
     INTERFACE_ID(IEngravingFontsProvider)
 

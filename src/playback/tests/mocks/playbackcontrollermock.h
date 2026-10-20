@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2024 MuseScore Limited
+ * Copyright (C) 2024 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -56,9 +56,9 @@ public:
     MOCK_METHOD(muse::async::Promise<muse::audio::SoundPresetList>, availableSoundPresets, (const engraving::InstrumentTrackId&), (const,
                                                                                                                                    override));
 
-    MOCK_METHOD(notation::INotationSoloMuteState::SoloMuteState, trackSoloMuteState, (const engraving::InstrumentTrackId&),
+    MOCK_METHOD(const SoloMuteState&, trackSoloMuteState, (const engraving::InstrumentTrackId&),
                 (const, override));
-    MOCK_METHOD(void, setTrackSoloMuteState, (const engraving::InstrumentTrackId&, const notation::INotationSoloMuteState::SoloMuteState&),
+    MOCK_METHOD(void, setTrackSoloMuteState, (const engraving::InstrumentTrackId&, const SoloMuteState&),
                 (override));
 
     MOCK_METHOD(void, playElements, (const std::vector<const notation::EngravingItem*>&, const PlayParams&, bool), (override));
@@ -74,10 +74,10 @@ public:
     MOCK_METHOD(bool, actionChecked, (const muse::actions::ActionCode&), (const, override));
     MOCK_METHOD(muse::async::Channel<muse::actions::ActionCode>, actionCheckedChanged, (), (const, override));
 
-    MOCK_METHOD(QTime, totalPlayTime, (), (const, override));
+    MOCK_METHOD(muse::secs_t, totalPlayTime, (), (const, override));
     MOCK_METHOD(muse::async::Notification, totalPlayTimeChanged, (), (const, override));
 
-    MOCK_METHOD(notation::Tempo, currentTempo, (), (const, override));
+    MOCK_METHOD(const notation::Tempo&, currentTempo, (), (const, override));
     MOCK_METHOD(muse::async::Notification, currentTempoChanged, (), (const, override));
 
     MOCK_METHOD(notation::MeasureBeat, currentBeat, (), (const, override));

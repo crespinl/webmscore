@@ -5,7 +5,7 @@
  * MuseScore
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore BVBA and others
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -19,9 +19,11 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-import QtQuick 2.15
+pragma ComponentBehavior: Bound
 
-import Muse.UiComponents 1.0
+import QtQuick
+
+import Muse.UiComponents
 
 import "internal"
 
@@ -37,7 +39,9 @@ Loader {
     property StyledMenu menu: loader.item as StyledMenu
     property Item menuAnchorItem: null
     property bool hasSiblingMenus: false
-
+    property var placementPolicies: PopupView.Default
+    property var parentWindow: null
+    property bool isSearchable: false
     property alias isMenuOpened: loader.active
 
     property string accessibleName: ""
@@ -64,6 +68,10 @@ Loader {
         focusPolicies: PopupView.NoFocus
 
         accessibleName: loader.accessibleName
+        hasSiblingMenus: loader.hasSiblingMenus
+        placementPolicies: loader.placementPolicies
+        parentWindow: loader.parentWindow
+        isSearchable: loader.isSearchable
 
         onHandleMenuItem: function(itemId) {
             itemMenu.close()
@@ -135,7 +143,6 @@ Loader {
         menu.closeSubMenu()
 
         menu.model = model
-        menu.calculateSize()
 
         if (x !== -1) {
             menu.x = x

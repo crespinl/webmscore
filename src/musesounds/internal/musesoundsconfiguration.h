@@ -5,7 +5,7 @@
  * MuseScore
  * Music Composition & Notation
  *
- * Copyright (C) 2024 MuseScore BVBA and others
+ * Copyright (C) 2024 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -27,13 +27,13 @@
 #include "imusesoundsconfiguration.h"
 
 namespace mu::musesounds {
-class MuseSoundsConfiguration : public IMuseSoundsConfiguration, public muse::Injectable
+class MuseSoundsConfiguration : public IMuseSoundsConfiguration, public muse::Contextable
 {
-    Inject<muse::IGlobalConfiguration> globalConfiguration = { this };
+    muse::GlobalInject<muse::IGlobalConfiguration> globalConfiguration;
 
 public:
     MuseSoundsConfiguration(const muse::modularity::ContextPtr& iocCtx)
-        : Injectable(iocCtx) {}
+        : muse::Contextable(iocCtx) {}
 
     void init();
 

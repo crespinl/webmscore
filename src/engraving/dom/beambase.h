@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -187,7 +187,7 @@ public:
     DECLARE_LAYOUTDATA_METHODS(BeamBase)
 
 protected:
-    BeamBase(const ElementType& type, EngravingItem* parent, ElementFlags flags = ElementFlag::NOTHING);
+    BeamBase(const ElementType& type, EngravingItem* parent, ElementFlags flags = ElementFlag::ON_STAFF);
     BeamBase(const BeamBase&);
     std::vector<BeamSegment*> m_beamSegments;
     PointF m_startAnchor;

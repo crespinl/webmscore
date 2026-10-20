@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -27,9 +27,13 @@
 #include "types/translatablestring.h"
 
 using namespace mu::playback;
+using namespace mu::notation;
 using namespace muse;
 using namespace muse::ui;
 using namespace muse::actions;
+
+static const ActionCode PLAY_FROM_SELECTION_CODE("play-from-selection");
+static const ActionCode CLEAR_ONLINE_SOUNDS_CACHE_CODE("clear-online-sounds-cache");
 
 const UiActionList PlaybackUiActions::s_mainActions = {
     UiAction("play",
@@ -39,12 +43,19 @@ const UiActionList PlaybackUiActions::s_mainActions = {
              TranslatableString("action", "Play"),
              IconCode::Code::PLAY
              ),
-    UiAction("stop",
+    UiAction(PLAY_FROM_SELECTION_CODE,
              mu::context::UiCtxProjectOpened,
              mu::context::CTX_NOTATION_OPENED,
-             TranslatableString("action", "Stop"),
-             TranslatableString("action", "Stop playback"),
-             IconCode::Code::STOP
+             TranslatableString("action", "Play from selection"),
+             TranslatableString("action", "Play from selection"),
+             IconCode::Code::PLAY
+             ),
+    UiAction("pause",
+             mu::context::UiCtxProjectOpened,
+             mu::context::CTX_NOTATION_FOCUSED,
+             TranslatableString("action", "Pause"),
+             TranslatableString("action", "Pause playback"),
+             IconCode::Code::PAUSE
              ),
     UiAction("pause-and-select",
              mu::context::UiCtxProjectOpened,
@@ -52,6 +63,13 @@ const UiActionList PlaybackUiActions::s_mainActions = {
              TranslatableString("action", "Pause and select"),
              TranslatableString("action", "Pause and select playback position"),
              IconCode::Code::PAUSE
+             ),
+    UiAction("stop",
+             mu::context::UiCtxProjectOpened,
+             mu::context::CTX_NOTATION_OPENED,
+             TranslatableString("action", "Stop"),
+             TranslatableString("action", "Stop playback"),
+             IconCode::Code::STOP
              ),
     UiAction("rewind",
              mu::context::UiCtxProjectOpened,
@@ -183,8 +201,6 @@ const UiActionList PlaybackUiActions::s_diagnosticActions = {
              )
 };
 
-static const ActionCode CLEAR_ONLINE_SOUNDS_CACHE_CODE("clear-online-sounds-cache");
-
 const UiActionList PlaybackUiActions::s_onlineSoundsActions = {
     UiAction(CLEAR_ONLINE_SOUNDS_CACHE_CODE,
              mu::context::UiCtxAny,
@@ -193,8 +209,8 @@ const UiActionList PlaybackUiActions::s_onlineSoundsActions = {
              ),
 };
 
-PlaybackUiActions::PlaybackUiActions(std::shared_ptr<PlaybackController> controller)
-    : m_controller(controller)
+PlaybackUiActions::PlaybackUiActions(std::shared_ptr<PlaybackController> controller, const muse::modularity::ContextPtr& iocCtx)
+    : muse::Contextable(iocCtx), m_controller(controller)
 {
 }
 
@@ -215,6 +231,22 @@ void PlaybackUiActions::init()
         }
 
         m_actionEnabledChanged.send(codes);
+    });
+
+    globalContext()->currentNotationChanged().onNotify(this, [this]() {
+        INotationPtr currNotation = globalContext()->currentNotation();
+        if (!currNotation) {
+            return;
+        }
+
+        INotationInteractionPtr interaction = currNotation->interaction();
+        interaction->selectionChanged().onNotify(this, [this]() {
+            m_actionEnabledChanged.send({ PLAY_FROM_SELECTION_CODE });
+        }, Asyncable::Mode::SetReplace /* FIXME */);
+
+        interaction->isEditingElementChanged().onNotify(this, [this]() {
+            m_actionEnabledChanged.send({ PLAY_FROM_SELECTION_CODE });
+        }, Asyncable::Mode::SetReplace /* FIXME */);
     });
 
     m_controller->onlineSoundsChanged().onNotify(this, [this]() {
@@ -249,6 +281,12 @@ bool PlaybackUiActions::actionEnabled(const UiAction& act) const
 
     if (act.code == CLEAR_ONLINE_SOUNDS_CACHE_CODE) {
         return !m_controller->onlineSounds().empty();
+    }
+
+    if (act.code == PLAY_FROM_SELECTION_CODE) {
+        const INotationPtr currNotation = globalContext()->currentNotation();
+        const INotationInteractionPtr interaction = currNotation ? currNotation->interaction() : nullptr;
+        return interaction && !interaction->isEditingElement();
     }
 
     return true;

@@ -5,7 +5,7 @@
  * MuseScore
  * Music Composition & Notation
  *
- * Copyright (C) 2022 MuseScore BVBA and others
+ * Copyright (C) 2022 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -20,12 +20,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef MUSE_MUSESAMPLER_MUSESAMPLERWRAPPER_H
-#define MUSE_MUSESAMPLER_MUSESAMPLERWRAPPER_H
+#pragma once
 
 #include <memory>
 
-#include "audio/worker/internal/synthesizers/abstractsynthesizer.h"
+#include "audio/engine/internal/synthesizers/abstractsynthesizer.h"
 #include "async/channel.h"
 
 #include "libhandler.h"
@@ -43,7 +42,7 @@ public:
                        const modularity::ContextPtr& iocCtx);
     ~MuseSamplerWrapper() override;
 
-    void setSampleRate(unsigned int sampleRate) override;
+    void setOutputSpec(const audio::OutputSpec& spec) override;
     unsigned int audioChannelsCount() const override;
     async::Channel<unsigned int> audioChannelsCountChanged() const override;
     muse::audio::samples_t process(float* buffer, muse::audio::samples_t samplesPerChannel) override;
@@ -119,6 +118,8 @@ private:
     muse::audio::samples_t m_currentPosition = 0;
     muse::audio::sample_rate_t m_samplerSampleRate = 0;
 
+    audio::OutputSpec m_outputSpec;
+
     std::vector<float> m_leftChannel;
     std::vector<float> m_rightChannel;
 
@@ -135,5 +136,3 @@ private:
 
 using MuseSamplerWrapperPtr = std::shared_ptr<MuseSamplerWrapper>;
 }
-
-#endif // MUSE_MUSESAMPLER_MUSESAMPLERWRAPPER_H

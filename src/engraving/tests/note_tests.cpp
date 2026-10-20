@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -22,25 +22,24 @@
 
 #include <gtest/gtest.h>
 
-#include "dom/accidental.h"
-#include "dom/articulation.h"
-#include "dom/articulation.h"
-#include "dom/chord.h"
-#include "dom/chordrest.h"
-#include "dom/factory.h"
-#include "dom/masterscore.h"
-#include "dom/measure.h"
-#include "dom/mscore.h"
-#include "dom/note.h"
-#include "dom/pitchspelling.h"
-#include "dom/segment.h"
-#include "dom/tremolosinglechord.h"
-
 #include "engraving/compat/scoreaccess.h"
+#include "engraving/dom/accidental.h"
+#include "engraving/dom/articulation.h"
+#include "engraving/dom/articulation.h"
+#include "engraving/dom/chord.h"
+#include "engraving/dom/chordrest.h"
+#include "engraving/dom/factory.h"
+#include "engraving/dom/masterscore.h"
+#include "engraving/dom/measure.h"
+#include "engraving/dom/mscore.h"
+#include "engraving/dom/note.h"
+#include "engraving/dom/pitchspelling.h"
+#include "engraving/dom/segment.h"
+#include "engraving/dom/tremolosinglechord.h"
+
 #include "utils/scorerw.h"
 #include "utils/scorecomp.h"
 
-using namespace mu;
 using namespace mu::engraving;
 
 static const String NOTE_DATA_DIR("note_data/");
@@ -197,40 +196,40 @@ TEST_F(Engraving_NoteTests, note)
     delete n;
 
     // mirror
-    note->setProperty(Pid::MIRROR_HEAD, int(DirectionH::LEFT));
+    note->setProperty(Pid::MIRROR_HEAD, DirectionH::LEFT);
     n = toNote(ScoreRW::writeReadElement(note));
     EXPECT_EQ(n->userMirror(), DirectionH::LEFT);
     delete n;
 
-    note->setProperty(Pid::MIRROR_HEAD, int(DirectionH::RIGHT));
+    note->setProperty(Pid::MIRROR_HEAD, DirectionH::RIGHT);
     n = toNote(ScoreRW::writeReadElement(note));
     EXPECT_EQ(n->userMirror(), DirectionH::RIGHT);
     delete n;
 
-    note->setProperty(Pid::MIRROR_HEAD, int(DirectionH::AUTO));
+    note->setProperty(Pid::MIRROR_HEAD, DirectionH::AUTO);
     n = toNote(ScoreRW::writeReadElement(note));
     EXPECT_EQ(n->userMirror(), DirectionH::AUTO);
     delete n;
 
     // dot position
-    note->setProperty(Pid::DOT_POSITION, PropertyValue::fromValue(DirectionV(DirectionV::UP)));
+    note->setProperty(Pid::DOT_POSITION, PropertyValue::fromValue(DirectionV::UP));
     n = toNote(ScoreRW::writeReadElement(note));
-    EXPECT_EQ(int(n->userDotPosition()), int(DirectionV::UP));
+    EXPECT_EQ(n->userDotPosition(), DirectionV::UP);
     delete n;
 
-    note->setProperty(Pid::DOT_POSITION, PropertyValue::fromValue(DirectionV(DirectionV::DOWN)));
+    note->setProperty(Pid::DOT_POSITION, PropertyValue::fromValue(DirectionV::DOWN));
     n = toNote(ScoreRW::writeReadElement(note));
-    EXPECT_EQ(int(n->userDotPosition()), int(DirectionV::DOWN));
+    EXPECT_EQ(n->userDotPosition(), DirectionV::DOWN);
     delete n;
 
-    note->setProperty(Pid::DOT_POSITION, PropertyValue::fromValue(DirectionV(DirectionV::AUTO)));
+    note->setProperty(Pid::DOT_POSITION, PropertyValue::fromValue(DirectionV::AUTO));
     n = toNote(ScoreRW::writeReadElement(note));
-    EXPECT_EQ(int(n->userDotPosition()), int(DirectionV::AUTO));
+    EXPECT_EQ(n->userDotPosition(), DirectionV::AUTO);
     delete n;
 
     // headGroup
     for (int i = 0; i < int(NoteHeadGroup::HEAD_GROUPS); ++i) {
-        note->setProperty(Pid::HEAD_GROUP, i);
+        note->setProperty(Pid::HEAD_GROUP, static_cast<NoteHeadGroup>(i));
         n = toNote(ScoreRW::writeReadElement(note));
         EXPECT_EQ(int(n->headGroup()), i);
         delete n;
@@ -238,7 +237,7 @@ TEST_F(Engraving_NoteTests, note)
 
     // headType
     for (int i = 0; i < int(NoteHeadType::HEAD_TYPES); ++i) {
-        note->setProperty(Pid::HEAD_TYPE, i);
+        note->setProperty(Pid::HEAD_TYPE, static_cast<NoteHeadType>(i));
         n = toNote(ScoreRW::writeReadElement(note));
         EXPECT_EQ(int(n->headType()), i);
         delete n;
@@ -319,7 +318,7 @@ TEST_F(Engraving_NoteTests, grace)
     tr->setTrack(gc->track());
     score->undoAddElement(tr);
     score->endCmd();
-//      Chord* c = static_cast<Chord*>(ScoreRW::writeReadElement(gc));
+//      Chord* c = toChord(ScoreRW::writeReadElement(gc));
 //      QVERIFY(c->tremolo() != 0);
 //      delete c;
 
@@ -331,7 +330,7 @@ TEST_F(Engraving_NoteTests, grace)
     ar->setTrack(gc->track());
     score->undoAddElement(ar);
     score->endCmd();
-//      c = static_cast<Chord*>(ScoreRW::writeReadElement(gc));
+//      c = toChord(ScoreRW::writeReadElement(gc));
 //      QVERIFY(c->articulations().size() == 1);
 //      delete c;
 

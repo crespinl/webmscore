@@ -5,7 +5,7 @@
  * MuseScore
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore BVBA and others
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -19,12 +19,15 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-import QtQuick 2.15
+import QtQuick
+
+pragma ComponentBehavior: Bound
 
 Text {
     id: root
 
     readonly property bool isEmpty: text.length === 0
+    property bool displayTruncatedTextOnHover: false
 
     color: ui.theme.fontPrimaryColor
     linkColor: ui.theme.linkColor
@@ -39,25 +42,31 @@ Text {
         pixelSize: ui.theme.bodyFont.pixelSize
     }
 
-    onLinkActivated: function(link) {
-        Qt.openUrlExternally(link)
-    }
-
-    onHoveredLinkChanged: {
-        if (Boolean(hoveredLink)) {
-            mouseAreaLoader.active = true
-        }
-    }
-
     Loader {
         id: mouseAreaLoader
         anchors.fill: parent
-        active: false
+        active: (root.displayTruncatedTextOnHover && root.truncated) || root.hoveredLink
 
         sourceComponent: MouseArea {
             anchors.fill: parent
-            acceptedButtons: Qt.NoButton
             cursorShape: root.hoveredLink ? Qt.PointingHandCursor : Qt.ArrowCursor
+            hoverEnabled: true
+
+            onClicked: {
+                ui.tooltip.hide(root, true)
+
+                if (Boolean(root.hoveredLink)) {
+                    Qt.openUrlExternally(root.hoveredLink)
+                }
+            }
+
+            onContainsMouseChanged: {
+                if (!containsMouse || !root.truncated || root.hoveredLink) {
+                    ui.tooltip.hide(root)
+                    return
+                }
+                ui.tooltip.show(root, root.text)
+            }
         }
     }
 }

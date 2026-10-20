@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -19,12 +19,11 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-#ifndef INOTATIONELEMENTS_H
-#define INOTATIONELEMENTS_H
+
+#pragma once
 
 #include <vector>
 
-#include "modularity/imoduleinterface.h"
 #include "notationtypes.h"
 
 namespace mu::notation {
@@ -35,7 +34,7 @@ public:
 
     virtual mu::engraving::Score* msScore() const = 0;
 
-    virtual EngravingItem* search(const std::string& searchText) const = 0;
+    virtual std::vector<EngravingItem*> search(const QString& searchText) const = 0;
     virtual std::vector<EngravingItem*> elements(const FilterElementsOptions& elementOptions = FilterElementsOptions()) const = 0;
 
     virtual Measure* measure(const int measureIndex) const = 0;
@@ -46,5 +45,3 @@ public:
 
 using INotationElementsPtr = std::shared_ptr<INotationElements>;
 }
-
-#endif // INOTATIONELEMENTS_H

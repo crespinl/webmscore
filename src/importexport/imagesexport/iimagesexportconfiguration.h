@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -28,7 +28,7 @@
 #include "modularity/imoduleinterface.h"
 
 namespace mu::iex::imagesexport {
-class IImagesExportConfiguration : MODULE_EXPORT_INTERFACE
+class IImagesExportConfiguration : MODULE_GLOBAL_INTERFACE
 {
     INTERFACE_ID(IImagesExportConfiguration)
 
@@ -42,6 +42,9 @@ public:
     virtual bool exportPdfWithTransparentBackground() const = 0;
     virtual void setExportPdfWithTransparentBackground(bool transparent) = 0;
 
+    virtual bool exportPdfWithGrayscale() const = 0;
+    virtual void setExportPdfWithGrayscale(bool grayscale) = 0;
+
     // Png
     virtual float exportPngDpiResolution() const = 0;
     virtual void setExportPngDpiResolution(float dpi) = 0;
@@ -51,6 +54,9 @@ public:
 
     virtual bool exportPngWithTransparentBackground() const = 0;
     virtual void setExportPngWithTransparentBackground(bool transparent) = 0;
+
+    virtual bool exportPngWithGrayscale() const = 0;
+    virtual void setExportPngWithGrayscale(bool grayscale) = 0;
 
     // Svg
     virtual bool exportSvgWithTransparentBackground() const = 0;

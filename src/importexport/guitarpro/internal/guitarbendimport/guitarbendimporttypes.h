@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2025 MuseScore Limited
+ * Copyright (C) 2025 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -21,7 +21,7 @@
  */
 #pragma once
 
-#include <types/fraction.h>
+#include <engraving/types/fraction.h>
 
 namespace mu::engraving {
 class Note;
@@ -35,9 +35,15 @@ struct BendNoteData {
     int quarterTones = 0;
 };
 
+// tie between originally tied notes should be removed and instead the bend after last grace note should be placed
+struct LastGraceNoteData {
+    bool shouldMoveTie = false;
+    double endFactor = 1.0; // grace notes' durations are split equally and they have startFactor 0 (bend starts from the beginning)
+};
+
 struct GraceNotesImportInfo {
     std::vector<BendNoteData> data;
-    bool shouldMoveTie = false; // tie between originally tied notes should be removed and instead the bend after last grace note should be placed
+    LastGraceNoteData lastNoteData;
 };
 
 using bend_data_map_t       = std::map<size_t /* idx in chord */, BendNoteData>;

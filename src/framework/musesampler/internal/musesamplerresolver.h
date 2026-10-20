@@ -5,7 +5,7 @@
  * MuseScore
  * Music Composition & Notation
  *
- * Copyright (C) 2025 MuseScore BVBA and others
+ * Copyright (C) 2025 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -22,7 +22,7 @@
 
 #pragma once
 
-#include "audio/worker/isynthresolver.h"
+#include "audio/engine/isynthresolver.h"
 #include "imusesamplerinfo.h"
 
 #include "modularity/ioc.h"
@@ -31,24 +31,25 @@
 #include "libhandler.h"
 
 namespace muse::musesampler {
-class MuseSamplerResolver : public audio::synth::ISynthResolver::IResolver, public IMuseSamplerInfo, public Injectable
+class MuseSamplerResolver : public audio::synth::ISynthResolver::IResolver, public IMuseSamplerInfo, public Contextable
 {
-    Inject<IMuseSamplerConfiguration> configuration = { this };
+    GlobalInject<IMuseSamplerConfiguration> configuration;
 
 public:
     MuseSamplerResolver(const modularity::ContextPtr& iocCtx)
-        : Injectable(iocCtx) {}
+        : Contextable(iocCtx) {}
 
     void init();
+    void deinit();
 
     bool reloadAllInstruments();
     int buildNumber() const;
 
-    muse::audio::synth::ISynthesizerPtr resolveSynth(const muse::audio::TrackId trackId,
-                                                     const muse::audio::AudioInputParams& params) const override;
-    bool hasCompatibleResources(const muse::audio::PlaybackSetupData& setup) const override;
-    muse::audio::AudioResourceMetaList resolveResources() const override;
-    muse::audio::SoundPresetList resolveSoundPresets(const muse::audio::AudioResourceMeta& resourceMeta) const override;
+    audio::synth::ISynthesizerPtr resolveSynth(const audio::TrackId trackId, const audio::AudioInputParams& params,
+                                               const audio::OutputSpec& outputSpec) const override;
+    bool hasCompatibleResources(const audio::PlaybackSetupData& setup) const override;
+    audio::AudioResourceMetaList resolveResources() const override;
+    audio::SoundPresetList resolveSoundPresets(const audio::AudioResourceMeta& resourceMeta) const override;
     void refresh() override;
     void clearSources() override;
 
@@ -61,7 +62,7 @@ public:
     std::vector<Instrument> instruments() const override;
 
 private:
-    void loadSoundPresetAttributes(muse::audio::SoundPresetAttributes& attributes, int instrumentId, const char* presetCode) const;
+    void loadSoundPresetAttributes(audio::SoundPresetAttributes& attributes, int instrumentId, const char* presetCode) const;
 
     String buildMuseInstrumentId(const String& category, const String& name, int uniqueId) const;
 

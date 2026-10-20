@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2023 MuseScore Limited
+ * Copyright (C) 2023 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -19,12 +19,10 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+
 #include "braillemodule.h"
 
-#include <QQmlEngine>
-
 #include "modularity/ioc.h"
-#include "ui/iuiengine.h"
 #include "project/inotationwritersregister.h"
 
 #include "internal/brailleconfiguration.h"
@@ -34,19 +32,12 @@
 
 #include "inotationbraille.h"
 
-#include "view/braillemodel.h"
-
 using namespace muse;
+using namespace mu::braille;
 using namespace mu::engraving;
 using namespace mu::notation;
 using namespace mu::project;
 
-static void braille_init_qrc()
-{
-    Q_INIT_RESOURCE(braille);
-}
-
-namespace mu::braille {
 std::string BrailleModule::moduleName() const
 {
     return "braille";
@@ -60,11 +51,6 @@ void BrailleModule::resolveImports()
     }
 }
 
-void BrailleModule::registerResources()
-{
-    braille_init_qrc();
-}
-
 void BrailleModule::registerExports()
 {
     m_brailleConfiguration = std::make_shared<BrailleConfiguration>();
@@ -76,22 +62,8 @@ void BrailleModule::registerExports()
     ioc()->registerExport<INotationBraille>(moduleName(), m_notationBraille);
 }
 
-void BrailleModule::registerUiTypes()
+void BrailleModule::onInit(const IApplication::RunMode&)
 {
-    using namespace notation;
-
-    qmlRegisterType<BrailleModel>("MuseScore.Braille", 1, 0, "BrailleModel");
-
-    ioc()->resolve<muse::ui::IUiEngine>(moduleName())->addSourceImportPath(braille_QML_IMPORT);
-}
-
-void BrailleModule::onInit(const IApplication::RunMode& mode)
-{
-    if (IApplication::RunMode::GuiApp != mode) {
-        return;
-    }
-
     m_brailleConfiguration->init();
     m_notationBraille->init();
-}
 }

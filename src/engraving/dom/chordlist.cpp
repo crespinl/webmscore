@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -340,7 +340,7 @@ void HChord::add(const std::vector<HDegree>& degreeList)
 //   readRenderList
 //---------------------------------------------------------
 
-static void readRenderList(String val, std::list<RenderActionPtr>& renderList, int mscVersion)
+static void readRenderList(String val, std::vector<RenderActionPtr>& renderList, int mscVersion)
 {
     renderList.clear();
     StringList sl = val.split(u' ', muse::SkipEmptyParts);
@@ -404,7 +404,7 @@ static void readRenderList(String val, std::list<RenderActionPtr>& renderList, i
 //   writeRenderList
 //---------------------------------------------------------
 
-static void writeRenderList(XmlWriter& xml, const std::list<RenderActionPtr>& al, const AsciiStringView& name)
+static void writeRenderList(XmlWriter& xml, const std::vector<RenderActionPtr>& al, const AsciiStringView& name)
 {
     String s;
 
@@ -1329,7 +1329,7 @@ bool ParsedChord::parse(const String& s, const ChordList* cl, bool syntaxOnly, b
 //---------------------------------------------------------
 
 String ParsedChord::fromXml(const String& rawKind, const String& rawKindText, const String& useSymbols, const String& useParens,
-                            const std::list<HDegree>& dl, const ChordList* cl)
+                            const std::vector<HDegree>& dl, const ChordList* cl)
 {
     String kind = rawKind;
     String kindText = rawKindText;
@@ -1589,8 +1589,8 @@ double ChordList::position(const StringList& names, bool stackModifiers, bool su
             const double base = stackHeight / 2;                            // Baseline of bottom modifier in the stack
             yAdj += base - modifierIdx * modifierHeight * (1 + LINE_SPACING);
         }
-        Char c = name.isEmpty() ? name.at(0) : u'0';
-        if (c.isDigit() || c.isPunct()) {
+
+        if (!name.isEmpty()) {
             yAdj += m_madjust;
         }
         return yAdj;
@@ -1604,7 +1604,7 @@ double ChordList::position(const StringList& names, bool stackModifiers, bool su
 //   renderList
 //---------------------------------------------------------
 
-const std::list<RenderActionPtr >& ParsedChord::renderList(const ChordList* cl, bool stacked)
+const std::vector<RenderActionPtr >& ParsedChord::renderList(const ChordList* cl, bool stacked)
 {
     // generate anew on each call,
     // in case chord list has changed since last time
@@ -1657,8 +1657,8 @@ const std::list<RenderActionPtr >& ParsedChord::renderList(const ChordList* cl, 
         }
         const bool modifierEnd = curMod.endsWith(n) && modIdx != finalModIdx;
 
-        std::list<RenderActionPtr > rl;
-        std::list<ChordToken> definedTokens;
+        std::vector<RenderActionPtr > rl;
+        std::vector<ChordToken> definedTokens;
         bool found = false;
         // potential definitions for token
         if (cl) {

@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<museScore version="4.60">
+<museScore version="4.70">
   <Score>
     <eid>K_K</eid>
     <name>Flute</name>
     <Division>480</Division>
     <Style>
-      <spatium>1.74978</spatium>
+      <spatium>1.75</spatium>
       </Style>
     <showInvisible>1</showInvisible>
     <showUnprintable>1</showUnprintable>
@@ -63,12 +63,11 @@
           <Dynamic>
             <subtype>mf</subtype>
             <velocity>80</velocity>
-            <dynamicsSize>1.2</dynamicsSize>
             <eid>R_R</eid>
             <linkedTo>H_H</linkedTo>
             <positionLinkedToMaster>0</positionLinkedToMaster>
             <appearanceLinkedToMaster>0</appearanceLinkedToMaster>
-            <dynamicsSize>1.2</dynamicsSize>
+            <musicalSymbolsScale>1.2</musicalSymbolsScale>
             </Dynamic>
           <Chord>
             <eid>S_S</eid>

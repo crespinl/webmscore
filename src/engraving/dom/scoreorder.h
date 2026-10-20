@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -91,7 +91,7 @@ struct ScoreOrder
     ScoreGroup newUnsortedGroup(const String group, const String section) const;
     ScoreGroup getGroup(const String family, const String instrumentGroup) const;
     int instrumentSortingIndex(const String& instrumentId, bool isSoloist) const;
-    bool isScoreOrder(const std::list<int>& indices) const;
+    bool isScoreOrder(const std::vector<int>& indices) const;
     bool isScoreOrder(const Score* score) const;
 
     void setBracketsAndBarlines(Score* score);

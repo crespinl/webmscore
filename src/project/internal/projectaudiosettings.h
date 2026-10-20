@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -34,9 +34,10 @@
 #include "../iprojectaudiosettings.h"
 
 namespace mu::project {
-class ProjectAudioSettings : public IProjectAudioSettings
+class ProjectAudioSettings : public IProjectAudioSettings, public muse::Contextable
 {
-    INJECT_STATIC(playback::IPlaybackConfiguration, playbackConfig)
+    muse::GlobalInject<playback::IPlaybackConfiguration> playbackConfig;
+
 public:
     const muse::audio::AudioOutputParams& masterAudioOutputParams() const override;
     void setMasterAudioOutputParams(const muse::audio::AudioOutputParams& params) override;
@@ -74,7 +75,8 @@ public:
 
 private:
     friend class NotationProject;
-    ProjectAudioSettings() = default;
+    ProjectAudioSettings(const muse::modularity::ContextPtr& iocCtx)
+        : muse::Contextable(iocCtx) {}
 
     muse::audio::AudioInputParams inputParamsFromJson(const QJsonObject& object) const;
     muse::audio::AudioOutputParams outputParamsFromJson(const QJsonObject& object) const;

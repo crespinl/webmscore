@@ -1,10 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<museScore version="4.60">
+<museScore version="4.70">
   <Score>
     <eid>B_B</eid>
     <Division>480</Division>
     <Style>
       <maskBarlinesForText>0</maskBarlinesForText>
+      <dividerLeftAlignToSystemBarline>0</dividerLeftAlignToSystemBarline>
+      <dividerRightAlignToSystemBarline>0</dividerRightAlignToSystemBarline>
       <scaleRythmicSpacingForSmallNotes>0</scaleRythmicSpacingForSmallNotes>
       <verticallyAlignChordSymbols>0</verticallyAlignChordSymbols>
       <changesBeforeBarlineRepeats>0</changesBeforeBarlineRepeats>
@@ -144,8 +146,9 @@
               <Image>
                 <Image>
                   <eid>M_M</eid>
-                  <z>9299</z>
+                  <z>11199</z>
                   <path>71b2e9f575296b78c22ba721cd71f6e5.png</path>
+                  <size w="32.12" h="32.16"/>
                   </Image>
                 <eid>N_N</eid>
                 <path>71b2e9f575296b78c22ba721cd71f6e5.png</path>
@@ -827,7 +830,7 @@
       <name>Alto</name>
       <Division>480</Division>
       <Style>
-        <spatium>1.74978</spatium>
+        <spatium>1.75</spatium>
         </Style>
       <showInvisible>1</showInvisible>
       <showUnprintable>1</showUnprintable>
@@ -922,8 +925,9 @@
                 <Image>
                   <Image>
                     <eid>FC_FC</eid>
-                    <z>9299</z>
+                    <z>11199</z>
                     <path>71b2e9f575296b78c22ba721cd71f6e5.png</path>
+                    <size w="32.12" h="32.16"/>
                     </Image>
                   <eid>GC_GC</eid>
                   <linkedTo>N_N</linkedTo>
@@ -1311,7 +1315,7 @@
       <name>Tenor</name>
       <Division>480</Division>
       <Style>
-        <spatium>1.74978</spatium>
+        <spatium>1.75</spatium>
         </Style>
       <showInvisible>1</showInvisible>
       <showUnprintable>1</showUnprintable>

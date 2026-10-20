@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -22,9 +22,10 @@
 
 #include "mmrest.h"
 
+#include "../editing/addremoveelement.h"
+#include "part.h"
 #include "score.h"
 #include "system.h"
-#include "undo.h"
 
 #include "log.h"
 
@@ -93,7 +94,7 @@ PointF MMRest::numberPos() const
 
 double MMRest::yNumberPos() const
 {
-    return ldata()->yNumberPos + spatium() * m_numberOffset;
+    return ldata()->yNumberPos + m_numberOffset.toMM(spatium());
 }
 
 //---------------------------------------------------------
@@ -104,7 +105,7 @@ PropertyValue MMRest::propertyDefault(Pid propertyId) const
 {
     switch (propertyId) {
     case Pid::MMREST_NUMBER_OFFSET:
-        return 0.0;
+        return 0.0_sp;
     case Pid::MMREST_NUMBER_VISIBLE:
         return true;
     default:
@@ -136,7 +137,7 @@ bool MMRest::setProperty(Pid propertyId, const PropertyValue& v)
 {
     switch (propertyId) {
     case Pid::MMREST_NUMBER_OFFSET:
-        m_numberOffset = v.toDouble();
+        m_numberOffset = v.value<Spatium>();
         triggerLayout();
         break;
     case Pid::MMREST_NUMBER_VISIBLE:

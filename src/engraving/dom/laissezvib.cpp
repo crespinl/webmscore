@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -21,13 +21,14 @@
  */
 
 #include "laissezvib.h"
+
+#include "../editing/mscoreview.h"
+
 #include "chord.h"
-#include "dom/measure.h"
-#include "dom/mscoreview.h"
-#include "dom/score.h"
+#include "measure.h"
 #include "note.h"
+#include "score.h"
 #include "staff.h"
-#include "style/style.h"
 
 namespace mu::engraving {
 static const ElementStyle laissezVibStyle {
@@ -54,7 +55,7 @@ PropertyValue LaissezVib::propertyDefault(Pid propertyId) const
 {
     switch (propertyId) {
     case Pid::MIN_LENGTH:
-        return Spatium(2.0);
+        return 2.0_sp;
     default:
         return Tie::propertyDefault(propertyId);
     }
@@ -104,11 +105,6 @@ LaissezVibSegment::LaissezVibSegment(System* parent)
 LaissezVibSegment::LaissezVibSegment(const LaissezVibSegment& s)
     : TieSegment(s)
 {
-}
-
-void LaissezVibSegment::editDrag(EditData&)
-{
-    // do nothing: dragging is already done by the `drag` method
 }
 
 String LaissezVibSegment::formatBarsAndBeats() const

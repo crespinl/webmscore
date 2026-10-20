@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2022 MuseScore Limited
+ * Copyright (C) 2022 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -20,8 +20,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef MU_PROJECT_OPENSAVEPROJECTSCENARIO_H
-#define MU_PROJECT_OPENSAVEPROJECTSCENARIO_H
+#pragma once
 
 #include "iopensaveprojectscenario.h"
 
@@ -32,19 +31,21 @@
 
 #include "cloud/musescorecom/imusescorecomservice.h"
 #include "cloud/audiocom/iaudiocomservice.h"
-#include "cloud/cloudqmltypes.h"
 
 namespace mu::project {
-class OpenSaveProjectScenario : public IOpenSaveProjectScenario
+class OpenSaveProjectScenario : public IOpenSaveProjectScenario, public muse::Contextable
 {
-    INJECT(IProjectConfiguration, configuration)
-    INJECT(IProjectFilesController, projectFilesController)
-    INJECT(muse::IInteractive, interactive)
-    INJECT(muse::cloud::IMuseScoreComService, museScoreComService)
-    INJECT(muse::cloud::IAudioComService, audioComService)
+    muse::GlobalInject<IProjectConfiguration> configuration;
+    muse::ContextInject<IProjectFilesController> projectFilesController = { this };
+    muse::ContextInject<muse::IInteractive> interactive = { this };
+    muse::ContextInject<muse::cloud::IMuseScoreComService> museScoreComService = { this };
+    muse::ContextInject<muse::cloud::IAudioComService> audioComService = { this };
 
 public:
-    OpenSaveProjectScenario() = default;
+    OpenSaveProjectScenario(const muse::modularity::ContextPtr& iocCtx)
+        : muse::Contextable(iocCtx)
+    {
+    }
 
     muse::RetVal<SaveLocation> askSaveLocation(INotationProjectPtr project, SaveMode mode,
                                                SaveLocationType preselectedType = SaveLocationType::Undefined) const override;
@@ -75,19 +76,4 @@ private:
     muse::Ret warnCloudNotAvailableForUploading(bool isPublishShare) const;
     muse::Ret warnCloudNotAvailableForSharingAudio() const;
 };
-
-class QMLSaveLocationType
-{
-    Q_GADGET
-
-public:
-    enum SaveLocationType {
-        Undefined = int(project::SaveLocationType::Undefined),
-        Local = int(project::SaveLocationType::Local),
-        Cloud = int(project::SaveLocationType::Cloud)
-    };
-    Q_ENUM(SaveLocationType);
-};
 }
-
-#endif // MU_PROJECT_OPENSAVEPROJECTSCENARIO_H

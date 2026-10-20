@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2024 MuseScore Limited
+ * Copyright (C) 2024 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -19,13 +19,15 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-import QtQuick 2.15
-import QtQuick.Controls 2.15
-import QtQuick.Layouts 1.15
 
-import Muse.Ui 1.0
-import Muse.UiComponents 1.0
-import MuseScore.MuseSounds 1.0
+pragma ComponentBehavior: Bound
+
+import QtQuick
+import QtQuick.Layouts
+
+import Muse.Ui
+import Muse.UiComponents
+import MuseScore.MuseSounds
 
 import "internal"
 
@@ -61,13 +63,21 @@ FocusScope {
         }
     }
 
+    NavigationPanel {
+        id: navTopPanel
+        name: "MuseSoundsTopPanel"
+        section: navSec
+        order: 1
+        accessible.name: qsTrc("appshell", "MuseSounds")
+    }
+
     Rectangle {
         id: background
         anchors.fill: parent
         color: ui.theme.backgroundSecondaryColor
     }
 
-    Column {
+    RowLayout {
         id: topLayout
 
         anchors.top: parent.top
@@ -77,7 +87,7 @@ FocusScope {
         anchors.right: parent.right
         anchors.rightMargin: prv.sideMargin
 
-        spacing: 24
+        spacing: 12
 
         StyledTextLabel {
             id: pageTitle
@@ -86,6 +96,21 @@ FocusScope {
             text: qsTrc("appshell", "MuseSounds")
             font: ui.theme.titleBoldFont
             horizontalAlignment: Text.AlignLeft
+        }
+
+        SearchField {
+            id: searchField
+
+            Layout.preferredWidth: 220
+
+            navigation.name: "MuseSoundsSearch"
+            navigation.panel: navTopPanel
+            navigation.order: 1
+            accessible.name: qsTrc("musesounds", "Search sounds")
+
+            onSearchTextChanged: {
+                museSoundsModel.searchText = searchField.searchText
+            }
         }
     }
 
@@ -128,12 +153,17 @@ FocusScope {
                 model: museSoundsModel
 
                 delegate: SoundCatalogueListView {
+                    required property string catalogueTitle
+                    required property var catalogueSoundsLibraries
+                    required property int index
+
                     width: parent.width
 
                     title: catalogueTitle
-                    visible: count > 0
 
                     model: catalogueSoundsLibraries
+
+                    visible: count > 0
 
                     flickableItem: column
 
@@ -171,6 +201,20 @@ FocusScope {
             width: parent.width
             text: qsTrc("global", "Please check your internet connection or try again later.")
         }
+    }
+
+    StyledTextLabel {
+        id: noResultsLabel
+
+        anchors.top: parent.top
+        anchors.topMargin: 127 + topGradient.height + Math.max(parent.height / 3 - height / 2, 0)
+        anchors.left: parent.left
+        anchors.right: parent.right
+
+        font: ui.theme.tabBoldFont
+        text: qsTrc("global", "No results found")
+
+        visible: museSoundsModel.noResultsFound && !errorMessageColumn.visible
     }
 
     GradientRectangle {

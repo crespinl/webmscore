@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2024 MuseScore Limited
+ * Copyright (C) 2024 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -74,7 +74,7 @@ static void createSlightBends(const BendDataContext& bendDataCtx, mu::engraving:
                 GuitarBend* bend = chord->score()->addGuitarBend(GuitarBendType::SLIGHT_BEND, note);
                 IF_ASSERT_FAILED(bend) {
                     LOGE() << "bend wasn't created for track " << chord->track() << ", tick " << chord->tick().ticks();
-                    return;
+                    continue;
                 }
 
                 bend->setStartTimeFactor(noteBendData.startFactor);
@@ -95,20 +95,24 @@ static void createPreBends(const BendDataContext& bendDataCtx, mu::engraving::Sc
                 }
 
                 Note* note = chord->notes()[noteIndex];
+                // NOTE: addGuitarBend will create grace note and transpose it down. We need the pitch of current note instead to properly fret the note.
+                note->transposeDiatonic(1, true, false);
                 const auto& noteBendData = tickInfo.at(noteIndex);
                 GuitarBend* bend = chord->score()->addGuitarBend(GuitarBendType::PRE_BEND, note);
                 IF_ASSERT_FAILED(bend) {
-                    LOGE() << "bend wasn't created for track " << chord->track() << ", tick " << chord->tick().ticks();
-                    return;
+                    LOGE() << "prebend wasn't created for track " << chord->track() << ", tick " << chord->tick().ticks();
+                    continue;
                 }
 
+                // NOTE: returning pitch.
+                note->transposeDiatonic(-1, true, false);
                 bend->setStartTimeFactor(noteBendData.startFactor);
                 bend->setEndTimeFactor(noteBendData.endFactor);
 
                 const int pitch = noteBendData.quarterTones / 2;
                 note->setPitch(note->pitch() + pitch);
                 note->setTpcFromPitch();
-                QuarterOffset quarterOff = noteBendData.quarterTones % 2 ? QuarterOffset::QUARTER_SHARP : QuarterOffset::NONE;
+                int quarterOff = noteBendData.quarterTones % 2;
                 bend->setEndNotePitch(note->pitch(), quarterOff);
                 Note* startNote = bend->startNote();
                 if (!startNote) {
@@ -196,7 +200,8 @@ static void createGraceAfterBends(const BendDataContext& bendDataCtx, mu::engrav
                 const auto& graceData = tickInfo.at(noteIndex);
 
                 const auto& graceVectorData = graceData.data;
-                bool shouldMoveTie = graceData.shouldMoveTie;
+                const auto& lastGraceData = graceData.lastNoteData;
+                bool shouldMoveTie = lastGraceData.shouldMoveTie;
 
                 Note* currentNote = mainNote;
                 for (size_t graceIndex = 0; graceIndex < graceVectorData.size(); graceIndex++) {
@@ -209,8 +214,13 @@ static void createGraceAfterBends(const BendDataContext& bendDataCtx, mu::engrav
                     graceChord->add(graceNote);
 
                     GuitarBend* bend = score->addGuitarBend(GuitarBendType::BEND, currentNote, graceNote);
+                    IF_ASSERT_FAILED(bend) {
+                        LOGE() << "grace-after bend wasn't created for track " << graceChord->track() << ", tick " <<
+                            graceChord->tick().ticks();
+                        break;
+                    }
 
-                    QuarterOffset quarterOff = noteData.quarterTones % 2 ? QuarterOffset::QUARTER_SHARP : QuarterOffset::NONE;
+                    int quarterOff = noteData.quarterTones % 2;
                     bend->setEndNotePitch(bend->startNoteOfChain()->pitch() + noteData.quarterTones / 2, quarterOff);
                     bend->setStartTimeFactor(noteData.startFactor);
                     bend->setEndTimeFactor(noteData.endFactor);
@@ -228,7 +238,8 @@ static void createGraceAfterBends(const BendDataContext& bendDataCtx, mu::engrav
                     if (tieFor && tieFor->endNote()) {
                         Note* tiedNote = tieFor->endNote();
                         mainNote->remove(tieFor);
-                        score->addGuitarBend(GuitarBendType::BEND, currentNote, tiedNote);
+                        GuitarBend* bend = score->addGuitarBend(GuitarBendType::BEND, currentNote, tiedNote);
+                        bend->setEndTimeFactor(lastGraceData.endFactor);
                     }
                 }
             }
@@ -259,7 +270,12 @@ static void createTiedNotesBends(const BendDataContext& bendDataCtx, mu::engravi
                 }
 
                 GuitarBend* bend = score->addGuitarBend(GuitarBendType::BEND, startNote, endNote);
-                QuarterOffset quarterOff = noteInfo.quarterTones % 2 ? QuarterOffset::QUARTER_SHARP : QuarterOffset::NONE;
+                IF_ASSERT_FAILED(bend) {
+                    LOGE() << "bend wasn't created for track " << chord->track() << ", tick " << chord->tick().ticks();
+                    continue;
+                }
+
+                int quarterOff = noteInfo.quarterTones % 2;
                 bend->setEndNotePitch(bend->startNoteOfChain()->pitch() + noteInfo.quarterTones / 2, quarterOff);
                 bend->setStartTimeFactor(noteInfo.startFactor);
                 bend->setEndTimeFactor(noteInfo.endFactor);

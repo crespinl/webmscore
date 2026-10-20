@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -124,6 +124,8 @@ public:
     TappingText(const TappingText& t);
     TappingText* clone() const override { return new TappingText(*this); }
 
-    Color curColor() const override;
+    Color curColor(const rendering::PaintOptions& opt) const override;
+
+    bool positionRelativeToNoteheadRest() const override { return true; }
 };
 } // namespace mu::engraving

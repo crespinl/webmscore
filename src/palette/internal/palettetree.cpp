@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -39,12 +39,12 @@ void PaletteTree::append(PalettePtr palette)
     palettes.emplace_back(palette);
 }
 
-bool PaletteTree::read(mu::engraving::XmlReader& e, bool pasteMode)
+bool PaletteTree::read(mu::engraving::XmlReader& e, bool pasteMode, const muse::modularity::ContextPtr& iocCtx)
 {
     while (e.readNextStartElement()) {
         const muse::AsciiStringView tag(e.name());
         if (tag == "Palette") {
-            PalettePtr p = std::make_shared<Palette>();
+            PalettePtr p = std::make_shared<Palette>(iocCtx);
             p->read(e, pasteMode);
             palettes.push_back(p);
         } else {
@@ -57,7 +57,7 @@ bool PaletteTree::read(mu::engraving::XmlReader& e, bool pasteMode)
 
 void PaletteTree::write(mu::engraving::XmlWriter& xml, bool pasteMode) const
 {
-    xml.startElement("PaletteBox"); // for compatibility with old palettes file format
+    xml.startElement("PaletteBox", { { "version", engraving::Constants::MSC_VERSION_STR } }); // for compatibility with old palettes file format
 
     for (const PalettePtr& palette : palettes) {
         palette->write(xml, pasteMode);

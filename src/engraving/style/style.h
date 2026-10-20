@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -20,14 +20,12 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef MU_ENGRAVING_STYLE_H
-#define MU_ENGRAVING_STYLE_H
+#pragma once
 
 #include <array>
 #include <cassert>
 
 #include "global/io/iodevice.h"
-#include "draw/types/geometry.h"
 
 #include "../types/dimension.h"
 #include "../types/propertyvalue.h"
@@ -86,10 +84,9 @@ public:
     static Sid styleIdx(const String& name);
 
 private:
-
     friend class compat::ReadStyleHook;
 
-    void read(XmlReader& e, compat::ReadChordListHook* readChordListHook);
+    void read(XmlReader& e, compat::ReadChordListHook* readChordListHook, int mscVersion);
 
     bool readProperties(XmlReader&);
     bool readStyleValCompat(XmlReader&);
@@ -97,10 +94,5 @@ private:
 
     std::array<PropertyValue, size_t(Sid::STYLES)> m_values;
     std::array<Millimetre, size_t(Sid::STYLES)> m_precomputedValues;
-
-    void readVersion(String versionTag);
-    int m_version = 0;
 };
-} // namespace mu::engraving
-
-#endif // MU_ENGRAVING_STYLE_H
+}

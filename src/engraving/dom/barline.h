@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -23,6 +23,8 @@
 #pragma once
 
 #include "engravingitem.h"
+
+#include "../editing/elementeditdata.h"
 
 namespace mu::engraving {
 class Factory;
@@ -62,8 +64,8 @@ class BarLineEditData : public ElementEditData
 {
     OBJECT_ALLOCATOR(engraving, BarLineEditData)
 public:
-    double yoff1;
-    double yoff2;
+    double yoff1 = 0.0;
+    double yoff2 = 0.0;
     virtual EditDataType type() override { return EditDataType::BarLineEditData; }
 };
 
@@ -79,23 +81,17 @@ class BarLine final : public EngravingItem
     DECLARE_CLASSOF(ElementType::BAR_LINE)
 
 public:
-
-    virtual ~BarLine();
+    ~BarLine() override;
 
     BarLine& operator=(const BarLine&) = delete;
 
     void setParent(Segment* parent);
 
-    // Score Tree functions
-    EngravingObject* scanParent() const override;
-    EngravingObjectList scanChildren() const override;
-
     BarLine* clone() const override { return new BarLine(*this); }
-    Fraction playTick() const override;
     PointF canvasPos() const override;      ///< position in canvas coordinates
     PointF pagePos() const override;        ///< position in page coordinates
 
-    void scanElements(void* data, void (* func)(void*, EngravingItem*), bool all=true) override;
+    void scanElements(std::function<void(EngravingItem*)> func) override;
     void setTrack(track_idx_t t) override;
     void add(EngravingItem*) override;
     void remove(EngravingItem*) override;
@@ -106,11 +102,11 @@ public:
     Segment* segment() const { return toSegment(explicitParent()); }
     Measure* measure() const { return explicitParent() ? toMeasure(explicitParent()->explicitParent()) : nullptr; }
 
-    void setSpanStaff(int val) { m_spanStaff = val; }
+    void setSpanStaff(const bool val) { m_spanStaff = val; }
     void setSpanFrom(int val) { m_spanFrom = val; }
     void setSpanTo(int val) { m_spanTo = val; }
     void setShowTips(bool val);
-    int spanStaff() const { return m_spanStaff; }
+    bool spanStaff() const { return m_spanStaff; }
     int spanFrom() const { return m_spanFrom; }
     int spanTo() const { return m_spanTo; }
     bool showTips() const;
@@ -118,8 +114,8 @@ public:
     void startEdit(EditData& ed) override;
     bool isEditAllowed(EditData&) const override;
     bool edit(EditData& ed) override;
-    void editDrag(EditData&) override;
-    void endEditDrag(EditData&) override;
+    void dragGrip(EditData&) override;
+    void endDragGrip(EditData&) override;
 
     const ElementList* el() const { return &m_el; }
 
@@ -139,7 +135,7 @@ public:
     PropertyValue propertyDefault(Pid propertyId) const override;
     void undoChangeProperty(Pid id, const PropertyValue&, PropertyFlags ps) override;
     using EngravingObject::undoChangeProperty;
-    EngravingItem* propertyDelegate(Pid) override;
+    EngravingObject* propertyDelegate(Pid) const override;
 
     void setPlayCount(int playCount) { m_playCount = playCount; }
     int playCount() const { return m_playCount; }
@@ -178,7 +174,7 @@ private:
     BarLine(Segment* parent);
     BarLine(const BarLine&);
 
-    int m_spanStaff = 0;         // span barline to next staff if true, values > 1 are used for importing from 2.x
+    bool m_spanStaff = false;         // span barline to next staff if true
     int m_spanFrom = 0;          // line number on start and end staves
     int m_spanTo = 0;
     BarLineType m_barLineType = BarLineType::NORMAL;

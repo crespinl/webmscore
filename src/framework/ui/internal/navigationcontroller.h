@@ -5,7 +5,7 @@
  * MuseScore
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore BVBA and others
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -35,17 +35,17 @@
 #include "../inavigationcontroller.h"
 
 namespace muse::ui {
-class NavigationController : public QObject, public INavigationController, public Injectable, public actions::Actionable,
+class NavigationController : public QObject, public INavigationController, public Contextable, public actions::Actionable,
     public async::Asyncable
 {
 public:
-    Inject<actions::IActionsDispatcher> dispatcher = { this };
-    Inject<IInteractive> interactive = { this };
-    Inject<IMainWindow> mainWindow = { this };
+    ContextInject<actions::IActionsDispatcher> dispatcher = { this };
+    ContextInject<IInteractive> interactive = { this };
+    ContextInject<IMainWindow> mainWindow = { this };
 
 public:
     NavigationController(const modularity::ContextPtr& iocCtx)
-        : Injectable(iocCtx) {}
+        : Contextable(iocCtx) {}
 
     enum MoveDirection {
         First = 0,

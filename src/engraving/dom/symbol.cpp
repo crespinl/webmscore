@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -61,6 +61,15 @@ Symbol::Symbol(const Symbol& s)
     m_scoreFont   = s.m_scoreFont;
     m_symbolsSize = s.m_symbolsSize;
     m_symAngle    = s.m_symAngle;
+}
+
+void Symbol::setSym(SymId s, const std::shared_ptr<IEngravingFont>& sf)
+{
+    m_sym  = s;
+
+    if (sf.get()) {
+        m_scoreFont = sf;
+    }
 }
 
 //---------------------------------------------------------
@@ -163,6 +172,14 @@ PropertyValue Symbol::propertyDefault(Pid propertyId) const
         break;
     }
     return EngravingItem::propertyDefault(propertyId);
+}
+
+void Symbol::reset()
+{
+    undoResetProperty(Pid::SYMBOLS_SIZE);
+    undoResetProperty(Pid::SYMBOL_ANGLE);
+    undoResetProperty(Pid::SCORE_FONT);
+    BSymbol::reset();
 }
 
 //---------------------------------------------------------

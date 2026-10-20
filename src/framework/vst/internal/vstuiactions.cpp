@@ -5,7 +5,7 @@
  * MuseScore
  * Music Composition & Notation
  *
- * Copyright (C) 2025 MuseScore BVBA and others
+ * Copyright (C) 2025 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -34,13 +34,13 @@ using namespace muse::vst;
 const UiActionList VstUiActions::m_actions = {
     UiAction("vst-use-oldview",
              muse::ui::UiCtxAny,
-             muse::shortcuts::CTX_ANY,
+             muse::shortcuts::CTX_DISABLED,
              TranslatableString("action", "Use old view"),
              Checkable::Yes
              ),
     UiAction("vst-use-newview",
              muse::ui::UiCtxAny,
-             muse::shortcuts::CTX_ANY,
+             muse::shortcuts::CTX_DISABLED,
              TranslatableString("action", "Use new view"),
              Checkable::Yes
              )

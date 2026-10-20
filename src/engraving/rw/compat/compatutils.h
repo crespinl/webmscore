@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -19,13 +19,12 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-#ifndef MU_ENGRAVING_COMPATUTILS_H
-#define MU_ENGRAVING_COMPATUTILS_H
+#pragma once
 
 #include <vector>
 #include <set>
 
-#include "dom/articulation.h"
+#include "../../dom/articulation.h"
 
 namespace mu::engraving {
 class Dynamic;
@@ -48,9 +47,16 @@ public:
     static void setHarmonyRootTpcFromFunction(HarmonyInfo* info, const Harmony* h, const muse::String& s);
     static const std::set<SymId> ORNAMENT_IDS;
     static const std::map<Sid, Sid> ALIGN_VALS_TO_CONVERT;
-    static Sid positionStyleFromAlign(Sid align);
+    static void setPositionStylesFromAlign(MStyle* style, std::vector<Sid> ignoreSids = {});
+    static void setTextLineTextPositionFromAlign(TextLineBase* tl);
+    static void resetHookHeightSign(TextLineBase* tl);
+    static void setMusicSymbolSize470(MStyle* style);
+    static Spatium convertPre470FrameRadius(double frameRadius);
+    static void convertPre470ImageSize(Image* image);
+    static void doMigrateNoteParens(EngravingItem* item);
 
 private:
+    static Sid positionStyleFromAlign(Sid align);
     static void replaceStaffTextWithPlayTechniqueAnnotation(MasterScore* score);
     static void replaceOldWithNewOrnaments(MasterScore* score);
     static void replaceOldWithNewExpressions(MasterScore* score);
@@ -69,4 +75,3 @@ private:
     static void convertLaissezVibArticToTie(MasterScore* masterScore);
 };
 }
-#endif // MU_ENGRAVING_COMPATUTILS_H

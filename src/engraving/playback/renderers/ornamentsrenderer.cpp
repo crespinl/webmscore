@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -315,7 +315,7 @@ void OrnamentsRenderer::doRender(const EngravingItem* item, const ArticulationTy
 
     if (Ornament* ornament = chord->findOrnament(true)) {
         intervalsInfo = makeIntervalsInfo(ornament->intervalBelow(), ornament->intervalAbove());
-        isArticulation = muse::contains(chord->articulations(), static_cast<Articulation*>(ornament));
+        isArticulation = muse::contains(chord->articulations(), toArticulation(ornament));
     } else {
         intervalsInfo = makeIntervalsInfo(DEFAULT_ORNAMENT_INTERVAL, DEFAULT_ORNAMENT_INTERVAL);
     }
@@ -359,7 +359,7 @@ void OrnamentsRenderer::convert(const ArticulationType type, const DisclosurePat
                                 mpe::PlaybackEventList& result)
 {
     if (noteCtx.chordCtx.nominalDurationTicks <= pattern.boundaries.lowTempoDurationTicks) {
-        result.emplace_back(buildNoteEvent(std::move(noteCtx)));
+        result.emplace_back(buildNoteEvent(noteCtx));
         return;
     }
 
@@ -380,7 +380,7 @@ void OrnamentsRenderer::convert(const ArticulationType type, const DisclosurePat
         }
 
         if (alterationsCount == 0) {
-            result.emplace_back(buildNoteEvent(std::move(noteCtx)));
+            result.emplace_back(buildNoteEvent(noteCtx));
         } else {
             createEvents(type, noteCtx, alterationsCount,
                          noteCtx.chordCtx.nominalDurationTicks - pattern.prefixDurationTicks - pattern.suffixDurationTicks,
@@ -429,7 +429,7 @@ void OrnamentsRenderer::createEvents(const ArticulationType type, NominalNoteCtx
             updateArticulationBoundaries(type, subNoteCtx.timestamp,
                                          subNoteCtx.duration, subNoteCtx.articulations);
 
-            result.emplace_back(buildNoteEvent(std::move(subNoteCtx)));
+            result.emplace_back(buildNoteEvent(subNoteCtx));
 
             noteCtx.timestamp += durationStep;
         }

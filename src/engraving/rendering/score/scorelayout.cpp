@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2023 MuseScore Limited
+ * Copyright (C) 2023 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -70,11 +70,11 @@ void ScoreLayout::layoutRange(Score* score, const Fraction& st, const Fraction& 
     }
 
     // Check range
-    bool isLayoutAll = stick <= Fraction(0, 1) && (etick < Fraction(0, 1) || etick >= score->masterScore()->last()->endTick());
+    bool isLayoutAll = stick <= Fraction(0, 1) && (etick < Fraction(0, 1) || etick == Fraction::max());
     if (stick < Fraction(0, 1)) {
         stick = Fraction(0, 1);
     }
-    if (etick < Fraction(0, 1)) {
+    if (etick < Fraction(0, 1) || etick == Fraction::max()) {
         etick = score->last()->endTick();
     }
 

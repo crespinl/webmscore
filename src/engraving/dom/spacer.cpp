@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -22,12 +22,11 @@
 
 #include "spacer.h"
 
-#include "draw/types/pen.h"
+#include "../editing/editdata.h"
+#include "../editing/elementeditdata.h"
 
 #include "measure.h"
 #include "score.h"
-
-#include "log.h"
 
 using namespace mu;
 using namespace muse::draw;
@@ -42,7 +41,7 @@ Spacer::Spacer(Measure* parent)
     : EngravingItem(ElementType::SPACER, parent)
 {
     m_spacerType = SpacerType::UP;
-    m_gap = Spatium(0.0);
+    m_gap = 0.0_sp;
     m_z = -10; // Ensure behind notation
 }
 
@@ -60,24 +59,23 @@ Spacer::Spacer(const Spacer& s)
 void Spacer::setGap(Spatium sp)
 {
     m_gap = sp;
-    renderer()->layoutItem(this);
 }
 
 //---------------------------------------------------------
-//   startEditDrag
+//   startDragGrip
 //---------------------------------------------------------
 
-void Spacer::startEditDrag(EditData& ed)
+void Spacer::startDragGrip(EditData& ed)
 {
     ElementEditDataPtr eed = ed.getData(this);
     eed->pushProperty(Pid::SPACE);
 }
 
 //---------------------------------------------------------
-//   editDrag
+//   dragGrip
 //---------------------------------------------------------
 
-void Spacer::editDrag(EditData& ed)
+void Spacer::dragGrip(EditData& ed)
 {
     double s = ed.delta.y();
 
@@ -90,8 +88,7 @@ void Spacer::editDrag(EditData& ed)
         m_gap -= Spatium::fromMM(s, spatium());
         break;
     }
-    m_gap = std::max(m_gap, Spatium(2.0));
-    renderer()->layoutItem(this);
+    m_gap = std::max(m_gap, 2.0_sp);
     triggerLayout();
 }
 
@@ -145,7 +142,6 @@ bool Spacer::setProperty(Pid propertyId, const PropertyValue& v)
         }
         break;
     }
-    renderer()->layoutItem(this);
     triggerLayout();
     setGenerated(false);
     return true;
@@ -159,7 +155,7 @@ PropertyValue Spacer::propertyDefault(Pid id) const
 {
     switch (id) {
     case Pid::SPACE:
-        return Spatium(0.0);
+        return 0.0_sp;
     default:
         return EngravingItem::propertyDefault(id);
     }

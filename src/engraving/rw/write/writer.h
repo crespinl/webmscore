@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -30,9 +30,9 @@
 #include "../compat/writescorehook.h"
 
 namespace mu::engraving::write {
-class Writer : public rw::IWriter, public muse::Injectable
+class Writer : public rw::IWriter, public muse::Contextable
 {
-    muse::Inject<muse::IApplication> application = { this };
+    muse::ContextInject<muse::IApplication> application = { this };
 
 public:
 

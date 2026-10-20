@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -28,11 +28,15 @@
 #include "engraving/dom/measurenumber.h"
 #include "engraving/dom/mmrestrange.h"
 #include "engraving/dom/property.h"
+#include "engraving/dom/score.h"
 #include "engraving/dom/slur.h"
 #include "engraving/dom/spacer.h"
 #include "engraving/dom/system.h"
 #include "engraving/dom/tremolotwochord.h"
-#include "engraving/dom/undo.h"
+#include "engraving/dom/trill.h"
+
+#include "engraving/editing/editnote.h"
+#include "engraving/editing/editsystemlocks.h"
 
 // api
 #include "apistructs.h"
@@ -105,12 +109,12 @@ bool EngravingItem::up() const
     return false;
 }
 
-FractionWrapper* EngravingItem::tick() const
+Fraction* EngravingItem::tick() const
 {
     return wrap(element()->tick());
 }
 
-FractionWrapper* EngravingItem::beat() const
+Fraction* EngravingItem::beat() const
 {
     return wrap(element()->beat());
 }
@@ -130,13 +134,13 @@ int ChordRest::actualBeamMode(bool beamRests)
         mu::engraving::Measure* m = seg->measure();
         while (seg && seg->measure()->system() == m->system()) {
             seg = seg->prev1(mu::engraving::SegmentType::ChordRest);
-            if (seg->element(chordRest()->track())) {
+            if (seg && seg->element(chordRest()->track())) {
                 prev = toChordRest(seg->element(chordRest()->track()));
                 break;
             }
         }
     }
-    return int(mu::engraving::Groups::endBeam(chordRest(), prev));
+    return int(mu::engraving::Groups::actualBeamMode(chordRest(), prev));
 }
 
 //---------------------------------------------------------
@@ -145,14 +149,14 @@ int ChordRest::actualBeamMode(bool beamRests)
 
 EngravingItem* Segment::elementAt(int track)
 {
-    mu::engraving::EngravingItem* el = segment()->elementAt(track);
+    mu::engraving::EngravingItem* el = segment()->element(track);
     if (!el) {
         return nullptr;
     }
     return wrap(el, Ownership::SCORE);
 }
 
-FractionWrapper* Segment::fraction() const
+Fraction* Segment::fraction() const
 {
     return wrap(segment()->tick());
 }
@@ -269,7 +273,7 @@ void Note::remove(apiv1::EngravingItem* wrapped)
 //   DurationElement::ticks
 //---------------------------------------------------------
 
-FractionWrapper* DurationElement::ticks() const
+Fraction* DurationElement::ticks() const
 {
     return wrap(durationElement()->ticks());
 }
@@ -278,7 +282,7 @@ FractionWrapper* DurationElement::ticks() const
 //   DurationElement::changeCRlen
 //---------------------------------------------------------
 
-void DurationElement::changeCRlen(FractionWrapper* len)
+void DurationElement::changeCRlen(Fraction* len)
 {
     if (!durationElement()->isChordRest()) {
         LOGW("DurationElement::changeCRlen: can only change length for chords or rests");
@@ -300,7 +304,7 @@ void DurationElement::changeCRlen(FractionWrapper* len)
 //   DurationElement::globalDuration
 //---------------------------------------------------------
 
-FractionWrapper* DurationElement::globalDuration() const
+Fraction* DurationElement::globalDuration() const
 {
     return wrap(durationElement()->globalTicks());
 }
@@ -309,7 +313,7 @@ FractionWrapper* DurationElement::globalDuration() const
 //   DurationElement::actualDuration
 //---------------------------------------------------------
 
-FractionWrapper* DurationElement::actualDuration() const
+Fraction* DurationElement::actualDuration() const
 {
     return wrap(durationElement()->actualTicks());
 }
@@ -385,7 +389,7 @@ void Chord::remove(apiv1::EngravingItem* wrapped)
         LOGW("PluginAPI::Chord::remove: Unable to retrieve element. %s", qPrintable(wrapped->name()));
     } else if (s->explicitParent() != chord()) {
         LOGW("PluginAPI::Chord::remove: The element is not a child of this chord. Use removeElement() instead.");
-    } else if (chord()->notes().size() <= 1 && s->type() == ElementType::NOTE) {
+    } else if (chord()->notes().size() <= 1 && s->isNote()) {
         LOGW("PluginAPI::Chord::remove: Removal of final note is not allowed.");
     } else {
         chord()->score()->deleteItem(s);     // Create undo op and remove the element.
@@ -427,12 +431,12 @@ bool Measure::stemless(int staffIdx)
     return measure()->stemless(static_cast<staff_idx_t>(staffIdx));
 }
 
-FractionWrapper* MeasureBase::tick() const
+Fraction* MeasureBase::tick() const
 {
     return wrap(measureBase()->tick());
 }
 
-FractionWrapper* MeasureBase::ticks() const
+Fraction* MeasureBase::ticks() const
 {
     return wrap(measureBase()->ticks());
 }
@@ -490,6 +494,11 @@ bool System::show(int staffIdx)
     return ss ? ss->show() : false;
 }
 
+void System::setHideStaffIfEmpty(int staffIdx, int hide)
+{
+    system()->score()->cmdSetHideStaffIfEmptyOverride(static_cast<staff_idx_t>(staffIdx), system(), AutoOnOff(hide));
+}
+
 void System::setIsLocked(bool locked)
 {
     if (locked == isLocked()) {
@@ -497,19 +506,19 @@ void System::setIsLocked(bool locked)
     }
     const mu::engraving::SystemLock* currentLock = system()->systemLock();
     if (currentLock && !locked) {
-        system()->score()->undoRemoveSystemLock(currentLock);
+        EditSystemLocks::undoRemoveSystemLock(system()->score(), currentLock);
     } else if (!currentLock && locked) {
-        system()->score()->undoAddSystemLock(new mu::engraving::SystemLock(system()->first(), system()->last()));
+        EditSystemLocks::undoAddSystemLock(system()->score(), new mu::engraving::SystemLock(system()->first(), system()->last()));
     }
 }
 
 //---------------------------------------------------------
-//   Page::pagenumber
+//   Page::pageNumber
 //---------------------------------------------------------
 
-int Page::pagenumber() const
+int Page::pageNumber() const
 {
-    return static_cast<int>(page()->no());
+    return static_cast<int>(page()->pageNumber());
 }
 
 //---------------------------------------------------------
@@ -521,32 +530,32 @@ Part* Staff::part()
     return wrap<Part>(staff()->part());
 }
 
-int Staff::clefType(FractionWrapper* tick)
+int Staff::clefType(Fraction* tick)
 {
     return int(staff()->clef(tick->fraction()));
 }
 
-FractionWrapper* Staff::timeStretch(FractionWrapper* tick)
+Fraction* Staff::timeStretch(Fraction* tick)
 {
     return wrap(staff()->timeStretch(tick->fraction()));
 }
 
-EngravingItem* Staff::timeSig(FractionWrapper* tick)
+EngravingItem* Staff::timeSig(Fraction* tick)
 {
     return wrap(staff()->timeSig(tick->fraction()));
 }
 
-int Staff::key(FractionWrapper* tick)
+int Staff::key(Fraction* tick)
 {
     return int(staff()->key(tick->fraction()));
 }
 
-IntervalWrapper* Staff::transpose(FractionWrapper* tick)
+IntervalWrapper* Staff::transpose(Fraction* tick)
 {
     return wrap(staff()->transpose(tick->fraction()));
 }
 
-QVariantMap Staff::swing(FractionWrapper* f)
+QVariantMap Staff::swing(Fraction* f)
 {
     mu::engraving::SwingParameters swingParams = staff()->swing(f->fraction());
     QVariantMap pluginSwingParams;
@@ -556,7 +565,7 @@ QVariantMap Staff::swing(FractionWrapper* f)
     return pluginSwingParams;
 }
 
-QVariantMap Staff::capo(FractionWrapper* f)
+QVariantMap Staff::capo(Fraction* f)
 {
     const mu::engraving::CapoParams& capoParams = staff()->capo(f->fraction());
     QVariantMap pluginCapoParams;
@@ -571,67 +580,67 @@ QVariantMap Staff::capo(FractionWrapper* f)
     return pluginCapoParams;
 }
 
-bool Staff::stemless(FractionWrapper* tick)
+bool Staff::stemless(Fraction* tick)
 {
     return staff()->stemless(tick->fraction());
 }
 
-qreal Staff::staffHeight(FractionWrapper* tick)
+qreal Staff::staffHeight(Fraction* tick)
 {
     return staff()->staffHeight(tick->fraction());
 }
 
-bool Staff::isPitchedStaff(FractionWrapper* tick)
+bool Staff::isPitchedStaff(Fraction* tick)
 {
     return staff()->isPitchedStaff(tick->fraction());
 }
 
-bool Staff::isTabStaff(FractionWrapper* tick)
+bool Staff::isTabStaff(Fraction* tick)
 {
     return staff()->isTabStaff(tick->fraction());
 }
 
-bool Staff::isDrumStaff(FractionWrapper* tick)
+bool Staff::isDrumStaff(Fraction* tick)
 {
     return staff()->isDrumStaff(tick->fraction());
 }
 
-int Staff::lines(FractionWrapper* tick)
+int Staff::lines(Fraction* tick)
 {
     return staff()->lines(tick->fraction());
 }
 
-qreal Staff::lineDistance(FractionWrapper* tick)
+qreal Staff::lineDistance(Fraction* tick)
 {
     return staff()->lineDistance(tick->fraction());
 }
 
-bool Staff::isLinesInvisible(FractionWrapper* tick)
+bool Staff::isLinesInvisible(Fraction* tick)
 {
     return staff()->isLinesInvisible(tick->fraction());
 }
 
-int Staff::middleLine(FractionWrapper* tick)
+int Staff::middleLine(Fraction* tick)
 {
     return staff()->middleLine(tick->fraction());
 }
 
-int Staff::bottomLine(FractionWrapper* tick)
+int Staff::bottomLine(Fraction* tick)
 {
     return staff()->bottomLine(tick->fraction());
 }
 
-qreal Staff::staffMag(FractionWrapper* tick)
+qreal Staff::staffMag(Fraction* tick)
 {
     return staff()->staffMag(tick->fraction());
 }
 
-qreal Staff::spatium(FractionWrapper* tick)
+qreal Staff::spatium(Fraction* tick)
 {
     return staff()->spatium(tick->fraction());
 }
 
-int Staff::pitchOffset(FractionWrapper* tick)
+int Staff::pitchOffset(Fraction* tick)
 {
     return staff()->pitchOffset(tick->fraction());
 }
@@ -639,6 +648,18 @@ int Staff::pitchOffset(FractionWrapper* tick)
 bool Staff::isVoiceVisible(int voice)
 {
     return staff()->isVoiceVisible(voice);
+}
+
+//---------------------------------------------------------
+//   Spanner::ornament
+//---------------------------------------------------------
+
+Ornament* Spanner::ornament() const
+{
+    if (spanner()->isTrill()) {
+        return wrap<Ornament>(toTrill(spanner())->ornament());
+    }
+    return nullptr;
 }
 
 //---------------------------------------------------------
@@ -654,47 +675,26 @@ EngravingItem* mu::engraving::apiv1::wrap(mu::engraving::EngravingItem* e, Owner
         return nullptr;
     }
 
-    using mu::engraving::ElementType;
-    switch (e->type()) {
-    case ElementType::TIE:
-    case ElementType::PARTIAL_TIE:
-    case ElementType::LAISSEZ_VIB:
-        return wrap<Tie>(toTie(e), own);
-    case ElementType::ORNAMENT:
-        return wrap<Ornament>(toOrnament(e), own);
-    case ElementType::NOTE:
-        return wrap<Note>(toNote(e), own);
-    case ElementType::CHORD:
-        return wrap<Chord>(toChord(e), own);
-    case ElementType::TUPLET:
-        return wrap<Tuplet>(toTuplet(e), own);
-    case ElementType::SEGMENT:
-        return wrap<Segment>(toSegment(e), own);
-    case ElementType::MEASURE:
-        return wrap<Measure>(toMeasure(e), own);
-    case ElementType::HBOX:
-    case ElementType::VBOX:
-    case ElementType::TBOX:
-    case ElementType::FBOX:
-        return wrap<MeasureBase>(toMeasureBase(e), own);
-    case ElementType::SYSTEM:
-        return wrap<System>(toSystem(e), own);
-    case ElementType::PAGE:
-        return wrap<Page>(toPage(e), own);
-    default:
-        if (e->isDurationElement()) {
-            if (e->isChordRest()) {
-                return wrap<ChordRest>(toChordRest(e), own);
-            }
-            return wrap<DurationElement>(toDurationElement(e), own);
-        }
-        if (e->isSpannerSegment()) {
-            return wrap<SpannerSegment>(toSpannerSegment(e), own);
-        }
-        if (e->isSpanner()) {
-            return wrap<Spanner>(toSpanner(e), own);
-        }
-        break;
-    }
+#define API_WRAP(type) \
+    if (e->is##type()) { return wrap<type>(to##type(e), own); }
+
+    API_WRAP(Tie)
+    API_WRAP(Ornament)
+    API_WRAP(Note)
+    API_WRAP(Chord)
+    API_WRAP(ChordRest)
+    API_WRAP(Tuplet)
+    API_WRAP(DurationElement)
+    API_WRAP(Beam)
+    API_WRAP(Lyrics)
+    API_WRAP(Segment)
+    API_WRAP(Measure)
+    API_WRAP(MeasureBase)
+    API_WRAP(System)
+    API_WRAP(Page)
+    API_WRAP(SpannerSegment)
+    API_WRAP(Spanner)
     return wrap<EngravingItem>(e, own);
+
+#undef API_WRAP
 }

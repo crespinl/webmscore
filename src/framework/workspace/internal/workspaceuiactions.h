@@ -5,7 +5,7 @@
  * MuseScore
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore BVBA and others
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -28,9 +28,9 @@
 #include "ui/iuicontextresolver.h"
 
 namespace muse::workspace {
-class WorkspaceUiActions : public ui::IUiActionsModule, public Injectable
+class WorkspaceUiActions : public ui::IUiActionsModule, public Contextable
 {
-    Inject<ui::IUiContextResolver> uicontextResolver = { this };
+    ContextInject<ui::IUiContextResolver> uicontextResolver = { this };
 
 public:
     WorkspaceUiActions(std::shared_ptr<WorkspaceActionController> controller, const modularity::ContextPtr& iocCtx);

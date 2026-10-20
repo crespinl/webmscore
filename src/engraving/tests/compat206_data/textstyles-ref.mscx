@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<museScore version="4.60">
+<museScore version="4.70">
   <Score>
     <eid>B_B</eid>
     <Division>480</Division>
@@ -576,8 +576,8 @@
           <Spanner type="Pedal">
             <Pedal>
               <endHookType>1</endHookType>
-              <beginHookHeight>-1.2</beginHookHeight>
-              <endHookHeight>-1.2</endHookHeight>
+              <continueTextPlace>auto</continueTextPlace>
+              <endTextPlace>auto</endTextPlace>
               <eid>AB_AB</eid>
               </Pedal>
             <next>

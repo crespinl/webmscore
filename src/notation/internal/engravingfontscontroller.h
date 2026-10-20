@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2024 MuseScore Limited
+ * Copyright (C) 2024 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -29,12 +29,12 @@
 #include "ui/iuiconfiguration.h"
 
 namespace mu::notation {
-class EngravingFontsController : public muse::async::Asyncable, muse::Injectable
+class EngravingFontsController : public muse::async::Asyncable
 {
-    muse::Inject<mu::notation::INotationConfiguration> configuration = { this };
-    muse::Inject<mu::engraving::IEngravingFontsProvider> engravingFonts = { this };
-    muse::Inject<muse::draw::IFontsDatabase> fontsDatabase = { this };
-    muse::Inject<muse::ui::IUiConfiguration> uiConfiguration = { this };
+    muse::GlobalInject<muse::draw::IFontsDatabase> fontsDatabase;
+    muse::GlobalInject<muse::ui::IUiConfiguration> uiConfiguration;
+    muse::GlobalInject<mu::notation::INotationConfiguration> configuration;
+    muse::GlobalInject<mu::engraving::IEngravingFontsProvider> engravingFonts;
 
 public:
     void init();

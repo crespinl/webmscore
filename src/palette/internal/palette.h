@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -46,14 +46,14 @@ namespace mu::palette {
 class Palette;
 using PalettePtr = std::shared_ptr<Palette>;
 
-class Palette : public QObject
+class Palette : public QObject, public muse::Contextable
 {
     Q_GADGET
 
-    INJECT_STATIC(IPaletteConfiguration, configuration)
-    INJECT_STATIC(muse::ui::IUiActionsRegister, actionsRegister)
-    INJECT_STATIC(engraving::rendering::ISingleRenderer, engravingRender)
-    INJECT(muse::IInteractive, interactive)
+    muse::GlobalInject<IPaletteConfiguration> configuration;
+    muse::ContextInject<muse::ui::IUiActionsRegister> actionsRegister = { this };
+    muse::ContextInject<engraving::rendering::ISingleRenderer> engravingRender = { this };
+    muse::ContextInject<muse::IInteractive> interactive = { this };
 
 public:
     enum class Type {
@@ -93,7 +93,7 @@ public:
     };
     Q_ENUM(Type)
 
-    explicit Palette(Type t = Type::Custom, QObject* parent = nullptr);
+    explicit Palette(const muse::modularity::ContextPtr& iocCtx, Type t = Type::Custom, QObject* parent = nullptr);
     ~Palette();
 
     QString id() const;
@@ -170,7 +170,7 @@ public:
 
     bool read(engraving::XmlReader&, bool pasteMode);
     void write(engraving::XmlWriter&, bool pasteMode) const;
-    static PalettePtr fromMimeData(const QByteArray& data);
+    static PalettePtr fromMimeData(const QByteArray& data, const muse::modularity::ContextPtr& iocCtx);
     QByteArray toMimeData() const;
 
     bool readFromFile(const QString& path);

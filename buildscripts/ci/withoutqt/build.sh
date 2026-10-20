@@ -5,7 +5,7 @@
 # MuseScore Studio
 # Music Composition & Notation
 #
-# Copyright (C) 2021 MuseScore Limited
+# Copyright (C) 2021 MuseScore Limited and others
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 3 as
@@ -33,6 +33,12 @@ cd build-check_build_without_qt
 
 cmake .. -GNinja -DCMAKE_BUILD_TYPE="Debug" 
 
-ninja 
+if [ $(which nproc) ]; then
+    JOBS=$(nproc --all)
+else
+    JOBS=4
+fi
+
+ninja -j $JOBS
 
 

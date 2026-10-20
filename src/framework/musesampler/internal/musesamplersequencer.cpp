@@ -5,7 +5,7 @@
  * MuseScore
  * Music Composition & Notation
  *
- * Copyright (C) 2025 MuseScore BVBA and others
+ * Copyright (C) 2025 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -21,6 +21,8 @@
  */
 
 #include "musesamplersequencer.h"
+
+#include <algorithm>
 
 #include "apitypes.h"
 
@@ -107,6 +109,7 @@ static const std::unordered_map<ArticulationType, ms_NoteArticulation2> ARTICULA
     { ArticulationType::SingingVibrate, ms_NoteArticulation2_SingingVibrate },
     { ArticulationType::Swing, ms_NoteArticulation2_HandbellSwing },
     { ArticulationType::Echo, ms_NoteArticulation2_Echo },
+    { ArticulationType::Breath, ms_NoteArticulation2_BreathMark },
 };
 
 static const std::unordered_map<ArticulationType, ms_NoteHead> NOTEHEAD_TYPES {
@@ -350,7 +353,7 @@ void MuseSamplerSequencer::addNoteEvent(const mpe::NoteEvent& noteEvent)
         }
     }
 
-    if (articulations.contains(ArticulationType::Multibend)) {
+    if (!noteEvent.pitchCtx().pitchCurve.empty() && articulations.contains(ArticulationType::Multibend)) {
         addPitchBends(noteEvent, noteEventId, track);
     }
 
@@ -447,30 +450,39 @@ void MuseSamplerSequencer::addSyllableEvent(const mpe::SyllableEvent& event, lon
 
 void MuseSamplerSequencer::addPitchBends(const mpe::NoteEvent& noteEvent, long long noteEventId, ms_Track track)
 {
-    const duration_t duration = noteEvent.arrangementCtx().actualDuration;
+    auto addPitchBendEvent = [this, noteEventId, track](long long startUs, long long durationUs, pitch_level_t pitchOffset) {
+        ms_PitchBendInfo pitchBend;
+        pitchBend.event_id = noteEventId;
+        pitchBend._start_us = startUs;
+        pitchBend._duration_us = durationUs;
+        const int rawCents = pitchLevelToCents(pitchOffset);
+        pitchBend._offset_cents = std::clamp(rawCents, -MAX_PITCH_BEND_RANGE_CENTS, MAX_PITCH_BEND_RANGE_CENTS);
+        pitchBend._type = PitchBend_Bezier;
+        m_samplerLib->addPitchBend(m_sampler, track, pitchBend);
+    };
+
     const PitchCurve& pitchCurve = noteEvent.pitchCtx().pitchCurve;
+    const duration_t noteDuration = noteEvent.arrangementCtx().actualDuration;
+    const pitch_level_t startPitchOffset = muse::value(pitchCurve, 0, 0);
+    long long startOffsetUs = 0;
+
+    if (startPitchOffset != 0) {
+        startOffsetUs = 1000; // 1ms
+        addPitchBendEvent(0, startOffsetUs, startPitchOffset);
+    }
 
     for (auto it = pitchCurve.begin(); it != pitchCurve.end(); ++it) {
         auto nextIt = std::next(it);
-        if (nextIt == pitchCurve.end()) {
+        if (nextIt == pitchCurve.end() || nextIt->second == it->second) {
             continue;
         }
 
-        if (nextIt->second == it->second) {
-            continue;
-        }
+        const long long currOffsetStartUs = noteDuration * percentageToFactor(it->first);
+        const long long nextOffsetStartUs = noteDuration * percentageToFactor(nextIt->first);
+        const long long startUs = currOffsetStartUs + startOffsetUs;
+        const long long durationUs = nextOffsetStartUs - currOffsetStartUs - startOffsetUs;
 
-        const long long currOffsetStart = duration * percentageToFactor(it->first);
-        const long long nextOffsetStart = duration * percentageToFactor(nextIt->first);
-
-        ms_PitchBendInfo pitchBend;
-        pitchBend.event_id = noteEventId;
-        pitchBend._start_us = currOffsetStart;
-        pitchBend._duration_us = nextOffsetStart - currOffsetStart;
-        pitchBend._offset_cents = pitchLevelToCents(nextIt->second);
-        pitchBend._type = PitchBend_Bezier;
-
-        m_samplerLib->addPitchBend(m_sampler, track, pitchBend);
+        addPitchBendEvent(startUs, durationUs, nextIt->second);
     }
 }
 
@@ -528,7 +540,7 @@ void MuseSamplerSequencer::addAuditionNoteEvent(const mpe::NoteEvent& noteEvent)
         msEvent._articulation_text_starts_at_note = m_auditionParamsCache.textArticulationStartsAtNote;
         msEvent._syllable_starts_at_note = m_auditionParamsCache.syllableStartsAtNote;
 
-        m_offStreamEvents[arrangementCtx.actualTimestamp].insert(noteOn);
+        m_offStreamEvents[arrangementCtx.actualTimestamp].push_back(noteOn);
     }
 
     if (arrangementCtx.hasEnd()) {
@@ -537,7 +549,7 @@ void MuseSamplerSequencer::addAuditionNoteEvent(const mpe::NoteEvent& noteEvent)
         noteOff.msTrack = track;
 
         timestamp_t timestampTo = arrangementCtx.actualTimestamp + arrangementCtx.actualDuration;
-        m_offStreamEvents[timestampTo].emplace(std::move(noteOff));
+        m_offStreamEvents[timestampTo].emplace_back(std::move(noteOff));
     }
 
     auto pedalIt = articulations.find(mpe::ArticulationType::Pedal);
@@ -554,12 +566,12 @@ void MuseSamplerSequencer::addAuditionPedalEvent(const mpe::ArticulationMeta& me
 
     if (meta.hasStart()) {
         event.value = 1;
-        m_offStreamEvents[meta.timestamp].emplace(event);
+        m_offStreamEvents[meta.timestamp].push_back(event);
     }
 
     if (meta.hasEnd()) {
         event.value = 0;
-        m_offStreamEvents[meta.timestamp + meta.overallDuration].emplace(event);
+        m_offStreamEvents[meta.timestamp + meta.overallDuration].push_back(event);
     }
 }
 
@@ -584,36 +596,18 @@ void MuseSamplerSequencer::addAuditionCCEvent(const mpe::ControllerChangeEvent& 
         return;
     }
 
-    m_offStreamEvents[positionUs].insert(ccEvent);
+    m_offStreamEvents[positionUs].push_back(ccEvent);
 }
 
 void MuseSamplerSequencer::pitchAndTuning(const pitch_level_t nominalPitch, int& pitch, int& centsOffset) const
 {
-    static constexpr pitch_level_t MIN_SUPPORTED_PITCH_LEVEL = pitchLevel(PitchClass::C, 0);
-    static constexpr int MIN_SUPPORTED_NOTE = 12; // equivalent for C0
-    static constexpr pitch_level_t MAX_SUPPORTED_PITCH_LEVEL = pitchLevel(PitchClass::C, 8);
-    static constexpr int MAX_SUPPORTED_NOTE = 108; // equivalent for C8
-
-    pitch = 0;
-    centsOffset = 0;
-
-    if (nominalPitch <= MIN_SUPPORTED_PITCH_LEVEL) {
-        pitch = MIN_SUPPORTED_NOTE;
-        return;
-    }
-
-    if (nominalPitch >= MAX_SUPPORTED_PITCH_LEVEL) {
-        pitch = MAX_SUPPORTED_NOTE;
-        return;
-    }
-
     // Get midi pitch
-    float stepCount = MIN_SUPPORTED_NOTE + ((nominalPitch - MIN_SUPPORTED_PITCH_LEVEL) / static_cast<float>(PITCH_LEVEL_STEP));
+    float stepCount = mpe::ZERO_PITCH_LEVEL_MIDI_EQUIVALENT + nominalPitch / static_cast<float>(mpe::PITCH_LEVEL_STEP);
     pitch = RealRound(stepCount, 0);
 
     // Get tuning offset
-    int semitonesCount = pitch - MIN_SUPPORTED_NOTE;
-    pitch_level_t tuningPitchLevel = nominalPitch - (semitonesCount * PITCH_LEVEL_STEP);
+    int semitonesCount = pitch - mpe::ZERO_PITCH_LEVEL_MIDI_EQUIVALENT;
+    pitch_level_t tuningPitchLevel = nominalPitch - semitonesCount * mpe::PITCH_LEVEL_STEP;
     centsOffset = pitchLevelToCents(tuningPitchLevel);
 }
 

@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2023 MuseScore Limited
+ * Copyright (C) 2023 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -29,12 +29,14 @@
 
 #include "tdraw.h"
 #include "tlayout.h"
+#include "textlayout.h"
 #include "chordlayout.h"
 #include "layoutcontext.h"
 #include "scorelayout.h"
-#include "arpeggiolayout.h"
+#include "scorepageviewlayout.h"
 #include "horizontalspacing.h"
 #include "slurtielayout.h"
+#include "headerfooterlayout.h"
 
 #include "paint.h"
 
@@ -49,24 +51,34 @@ void ScoreRenderer::layoutScore(Score* score, const Fraction& st, const Fraction
     ScoreLayout::layoutRange(score, st, et);
 }
 
+void ScoreRenderer::layoutHeadersFooters(Score* score) const
+{
+    LayoutContext ctx(score);
+    if (!ctx.conf().isMode(LayoutMode::PAGE) && !ctx.conf().isMode(LayoutMode::FLOAT)) {
+        return;
+    }
+
+    ScorePageViewLayout::layoutHeadersFooters(ctx);
+}
+
 SizeF ScoreRenderer::pageSizeInch(const Score* score) const
 {
     return Paint::pageSizeInch(score);
 }
 
-SizeF ScoreRenderer::pageSizeInch(const Score* score, const PaintOptions& opt) const
+SizeF ScoreRenderer::pageSizeInch(const Score* score, const ScorePaintOptions& opt) const
 {
     return Paint::pageSizeInch(score, opt);
 }
 
-void ScoreRenderer::paintScore(Painter* painter, Score* score, const IScoreRenderer::PaintOptions& opt) const
+void ScoreRenderer::paintScore(Painter* painter, Score* score, const ScorePaintOptions& opt) const
 {
     Paint::paintScore(painter, score, opt);
 }
 
-void ScoreRenderer::paintItem(Painter& painter, const EngravingItem* item) const
+void ScoreRenderer::paintItem(Painter& painter, const EngravingItem* item, const PaintOptions& opt) const
 {
-    Paint::paintItem(painter, item);
+    Paint::paintItem(painter, item, opt);
 }
 
 void ScoreRenderer::doLayoutItem(EngravingItem* item)
@@ -75,20 +87,20 @@ void ScoreRenderer::doLayoutItem(EngravingItem* item)
     TLayout::layoutItem(item, ctx);
 }
 
-void ScoreRenderer::doDrawItem(const EngravingItem* item, Painter* p)
+void ScoreRenderer::doDrawItem(const EngravingItem* item, Painter* p, const PaintOptions& opt)
 {
-    TDraw::drawItem(item, p);
+    TDraw::drawItem(item, p, opt);
 }
 
 void ScoreRenderer::layoutText1(TextBase* item, bool base)
 {
     LayoutContext ctx(item->score());
     if (base) {
-        TLayout::layoutBaseTextBase1(item, ctx);
+        TextLayout::layoutBaseTextBase1(item, ctx);
     } else if (Harmony::classof(item)) {
-        TLayout::layoutHarmony(static_cast<Harmony*>(item), static_cast<Harmony*>(item)->mutldata(), ctx);
+        TLayout::layoutHarmony(toHarmony(item), toHarmony(item)->mutldata(), ctx);
     } else {
-        TLayout::layoutBaseTextBase1(item, ctx);
+        TextLayout::layoutBaseTextBase1(item, ctx);
     }
 }
 
@@ -118,4 +130,12 @@ void ScoreRenderer::layoutStem(Chord* item)
 {
     LayoutContext ctx(item->score());
     ChordLayout::layoutStem(item, ctx);
+}
+
+bool ScoreRenderer::scoreHasTimestampHeadersFooters(const Score* score) const
+{
+    if (score->layoutMode() != LayoutMode::PAGE && score->layoutMode() != LayoutMode::FLOAT) {
+        return false;
+    }
+    return HeaderFooterLayout::scoreHasTimestampHeadersFooters(score);
 }

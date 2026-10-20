@@ -5,7 +5,7 @@
  * MuseScore
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore BVBA and others
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -32,7 +32,7 @@
 class QWindow;
 
 namespace muse::ui {
-class IInteractiveProvider : MODULE_EXPORT_INTERFACE
+class IInteractiveProvider : MODULE_CONTEXT_INTERFACE
 {
     INTERFACE_ID(ILaunchProvider)
 
@@ -53,9 +53,10 @@ public:
 
     virtual void raise(const UriQuery& uri) = 0;
 
-    virtual void close(const Uri& uri) = 0;
-    virtual void close(const UriQuery& uri) = 0;
-    virtual void closeAllDialogs() = 0;
+    virtual async::Promise<Ret> close(const Uri& uri) = 0;
+    virtual async::Promise<Ret> close(const UriQuery& uri) = 0;
+    virtual Ret closeSync(const UriQuery& uri) = 0;
+    virtual Ret closeAllDialogsSync() = 0;
 
     virtual ValCh<Uri> currentUri() const = 0;
     virtual RetVal<bool> isCurrentUriDialog() const = 0;

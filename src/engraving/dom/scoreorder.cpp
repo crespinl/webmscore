@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -21,19 +21,15 @@
  */
 #include "scoreorder.h"
 
-#include <iostream>
-
 #include "rw/xmlreader.h"
 #include "rw/xmlwriter.h"
-
-#include "types/translatablestring.h"
 
 #include "dom/bracketItem.h"
 #include "dom/instrtemplate.h"
 #include "dom/part.h"
 #include "dom/score.h"
 #include "dom/staff.h"
-#include "dom/undo.h"
+#include "editing/editbrackets.h"
 
 #include "log.h"
 
@@ -351,7 +347,7 @@ int ScoreOrder::instrumentSortingIndex(const String& instrumentId, bool isSolois
 //   isScoreOrder
 //---------------------------------------------------------
 
-bool ScoreOrder::isScoreOrder(const std::list<int>& indices) const
+bool ScoreOrder::isScoreOrder(const std::vector<int>& indices) const
 {
     if (isCustom()) {
         return true;
@@ -369,7 +365,7 @@ bool ScoreOrder::isScoreOrder(const std::list<int>& indices) const
 
 bool ScoreOrder::isScoreOrder(const Score* score) const
 {
-    std::list<int> indices;
+    std::vector<int> indices;
     for (const Part* part : score->parts()) {
         indices.push_back(instrumentSortingIndex(part->instrument()->id(), part->soloist()));
     }
@@ -423,7 +419,7 @@ void ScoreOrder::setBracketsAndBarlines(Score* score)
                 }
             }
             if (!braceSpan) {
-                staff->undoChangeProperty(Pid::STAFF_BARLINE_SPAN, 0);
+                staff->undoChangeProperty(Pid::STAFF_BARLINE_SPAN, false);
             } else {
                 --braceSpan;
             }
@@ -462,11 +458,8 @@ void ScoreOrder::setBracketsAndBarlines(Score* score)
                     thnBracketSpan += static_cast<int>(part->nstaves());
                 }
                 if (prvStaff) {
-                    bool oldBarlineSpan = prvStaff->getProperty(Pid::STAFF_BARLINE_SPAN).toBool();
-                    bool newBarlineSpan = prvBarLineSpan && (!prvSection.isEmpty() && (sg.section == prvSection));
-                    if (oldBarlineSpan != newBarlineSpan) {
-                        prvStaff->undoChangeProperty(Pid::STAFF_BARLINE_SPAN, newBarlineSpan);
-                    }
+                    const bool newBarlineSpan = prvBarLineSpan && (!prvSection.isEmpty() && (sg.section == prvSection));
+                    prvStaff->undoChangeProperty(Pid::STAFF_BARLINE_SPAN, newBarlineSpan);
                 }
                 prvStaff = staff;
                 ++staffIdx;

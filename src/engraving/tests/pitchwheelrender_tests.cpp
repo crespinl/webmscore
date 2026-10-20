@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -27,7 +27,6 @@
 
 #include "engraving/compat/midi/pitchwheelrenderer.h"
 
-using namespace mu;
 using namespace mu::engraving;
 static int DEFAULT_CHANNEL = 0;
 
@@ -62,7 +61,7 @@ TEST_F(PitchWheelRender_Tests, generateRanges)
     func4.mEndTick = 200;
     func5.mStartTick = 10;
     func5.mEndTick = 50;
-    using FuncList = std::list<PitchWheelRenderer::PitchWheelFunction>;
+    using FuncList = std::vector<PitchWheelRenderer::PitchWheelFunction>;
     std::map<int, int, std::greater<> > ranges;
     PitchWheelRenderer::generateRanges(FuncList { func1 }, ranges);
     EXPECT_EQ(ranges.at(30), 60);

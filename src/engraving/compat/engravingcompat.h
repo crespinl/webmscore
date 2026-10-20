@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -40,8 +40,10 @@ private:
     static void resetMarkerLeftFontSize(MasterScore* masterScore);
     static void resetRestVerticalOffsets(MasterScore* masterScore);
     static void adjustVBoxDistances(MasterScore* masterScore);
+    static void pre470TextCompat(MasterScore* masterScore);
+    static void migrateNoteParens(MasterScore* masterScore);
 
     static bool relayoutUserModifiedCrossStaffBeams(MasterScore* score);
-    static bool resetHookHeightSign(MasterScore* masterScore);
+    static bool setLyricLineVisibility(MasterScore* masterScore);
 };
 } // namespace mu::engraving::compat

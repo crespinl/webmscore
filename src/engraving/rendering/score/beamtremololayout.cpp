@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2023 MuseScore Limited
+ * Copyright (C) 2023 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -310,6 +310,14 @@ void BeamTremoloLayout::extendStem(const BeamBase::LayoutData* ldata, Chord* cho
 
     if (chord->stemSlash()) {
         TLayout::layoutStemSlash(chord->stemSlash(), chord->stemSlash()->mutldata(), ctx.conf());
+    }
+
+    // Update stem shape
+    Stem* stem = chord->stem();
+    for (ShapeElement& shapeEl : chord->segment()->staffShape(chord->vStaffIdx()).elements()) {
+        if (shapeEl.item() == stem) {
+            shapeEl = ShapeElement(stem->ldata()->bbox().translated(stem->pos() + chord->pos()), stem);
+        }
     }
 }
 

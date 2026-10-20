@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore Limited
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -57,6 +57,13 @@ struct ClefTypeList;
 namespace mu::iex::mei {
 class UIDRegister;
 
+struct ControlElementPosition {
+    engraving::Measure* measure = nullptr;
+    engraving::Fraction tick;
+    int track = 0;
+    engraving::ChordRest* chordRest = nullptr;
+};
+
 enum GraceReading {
     GraceNone = 0,
     GraceAsGrp,
@@ -69,8 +76,8 @@ enum GraceReading {
 
 class MeiImporter
 {
-    INJECT_STATIC(mu::iex::mei::IMeiConfiguration, configuration)
-    INJECT(muse::io::IFileSystem, fileSystem)
+    muse::GlobalInject<mu::iex::mei::IMeiConfiguration> configuration;
+    muse::GlobalInject<muse::io::IFileSystem> fileSystem;
 
 public:
     MeiImporter(engraving::Score* s) { m_score = s; }
@@ -103,10 +110,12 @@ private:
     bool readElements(pugi::xml_node parentNode, engraving::Measure* measure, int track, engraving::Fraction& ticks);
     bool readArtics(pugi::xml_node parentNode, engraving::Chord* chord);
     bool readArtic(pugi::xml_node articNode, engraving::Chord* chord);
+    bool readArtic(pugi::xml_node articNode, engraving::Note* note);
     bool readBeam(pugi::xml_node beamNode, engraving::Measure* measure, int track, engraving::Fraction& ticks);
     bool readBTrem(pugi::xml_node bTremNode, engraving::Measure* measure, int track, engraving::Fraction& ticks);
     bool readClef(pugi::xml_node clefNode, engraving::Measure* measure, int track, engraving::Fraction& ticks);
     bool readChord(pugi::xml_node chordNode, engraving::Measure* measure, int track, engraving::Fraction& ticks);
+    bool readFTrem(pugi::xml_node fTremNode, engraving::Measure* measure, int track, engraving::Fraction& ticks);
     bool readGraceGrp(pugi::xml_node graceGrpNode, engraving::Measure* measure, int track, engraving::Fraction& ticks);
     bool readMRest(pugi::xml_node mRestNode, engraving::Measure* measure, int track, engraving::Fraction& ticks);
     bool readMRpt(pugi::xml_node mRptNode, engraving::Measure* measure, int track, engraving::Fraction& ticks);
@@ -186,11 +195,11 @@ private:
     engraving::EngravingItem* addToChordRest(const libmei::Element& meiElement, engraving::Measure* measure,
                                              engraving::Chord* chord = nullptr);
     std::string xmlIdFrom(std::string dataURI);
-    engraving::ChordRest* findStart(const libmei::Element& meiElement, engraving::Measure* measure);
-    engraving::ChordRest* findEnd(pugi::xml_node controlNode, const engraving::ChordRest* startChordRest);
+    ControlElementPosition findStart(const libmei::Element& meiElement, engraving::Measure* measure);
+    ControlElementPosition findEnd(pugi::xml_node controlNode, engraving::Spanner* spanner);
     engraving::Note* findStartNote(const libmei::Element& meiElement);
     engraving::Note* findEndNote(pugi::xml_node controlNode);
-    const std::list<engraving::ChordRest*> findPlistChordRests(pugi::xml_node controlNode);
+    const std::vector<engraving::ChordRest*> findPlistChordRests(pugi::xml_node controlNode);
     void clearGraceNotes();
     bool hasLyricsToExtend(engraving::track_idx_t track, int no);
     const std::pair<engraving::Lyrics*, engraving::ChordRest*>& getLyricsToExtend(engraving::track_idx_t track, int no);
@@ -252,6 +261,7 @@ private:
     engraving::BeamMode m_graceBeamBeginMode;
     engraving::Chord* m_lastChord;
     std::string m_tremoloId;
+    engraving::TremoloType m_tremoloType;
 
     std::list<engraving::Chord*> m_graceNotes;
     GraceReading m_readingGraceNotes;

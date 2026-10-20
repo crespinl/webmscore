@@ -5,7 +5,7 @@
  * MuseScore Studio
  * Music Composition & Notation
  *
- * Copyright (C) 2025 MuseScore Limited
+ * Copyright (C) 2025 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -21,7 +21,7 @@
  */
 #include "bendinfoconverter.h"
 
-#include <dom/note.h>
+#include <engraving/dom/note.h>
 
 using namespace mu::engraving;
 
@@ -71,7 +71,7 @@ ImportedBendInfo BendInfoConverter::fillBendInfo(const Note* note, const PitchVa
 
         if (currentPitchDiff == previousPitchDiff && !importedInfo.segments.empty()) {
             BendSegment& lastSegment = importedInfo.segments.back();
-            lastSegment.middleTime = pitchValues[i].time;
+            lastSegment.middleTime = pitchValues[i + 1].time; // there is no "hold" in bend, cause both segments go same direction
             lastSegment.endTime = pitchValues[i + 1].time;
             lastSegment.endPitch = pitchValues[i + 1].pitch;
             continue;

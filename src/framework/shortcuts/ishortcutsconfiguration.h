@@ -5,7 +5,7 @@
  * MuseScore
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore BVBA and others
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -19,15 +19,15 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-#ifndef MUSE_SHORTCUTS_ISHORTCUTSCONFIGURATION_H
-#define MUSE_SHORTCUTS_ISHORTCUTSCONFIGURATION_H
+
+#pragma once
 
 #include "modularity/imoduleinterface.h"
 #include "io/path.h"
 #include "types/retval.h"
 
 namespace muse::shortcuts {
-class IShortcutsConfiguration : MODULE_EXPORT_INTERFACE
+class IShortcutsConfiguration : MODULE_GLOBAL_INTERFACE
 {
     INTERFACE_ID(IShortcutsConfiguration)
 
@@ -39,13 +39,5 @@ public:
 
     virtual io::path_t shortcutsUserAppDataPath() const = 0;
     virtual io::path_t shortcutsAppDataPath() const = 0;
-
-    virtual io::path_t midiMappingUserAppDataPath() const = 0;
-
-    virtual bool advanceToNextNoteOnKeyRelease() const = 0;
-    virtual void setAdvanceToNextNoteOnKeyRelease(bool value) = 0;
-    virtual muse::async::Channel<bool> advanceToNextNoteOnKeyReleaseChanged() const = 0;
 };
 }
-
-#endif // MUSE_SHORTCUTS_ISHORTCUTSCONFIGURATION_H

@@ -5,7 +5,7 @@
  * MuseScore
  * Music Composition & Notation
  *
- * Copyright (C) 2021 MuseScore BVBA and others
+ * Copyright (C) 2021 MuseScore Limited and others
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -30,7 +30,7 @@
 #include "api/iapiengine.h"
 
 namespace muse::autobot {
-class ScriptApi : public QObject, public Injectable
+class ScriptApi : public QObject, public Contextable
 {
     Q_OBJECT
     Q_PROPERTY(QJSValue log READ log CONSTANT)
@@ -45,21 +45,21 @@ class ScriptApi : public QObject, public Injectable
     Q_PROPERTY(QJSValue process READ process CONSTANT)
     Q_PROPERTY(QJSValue filesystem READ filesystem CONSTANT)
 
-    Inject<muse::api::IApiRegister> apiRegister = { this };
+    GlobalInject<muse::api::IApiRegister> apiRegister;
 
 public:
     ScriptApi(muse::api::IApiEngine* engine, QObject* parent);
     ~ScriptApi();
 
-    QJSValue log() const { return api("api.log"); }
+    QJSValue log() const { return api("MuseApi.Log"); }
     QJSValue autobot() const { return api("api.autobot"); }
-    QJSValue dispatcher() const { return api("api.dispatcher"); }
-    QJSValue navigation() const { return api("api.navigation"); }
+    QJSValue dispatcher() const { return api("MuseInternal.Dispatcher"); }
+    QJSValue navigation() const { return api("MuseInternal.Navigation"); }
     QJSValue context() const { return api("api.context"); }
-    QJSValue shortcuts() const { return api("api.shortcuts"); }
-    QJSValue interactive() const { return api("api.interactive"); }
-    QJSValue keyboard() const { return api("api.keyboard"); }
-    QJSValue accessibility() const { return api("api.accessibility"); }
+    QJSValue shortcuts() const { return api("MuseInternal.Shortcuts"); }
+    QJSValue interactive() const { return api("MuseApi.Interactive"); }
+    QJSValue keyboard() const { return api("MuseInternal.Keyboard"); }
+    QJSValue accessibility() const { return api("MuseInternal.Accessibility"); }
     QJSValue process() const { return api("api.process"); }
     QJSValue filesystem() const { return api("api.filesystem"); }
 

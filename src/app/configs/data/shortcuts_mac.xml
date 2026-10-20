@@ -12,7 +12,7 @@
         <autorepeat>0</autorepeat>
     </SC>
     <SC>
-        <key>multiinstances-dev-show-info</key>
+        <key>multiwindows-dev-show-info</key>
         <seq>Ctrl+F3</seq>
         <autorepeat>0</autorepeat>
     </SC>
@@ -83,11 +83,39 @@
       <seq>Space</seq>
       <autorepeat>0</autorepeat>
     </SC>
+<!-- end Keyboard navigation -->
+
+<!-- Global actions -->
     <SC>
-      <key>nav-escape</key>
+        <key>action://copy</key>
+        <seq>Ctrl+C</seq>
+    </SC>
+    <SC>
+        <key>action://cut</key>
+        <seq>Ctrl+X</seq>
+    </SC>
+    <SC>
+        <key>action://paste</key>
+        <seq>Ctrl+V</seq>
+    </SC>
+    <SC>
+        <key>action://undo</key>
+        <std>11</std>
+    </SC>
+    <SC>
+        <key>action://redo</key>
+        <std>12</std>
+    </SC>
+    <SC>
+        <key>action://delete</key>
+        <seq>Del</seq>
+        <seq>Backspace</seq>
+    </SC>
+    <SC>
+      <key>action://cancel</key>
       <seq>Esc</seq>
     </SC>
-<!-- end Keyboard navigation -->
+<!-- end Global actions -->
 
   <SC>
     <key>help</key>
@@ -125,32 +153,16 @@
     <autorepeat>0</autorepeat>
     </SC>
   <SC>
-    <key>undo</key>
-    <std>11</std>
-    </SC>
-  <SC>
-    <key>redo</key>
-    <std>12</std>
-    </SC>
-  <SC>
-    <key>notation-cut</key>
-    <seq>Ctrl+X</seq>
-    </SC>
-  <SC>
-    <key>notation-copy</key>
-    <seq>Ctrl+C</seq>
-    </SC>
-  <SC>
-    <key>notation-paste</key>
-    <seq>Ctrl+V</seq>
-    </SC>
-  <SC>
     <key>notation-paste-half</key>
     <seq>Meta+Shift+Q</seq>
     </SC>
   <SC>
     <key>notation-paste-double</key>
     <seq>Meta+Shift+W</seq>
+    </SC>
+  <SC>
+    <key>extend-to-next-note</key>
+    <seq>Alt+W</seq>
     </SC>
   <SC>
     <key>notation-swap</key>
@@ -589,15 +601,6 @@
     <seq>Shift+.</seq>
     </SC>
   <SC>
-    <key>notation-escape</key>
-    <seq>Esc</seq>
-    </SC>
-  <SC>
-    <key>notation-delete</key>
-    <seq>Del</seq>
-    <seq>Backspace</seq>
-    </SC>
-  <SC>
     <key>time-delete</key>
     <seq>Ctrl+Del</seq>
     <seq>Ctrl+Backspace</seq>
@@ -803,6 +806,11 @@
     <autorepeat>0</autorepeat>
     </SC>
   <SC>
+    <key>play-from-selection</key>
+    <seq>Shift+Space</seq>
+    <autorepeat>0</autorepeat>
+    </SC>
+  <SC>
     <key>pause-and-select</key>
     <seq>Alt+Space</seq>
     <autorepeat>0</autorepeat>
@@ -907,10 +915,12 @@
   <SC>
     <key>toggle-piano-keyboard</key>
     <seq>P</seq>
+    <autorepeat>0</autorepeat>
     </SC>
   <SC>
     <key>toggle-percussion-panel</key>
     <seq>O</seq>
+    <autorepeat>0</autorepeat>
     </SC>
   <SC>
     <key>inspector</key>
@@ -943,11 +953,9 @@
   <SC>
     <key>prev-text-element</key>
     <seq>Shift+Space</seq>
-    </SC>
-  <SC>
-    <key>prev-text-element</key>
     <seq>Left</seq>
-  </SC>
+    <seq>Backspace</seq>
+    </SC>
   <SC>
     <key>next-syllable</key>
     <seq>-</seq>
