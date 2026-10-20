@@ -23,25 +23,31 @@ This is the recurring job. The history looks like:
 ```
 * Build with Qt x / emscripten y      <- toolchain bump (only when needed)
 * Webmscore: support MuseScore vX.Y.Z <- code fixes
-*   Rebase to vX.Y.Z                  <- merge commit: old webmscore HEAD + upstream tag
-|\
-| * (upstream vX.Y.Z)
+* Rebase to vX.Y.Z                    <- squashed upstream update, single parent
+* (previous webmscore HEAD)
 ```
+
+The upstream history is squashed: "Rebase to vX.Y.Z" is a regular commit holding the
+whole upstream update, and records the upstream commit it corresponds to in a
+`MuseScore-Base: vX.Y.Z (<full hash>)` line. (Up to v4.6.5 these were merge commits.)
 
 ### 1. Merge with the *previous* release as merge base
 
 Do **not** merge the tag directly: the true merge base is an old commit, which would
-resurrect thousands of upstream changes as conflicts. Graft the tag onto the previous
-release tip first, so only the actual webmscore delta conflicts:
+resurrect thousands of upstream changes as conflicts. Temporarily graft both sides onto
+the previous release, so only the actual webmscore delta conflicts:
 
 ```sh
 git fetch upstream --tags --no-recurse-submodules
-PREV=<tip of the previous release the fork was based on>   # e.g. c5085a955b for 4.6.5
-git replace --graft vX.Y.Z^{commit} $PREV                  # temporary
-git merge --no-commit --no-ff vX.Y.Z^{commit}
+BASE=$(git log -1 --format=%H --grep='^MuseScore-Base:' webmscore)          # last "Rebase to"
+PREV=$(git log -1 --format=%B $BASE | sed -n 's/^MuseScore-Base: .*(\(.*\))$/\1/p')
+git replace --graft vX.Y.Z^{commit} $PREV        # temporary: the new tag descends from PREV
+git replace --graft $BASE $BASE^ $PREV           # temporary: so does webmscore
+git merge-base webmscore vX.Y.Z^{commit}         # must print $PREV
+git merge --squash vX.Y.Z^{commit}
 # ... resolve ...
-git commit -m "Rebase to vX.Y.Z"
-git replace -d vX.Y.Z^{commit}                             # remove the graft; parents stay correct
+git commit                                       # "Rebase to vX.Y.Z" + MuseScore-Base line
+git replace -d vX.Y.Z^{commit} $BASE             # remove the grafts
 ```
 
 `git diff $PREV webmscore -- <file>` shows exactly what webmscore changed in a file —
