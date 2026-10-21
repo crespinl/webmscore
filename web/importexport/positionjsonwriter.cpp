@@ -188,7 +188,7 @@ void PositionJsonWriter::writeMeasuresPositions(QJsonObject& json, const mu::eng
     QJsonArray elements;
 
     for (Measure* measure = score->firstMeasureMM(); measure; measure = measure->nextMeasureMM()) {
-        qreal sx = measure->bbox().width() * ndpi;
+        qreal sx = measure->ldata()->bbox().width() * ndpi;
         qreal sy = measure->system()->height() * ndpi;
         qreal x = measure->pagePos().x() * ndpi;
         qreal y = measure->system()->pagePos().y() * ndpi;
